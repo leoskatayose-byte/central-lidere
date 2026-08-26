@@ -17,13 +17,6 @@
   --txt:#e8f1f1; --dim:#93a5a6; --mut:#5f7375;
   --glow:rgba(46,230,192,.30);
 }
-:root[data-tema="turquesa"]{
-  --bg:#070d0f; --bg2:#050a0b; --panel:#0d1618; --panel2:#121e21; --raise:#16252a;
-  --acc:#2ee6c0; --acc-s:#7df5da; --acc-d:#12a88c; --acc-ink:#032019;
-  --meta:#2ee6c0; --meta-s:#7df5da;
-  --pos:#2ee6c0; --neg:#ff7a7a; --warn:#e8c15a;
-  --txt:#e8f1f1; --dim:#93a5a6; --mut:#5f7375; --glow:rgba(46,230,192,.30);
-}
 :root[data-tema="ambar"]{
   --bg:#0a0908; --bg2:#070605; --panel:#15120e; --panel2:#1c1813; --raise:#231e17;
   --acc:#f0b448; --acc-s:#ffd489; --acc-d:#b8811f; --acc-ink:#241903;
@@ -960,10 +953,9 @@ function toast(m){const t=gEl('toast');t.textContent=m;t.classList.add('show');c
 function showModal(id){gEl(id).classList.add('show')}
 function closeModal(id){gEl(id).classList.remove('show')}
 
-/* ===== Tema (7 paletas — local ao navegador de cada pessoa) ===== */
+/* ===== Tema (6 paletas — local ao navegador de cada pessoa) ===== */
 const TEMAS=[
   {id:'dual',nome:'Turquesa + âmbar',a:'#2ee6c0',b:'#f0b448'},
-  {id:'turquesa',nome:'Turquesa',a:'#2ee6c0',b:'#2ee6c0'},
   {id:'ambar',nome:'Âmbar Lidere',a:'#f0b448',b:'#f0b448'},
   {id:'lima',nome:'Lima elétrica',a:'#c2f24d',b:'#c2f24d'},
   {id:'verde',nome:'Verde',a:'#3edc7a',b:'#3edc7a'},
