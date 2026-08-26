@@ -1334,19 +1334,24 @@ function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt))
 function diariasOnDate(dt){return isDiaUtil(dt)?alive(DB.diarias.modelos):[]}
 function holidayName(dt){const y=dt.getFullYear(),k=iso(dt);const n=feriadosNacionais(y).find(f=>f.data===k);if(n)return n.nome;const l=(DB.feriados||[]).find(f=>f.data===k);return l?l.nome:null}
 const CONTAS_COR='#06b6d4';
+const CRM_CAL_COR='#ec4899';
+function crmOnDate(dt){return crmLeadsAtivos().filter(l=>l.proximoContato===iso(dt))}
 function viewCalendar(){
   const y=calRef.getFullYear(),mo=calRef.getMonth();const first=new Date(y,mo,1);const startDow=(first.getDay()+6)%7;const dim=daysInMonth(y,mo);const todayK=todayKey();
   const prev=new Date(y,mo,0),prevDim=prev.getDate();
   const cpList=cpContasDoMes(calRef);const cpByDay={};
   cpList.forEach(x=>{if(x.eff.getMonth()===mo){const d=x.eff.getDate();(cpByDay[d]=cpByDay[d]||[]).push(x)}});
+  const crmByDay={};
+  crmLeadsAtivos().forEach(l=>{if(!l.proximoContato)return;const pd=parseK(l.proximoContato);if(pd.getFullYear()===y&&pd.getMonth()===mo){const d=pd.getDate();(crmByDay[d]=crmByDay[d]||[]).push(l)}});
   let cells='';
   for(let i=startDow-1;i>=0;i--)cells+=`<div class="d out"><span class="n">${prevDim-i}</span></div>`;
   for(let d=1;d<=dim;d++){
     const dt=new Date(y,mo,d);const dk=iso(dt);
     const av=avulsasOnDate(dt).filter(a=>a.status!=='feito').length,men=mensaisOnDate(dt).length,sem=semanaisOnDate(dt).length,dia=diariasOnDate(dt).length;
     const cpArr=cpByDay[d]||[];const cpSoma=cpArr.reduce((s,x)=>s+x.c.valor,0);const cpVe=cpArr.some(x=>x.st==='vencido');
-    const total=av+men+sem+dia+cpArr.length;const hol=holidayName(dt);
-    const dots=[av&&'<i style="background:var(--acc)"></i>',men&&'<i style="background:var(--meta)"></i>',sem&&'<i style="background:#8a7cf2"></i>',dia&&'<i style="background:var(--pos)"></i>',cpArr.length&&`<i style="background:${CONTAS_COR}"></i>`].filter(Boolean).join('');
+    const crmArr=crmByDay[d]||[];
+    const total=av+men+sem+dia+cpArr.length+crmArr.length;const hol=holidayName(dt);
+    const dots=[av&&'<i style="background:var(--acc)"></i>',men&&'<i style="background:var(--meta)"></i>',sem&&'<i style="background:#8a7cf2"></i>',dia&&'<i style="background:var(--pos)"></i>',cpArr.length&&`<i style="background:${CONTAS_COR}"></i>`,crmArr.length&&`<i style="background:${CRM_CAL_COR}"></i>`].filter(Boolean).join('');
     cells+=`<div class="d ${dk===todayK?'hoje':''} ${!isDiaUtil(dt)?'nu':''} ${hol?'hol':''} ${calSel===dk?'sel':''}" onclick="calSel='${dk}';render()">
       <span class="n">${d}</span>${total?`<span class="cnt">${total}</span>`:''}
       <div class="dots">${dots}</div>${cpSoma?`<div class="val" style="color:${cpVe?'var(--neg)':CONTAS_COR}">${brl(cpSoma)}</div>`:''}${hol?`<div class="hol-lab">${esc(hol)}</div>`:''}</div>`;
@@ -1355,7 +1360,7 @@ function viewCalendar(){
   const mn=calRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const sw=(cor,lab)=>`<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:5px"></i>${lab}</span>`;
   const legend=`<div class="row-meta" style="margin-bottom:12px;font-size:12px">
-    ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')}</div>`;
+    ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')} · ${sw(CRM_CAL_COR,'CRM')}</div>`;
   return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${mn}</h2>
     <button class="btn btn-sm" onclick="stepCal(-1)">‹</button><button class="btn btn-sm" onclick="calRef=new Date();render()">Hoje</button><button class="btn btn-sm" onclick="stepCal(1)">›</button></div>
     ${legend}
@@ -1366,6 +1371,7 @@ function calDayHTML(dk){
   const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[dk]||{};
   const av=avulsasOnDate(dt),men=mensaisOnDate(dt),sem=semanaisOnDate(dt),dia=diariasOnDate(dt);
   const cp=cpContasDoMes(dt).filter(x=>iso(x.eff)===dk);
+  const crm=crmOnDate(dt);
   const sec=(t,n)=>`<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:14px 0 8px">${t} (${n})</div>`;
   const item=(on,onclick,titulo,meta)=>`<div class="row" style="padding:9px 11px"><button class="chk ${on?'on':''}" onclick="${onclick}">✓</button>
     <div class="row-body"><div class="row-title" style="font-size:12.5px;${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(titulo)}</div>
@@ -1379,8 +1385,11 @@ function calDayHTML(dk){
     return `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="openConta('${x.c.id}')"><div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(x.c.fornecedor)}</div>
       <div class="row-meta"><span class="chip chip-n" style="color:${cpGrupoCor(x.c.grupoId)}">${esc(cpGrupoNome(x.c.grupoId))}</span>${stChip}</div></div>
       <div style="font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px">${brl(x.c.valor)}</div></div>`}).join('')}
+  if(crm.length){h+=sec('CRM · Contato agendado',crm.length)+crm.map(l=>{const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);
+    return `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="openLead('${l.id}')"><div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(l.empresa)}</div>
+      <div class="row-meta">${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:''}${l.contato?`<span class="chip chip-n">${esc(l.contato)}</span>`:''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome)}</span>`:''}</div></div></div>`}).join('')}
   const holBan=hol?`<div class="empty" style="border-color:var(--meta);color:var(--meta);text-align:left;padding:10px 12px;margin-bottom:10px">🎌 Feriado: ${esc(hol)}</div>`:'';
-  const empty=(av.length+men.length+sem.length+dia.length+cp.length)?'':'<div class="empty">Nada agendado para este dia.</div>';
+  const empty=(av.length+men.length+sem.length+dia.length+cp.length+crm.length)?'':'<div class="empty">Nada agendado para este dia.</div>';
   return `<div class="panel" style="margin-bottom:0"><div class="panel-head"><h2 style="text-transform:none">${fmtBR(dk)}<small style="text-transform:capitalize">${dt.toLocaleDateString('pt-BR',{weekday:'long'})}${!util?' · fora do dia útil':''}</small></h2></div>
    ${holBan}${h}${empty}<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-sm btn-gold" style="flex:1;justify-content:center" onclick="novaNoDia('${dk}')">+ Tarefa</button><button class="btn btn-sm" style="flex:1;justify-content:center" onclick="openConta(null,(DB.grupos[0]||{}).id);gEl('c_dia').value=${dt.getDate()}" ${DB.grupos.length?'':'disabled'}>+ Conta</button></div></div>`}
 function novaNoDia(dk){openTask(null,'afazer',dk)}
