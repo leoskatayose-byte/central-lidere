@@ -1208,7 +1208,7 @@ function viewHome(){
   pendLate.forEach(a=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:a.titulo,meta:fmtBR(a.prazo),onclick:"go('pend')"}));
   cpVencido.forEach(x=>feed.push({u:2,cor:'var(--neg)',lbl:'Vencida',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
   onbAtrasados.forEach(c=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:c.nome,meta:'Implantação',onclick:"go('onb')"}));
-  crmAtrasoLeads.forEach(l=>feed.push({u:2,cor:'var(--neg)',lbl:'Sem contato',txt:l.empresa,meta:fmtBR(l.proximoContato),onclick:"go('crm')"}));
+  crmAtrasoLeads.forEach(l=>feed.push({u:2,cor:'var(--neg)',lbl:'Contato atrasado',txt:l.empresa,meta:fmtBR(l.proximoContato),onclick:"go('crm')"}));
   pendHoje.forEach(a=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:a.titulo,meta:'Pendência',onclick:"go('pend')"}));
   cpHoje.forEach(x=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
   crmHojeLeads.forEach(l=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:l.empresa,meta:'Contato',onclick:"go('crm')"}));
