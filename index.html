@@ -54,6 +54,15 @@
   --txt:#1c2130; --dim:#565f74; --mut:#838c9e;
   --glow:rgba(169,118,29,.22);
 }
+:root[data-tema="classico"]{
+  --bg:#07090d; --bg2:#05060a; --panel:#0e131d; --panel2:#131926; --raise:#1a2130;
+  --line:rgba(212,168,64,.16); --line-f:rgba(212,168,64,.30);
+  --acc:#d4a840; --acc-s:#f2c94c; --acc-d:#a8791f; --acc-ink:#1f1503;
+  --meta:#d4a840; --meta-s:#f2c94c;
+  --pos:#3ea06b; --neg:#ef4444; --warn:#d4a840;
+  --txt:#e9edf4; --dim:#9aa3b2; --mut:#6b7484;
+  --glow:rgba(212,168,64,.30);
+}
 html{color-scheme:dark} :root[data-tema="claro"]{color-scheme:light}
 
 *{box-sizing:border-box} html,body{margin:0;height:100%}
@@ -951,14 +960,15 @@ function toast(m){const t=gEl('toast');t.textContent=m;t.classList.add('show');c
 function showModal(id){gEl(id).classList.add('show')}
 function closeModal(id){gEl(id).classList.remove('show')}
 
-/* ===== Tema (6 paletas — local ao navegador de cada pessoa) ===== */
+/* ===== Tema (7 paletas — local ao navegador de cada pessoa) ===== */
 const TEMAS=[
   {id:'dual',nome:'Turquesa + âmbar',a:'#2ee6c0',b:'#f0b448'},
   {id:'turquesa',nome:'Turquesa',a:'#2ee6c0',b:'#2ee6c0'},
   {id:'ambar',nome:'Âmbar Lidere',a:'#f0b448',b:'#f0b448'},
   {id:'lima',nome:'Lima elétrica',a:'#c2f24d',b:'#c2f24d'},
   {id:'verde',nome:'Verde',a:'#3edc7a',b:'#3edc7a'},
-  {id:'claro',nome:'Claro Lidere',a:'#a9761d',b:'#0f7a5c'}
+  {id:'claro',nome:'Claro Lidere',a:'#a9761d',b:'#0f7a5c'},
+  {id:'classico',nome:'Clássico Lidere (preto + dourado)',a:'#d4a840',b:'#d4a840'}
 ];
 function temaLocal(){try{return localStorage.getItem('lidere_app_tema')||'dual'}catch(e){return 'dual'}}
 function aplicaTema(id){document.documentElement.setAttribute('data-tema',id);try{localStorage.setItem('lidere_app_tema',id)}catch(e){}}
