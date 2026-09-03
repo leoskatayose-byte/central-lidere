@@ -192,13 +192,17 @@ input,select,textarea{font-family:inherit}
 .kb-card:hover{border-color:var(--line-f);border-left-color:var(--acc);background:var(--raise)}
 .kb-card:active{cursor:grabbing}
 .kb-card.drag{opacity:.3}
-.kb-card .t{font-size:13px;font-weight:600;line-height:1.4;padding-right:48px}
-.kb-card .d{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.45}
+.kb-card .t{font-size:13px;font-weight:600;line-height:1.4;padding-right:82px}
+.kb-card .d{font-size:11.5px;color:var(--mut);margin-top:6px;line-height:1.45;white-space:pre-wrap;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .kb-card .m{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;align-items:center}
 .kb-card.done{opacity:.62}.kb-card.done .t{text-decoration:line-through;color:var(--mut)}
 .kb-card.late{border-left-color:var(--neg)}
-.kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:0;transition:.15s}
+.kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
+@media(hover:none){.kb-card .acts{opacity:1}}
+.kb-card .acts .iconbtn{width:23px;height:23px;font-size:11px;border-radius:6px}
+.kb-card.first .acts .up,.kb-card.last .acts .dn{opacity:.25;pointer-events:none}
 .kb-add{width:100%;background:transparent;border:1px dashed var(--line-f);color:var(--mut);padding:9px;border-radius:8px;
   font-size:12px;font-weight:600;transition:.15s}
 .kb-add:hover{border-color:var(--acc);color:var(--acc)}
@@ -210,6 +214,7 @@ input,select,textarea{font-family:inherit}
 .chip-n{background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
 .chip-date{background:var(--raise);color:var(--dim)}
 .chip-date.over{background:color-mix(in srgb,var(--neg) 18%,transparent);color:var(--neg)}
+.chip-time{background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc-s,var(--acc))}
 .pchip.estrutura{background:color-mix(in srgb,var(--neg) 16%,transparent);color:var(--neg)}
 .pchip.executa{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
 .pchip.escala{background:color-mix(in srgb,var(--pos) 16%,transparent);color:var(--pos)}
@@ -314,7 +319,8 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
   padding:10px 12px;border-radius:9px;font-size:13px}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--glow)}
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-@media(max-width:560px){.fgrid{grid-template-columns:1fr}}
+.fgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px}
+@media(max-width:560px){.fgrid{grid-template-columns:1fr}.fgrid3{grid-template-columns:1fr}}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);display:none;
   align-items:flex-start;justify-content:center;padding:32px 14px;z-index:60;overflow-y:auto}
 .overlay.show{display:flex}
@@ -523,8 +529,9 @@ tbody tr:hover{background:var(--panel2)}
       <div class="field"><label>Empresa</label><select id="t_empresa"></select></div>
       <div class="field"><label>Responsável</label><select id="t_resp"><option value="">— sem responsável —</option></select></div>
     </div>
-    <div class="fgrid">
+    <div class="fgrid3">
       <div class="field"><label>Prazo</label><input id="t_prazo" type="date"></div>
+      <div class="field"><label>Horário</label><input id="t_hora" type="time"></div>
       <div class="field"><label>Valor (opcional)</label><input id="t_valor" type="number" step="0.01" placeholder="0,00"></div>
     </div>
     <div class="field"><label>Prioridade</label><div class="seg" id="t_pri">
@@ -535,7 +542,7 @@ tbody tr:hover{background:var(--panel2)}
       <div class="o sel" data-v="afazer" onclick="pickSt('afazer')">A Fazer</div>
       <div class="o" data-v="fazendo" onclick="pickSt('fazendo')">Fazendo</div>
       <div class="o" data-v="feito" onclick="pickSt('feito')">Feito</div></div></div>
-    <div class="field"><label>Observações</label><textarea id="t_obs" rows="3" placeholder="Detalhes, links, contexto"></textarea></div>
+    <div class="field"><label>Descrição / observações</label><textarea id="t_obs" rows="3" placeholder="Detalhes, links, contexto — aparece no card do Kanban"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovTask')">Cancelar</button><button class="btn btn-gold" onclick="saveTask()">Salvar</button></div>
 </div></div>
@@ -985,7 +992,7 @@ function pErr(error,ctx){if(error){console.error(ctx||'',error);toast('⚠ Erro 
 async function up(table,row){const {error}=await sb.from(table).upsert(row);pErr(error,table)}
 
 /* ===== Pendências: persistência (mesma tabela/colunas do Gestor separado) ===== */
-function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo||null,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
+function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
@@ -1014,7 +1021,7 @@ async function loadAll(){
   onbClientes.sort((a,b)=>a.nome.localeCompare(b.nome));
   DB={
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
-    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
+    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
     diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
@@ -1207,11 +1214,11 @@ function viewHome(){
   </div>`;
 
   const feed=[];
-  pendLate.forEach(a=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:a.titulo,meta:fmtBR(a.prazo),onclick:"go('pend')"}));
+  pendLate.forEach(a=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:a.titulo,meta:fmtBR(a.prazo)+(a.hora?' '+a.hora:''),onclick:"go('pend')"}));
   cpVencido.forEach(x=>feed.push({u:2,cor:'var(--neg)',lbl:'Vencida',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
   onbAtrasados.forEach(c=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:c.nome,meta:'Implantação',onclick:"go('onb')"}));
   crmAtrasoLeads.forEach(l=>feed.push({u:2,cor:'var(--neg)',lbl:'Contato atrasado',txt:l.empresa,meta:fmtBR(l.proximoContato),onclick:"go('crm')"}));
-  pendHoje.forEach(a=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:a.titulo,meta:'Pendência',onclick:"go('pend')"}));
+  pendHoje.forEach(a=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:a.titulo,meta:a.hora?(a.hora+' · Pendência'):'Pendência',onclick:"go('pend')"}));
   cpHoje.forEach(x=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
   crmHojeLeads.forEach(l=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:l.empresa,meta:'Contato',onclick:"go('crm')"}));
   feed.sort((a,b)=>b.u-a.u);
@@ -1265,29 +1272,79 @@ function viewPend(){
     <div class="stat"><div class="k">Atrasadas</div><div class="v" style="color:var(--warn)">${nf.filter(a=>a.prazo&&a.prazo<today).length}</div><div class="sub">passaram do prazo</div></div>
   </div>`;
   const cols=[['afazer','A Fazer','var(--dim)'],['fazendo','Fazendo','var(--meta)'],['feito','Feito','var(--pos)']];
-  const card=a=>{const late=a.status!=='feito'&&a.prazo&&a.prazo<today;
-    return `<div class="kb-card ${a.status==='feito'?'done':''} ${late?'late':''}" draggable="true" ondragstart="dragStart(event,'${a.id}')" onclick="openTask('${a.id}')">
+  const manual=pendSort==='manual';
+  const toolbar=`<div class="filters">
+    <span style="font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800">Ordenar por</span>
+    <select onchange="setPendSort(this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+      ${PEND_SORTS.map(([v,l])=>`<option value="${v}" ${pendSort===v?'selected':''}>${l}</option>`).join('')}</select>
+    <span class="right" style="font-size:11.5px;color:var(--mut)">${manual?'Arraste o card para onde quiser — ou use ▲ ▼ para subir e descer.':'Ordenação automática ligada — volte para “Ordem manual” para reposicionar.'}</span></div>`;
+  const card=(a,i,n)=>{const late=a.status!=='feito'&&a.prazo&&a.prazo<today;
+    return `<div class="kb-card ${a.status==='feito'?'done':''} ${late?'late':''} ${i===0?'first':''} ${i===n-1?'last':''}" draggable="true" ondragstart="dragStart(event,'${a.id}')" onclick="openTask('${a.id}')">
      <div class="t">${esc(a.titulo)}</div>
+     ${a.obs?`<div class="d">${esc(a.obs)}</div>`:''}
      <div class="m"><span class="pchip ${a.prioridade}">${a.prioridade.toUpperCase()}</span>
       ${a.prazo?`<span class="chip chip-date ${late?'over':''}">${fmtBR(a.prazo)}</span>`:''}
+      ${a.hora?`<span class="chip chip-time">⏱ ${esc(a.hora)}</span>`:''}
       ${a.responsavelId?`<span class="chip chip-n">${esc(respName(a.responsavelId))}</span>`:''}</div>
-     <div class="acts"><button class="iconbtn del" title="Excluir" onclick="event.stopPropagation();delTask('${a.id}')">🗑</button></div></div>`};
+     <div class="acts">${manual?`<button class="iconbtn up" title="Subir" onclick="event.stopPropagation();moveCard('${a.id}',-1)">▲</button><button class="iconbtn dn" title="Descer" onclick="event.stopPropagation();moveCard('${a.id}',1)">▼</button>`:''}<button class="iconbtn del" title="Excluir" onclick="event.stopPropagation();delTask('${a.id}')">🗑</button></div></div>`};
   const kb=`<div class="kb">${cols.map(([id,lbl,color])=>{
-    const items=list.filter(a=>a.status===id);
+    const items=pendSorted(list.filter(a=>a.status===id));
     return `<div class="kb-col" data-col="${id}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropCol(event,'${id}')">
       <div class="kb-h"><span class="dot" style="background:${color}"></span>${lbl}<span class="cnt">${items.length}</span></div>
-      ${items.map(card).join('')||''}
+      ${items.map((a,i)=>card(a,i,items.length)).join('')||''}
       <button class="kb-add" onclick="openTask(null,'${id}')">+ nova tarefa</button></div>`}).join('')}</div>`;
-  return stats+kb}
+  return stats+toolbar+kb}
 function respName(id){const r=DB.responsaveis.find(x=>x.id===id);return r?r.nome:'—'}
+
+/* --- Ordenação do Kanban de pendências --- */
+const PEND_SORTS=[['manual','Ordem manual (arrastar)'],['pri_desc','Prioridade: mais importante primeiro'],['pri_asc','Prioridade: menos importante primeiro'],['prazo_asc','Prazo: mais próximo primeiro'],['prazo_desc','Prazo: mais distante primeiro']];
+const PEND_PRI={alta:3,media:2,baixa:1};
+let pendSort=(function(){try{return localStorage.getItem('lidere_pend_sort')||'manual'}catch(e){return 'manual'}})();
+function setPendSort(v){pendSort=v;try{localStorage.setItem('lidere_pend_sort',v)}catch(e){}render()}
+const pendByOrdem=(x,y)=>((x.ordem||0)-(y.ordem||0))||String(x.titulo||'').localeCompare(String(y.titulo||''),'pt-BR');
+const pendWhen=a=>a.prazo?(a.prazo+'T'+(a.hora||'23:59')):null;
+function pendSorted(items){
+  const arr=items.slice();
+  const porPrazo=dir=>(x,y)=>{const a=pendWhen(x),b=pendWhen(y);
+    if(!a&&!b)return pendByOrdem(x,y);if(!a)return 1;if(!b)return -1;
+    return a===b?pendByOrdem(x,y):(a<b?-dir:dir)};
+  if(pendSort==='pri_desc')arr.sort((x,y)=>((PEND_PRI[y.prioridade]||0)-(PEND_PRI[x.prioridade]||0))||pendByOrdem(x,y));
+  else if(pendSort==='pri_asc')arr.sort((x,y)=>((PEND_PRI[x.prioridade]||0)-(PEND_PRI[y.prioridade]||0))||pendByOrdem(x,y));
+  else if(pendSort==='prazo_asc')arr.sort(porPrazo(1));
+  else if(pendSort==='prazo_desc')arr.sort(porPrazo(-1));
+  else arr.sort(pendByOrdem);
+  return arr}
+/* grava a ordem manual da coluna, persistindo só o que mudou */
+function pendGravaOrdem(arr){arr.forEach((x,k)=>{if((x.ordem||0)!==k){x.ordem=k;persistAvulsa(x)}})}
+function pendColuna(st){return alive(DB.avulsas).filter(a=>a.status===st).sort(pendByOrdem)}
+function moveCard(id,dir){
+  const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+  const arr=pendColuna(a.status);const i=arr.findIndex(x=>x.id===id),j=i+dir;
+  if(i<0||j<0||j>=arr.length)return;
+  arr.splice(j,0,arr.splice(i,1)[0]);
+  pendGravaOrdem(arr);render()}
 function dragStart(e,id){e.dataTransfer.setData('text/plain',id);e.target.classList.add('drag')}
 function dragOver(e){e.preventDefault();e.currentTarget.classList.add('over')}
 function dragLeave(e){e.currentTarget.classList.remove('over')}
+/* posição de inserção a partir do ponto onde o card foi solto */
+function pendDropIndex(colEl,y){
+  const cards=[].slice.call(colEl.querySelectorAll('.kb-card:not(.drag)'));
+  for(let i=0;i<cards.length;i++){const r=cards[i].getBoundingClientRect();if(y<r.top+r.height/2)return i}
+  return cards.length}
 function dropCol(e,col){e.preventDefault();e.currentTarget.classList.remove('over');
-  const id=e.dataTransfer.getData('text/plain');moveTask(id,col);
+  const id=e.dataTransfer.getData('text/plain');
+  const idx=pendSort==='manual'?pendDropIndex(e.currentTarget,e.clientY):null;
+  moveTask(id,col,idx);
   document.querySelectorAll('.kb-card.drag').forEach(c=>c.classList.remove('drag'))}
-function moveTask(id,st){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.status=st;a.concluidoEm=st==='feito'?Date.now():null;
-  persistAvulsa(a);render();if(st==='feito')toast('Concluída 🎉')}
+function moveTask(id,st,idx){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+  const mudouCol=a.status!==st;
+  a.status=st;a.concluidoEm=st==='feito'?Date.now():null;
+  const arr=pendColuna(st).filter(x=>x.id!==id);
+  arr.splice((idx==null||idx<0||idx>arr.length)?arr.length:idx,0,a);
+  const antes=a.ordem||0;
+  pendGravaOrdem(arr);
+  if(mudouCol||(a.ordem||0)===antes)persistAvulsa(a);
+  render();if(mudouCol&&st==='feito')toast('Concluída 🎉')}
 function delTask(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.deletedAt=Date.now();persistAvulsa(a);render();toast('Movido para Excluídos')}
 function restoreTask(id){const a=DB.avulsas.find(x=>x.id===id);if(a){a.deletedAt=null;persistAvulsa(a);render();toast('Restaurado')}}
 function purgeTask(id){if(!confirm('Excluir definitivamente? Não dá para desfazer.'))return;
@@ -1305,6 +1362,7 @@ function openTask(id,presetSt,presetPrazo){
   gEl('t_resp').innerHTML='<option value="">— sem responsável —</option>'+alive(DB.responsaveis).map(r=>`<option value="${r.id}">${esc(r.nome)}</option>`).join('');
   gEl('t_resp').value=a?(a.responsavelId||''):'';
   gEl('t_prazo').value=a?(a.prazo||''):(presetPrazo||'');
+  gEl('t_hora').value=a?(a.hora||''):'';
   gEl('t_valor').value=a&&a.valor?a.valor:'';
   gEl('t_obs').value=a?(a.obs||''):'';
   curPri=a?a.prioridade:'media';pickPri(curPri);
@@ -1314,11 +1372,11 @@ function saveTask(){
   const titulo=gEl('t_titulo').value.trim();if(!titulo)return toast('Informe o título');
   const id=gEl('t_id').value;
   const dados={titulo,empresa:gEl('t_empresa').value,responsavelId:gEl('t_resp').value||null,
-    prazo:gEl('t_prazo').value||null,valor:parseFloat(gEl('t_valor').value)||0,obs:gEl('t_obs').value.trim(),
+    prazo:gEl('t_prazo').value||null,hora:gEl('t_hora').value||'',valor:parseFloat(gEl('t_valor').value)||0,obs:gEl('t_obs').value.trim(),
     prioridade:curPri,status:curSt};
   let a;
   if(id){a=DB.avulsas.find(x=>x.id===id);Object.assign(a,dados);if(curSt==='feito'&&!a.concluidoEm)a.concluidoEm=Date.now();if(curSt!=='feito')a.concluidoEm=null}
-  else{a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...dados,concluidoEm:curSt==='feito'?Date.now():null,deletedAt:null};DB.avulsas.push(a)}
+  else{a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...dados,ordem:Math.min(0,...alive(DB.avulsas).filter(x=>x.status===curSt).map(x=>x.ordem||0))-1,concluidoEm:curSt==='feito'?Date.now():null,deletedAt:null};DB.avulsas.push(a)}
   persistAvulsa(a);closeModal('ovTask');render();toast('Salvo')}
 
 /* ===== Calendário ===== */
@@ -1330,7 +1388,7 @@ function mensaisOnDate(dt){
     alive(DB.mensais.modelos).forEach(mo=>{if(seen[mo.id])return;if(iso(mensalEff(yy,mm,mo))===iso(dt)){out.push(mo);seen[mo.id]=1}})});
   return out}
 function semanaisOnDate(dt){return alive(DB.semanais.modelos).filter(m=>String(m.diaSemana)===String(dt.getDay()))}
-function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt))}
+function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt)).sort((x,y)=>String(x.hora||'99:99').localeCompare(String(y.hora||'99:99'))||pendByOrdem(x,y))}
 function diariasOnDate(dt){return isDiaUtil(dt)?alive(DB.diarias.modelos):[]}
 function holidayName(dt){const y=dt.getFullYear(),k=iso(dt);const n=feriadosNacionais(y).find(f=>f.data===k);if(n)return n.nome;const l=(DB.feriados||[]).find(f=>f.data===k);return l?l.nome:null}
 const CONTAS_COR='#06b6d4';
@@ -1377,7 +1435,7 @@ function calDayHTML(dk){
     <div class="row-body"><div class="row-title" style="font-size:12.5px;${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(titulo)}</div>
     ${meta?`<div class="row-meta">${meta}</div>`:''}</div></div>`;
   let h='';
-  if(av.length)h+=sec('Avulsas',av.length)+av.map(a=>item(a.status==='feito',`quickDoneAvulsa('${a.id}')`,a.titulo,`<span class="pchip ${a.prioridade}">${a.prioridade}</span>${a.responsavelId?`<span class="chip chip-n">${esc(respName(a.responsavelId))}</span>`:''}`)).join('');
+  if(av.length)h+=sec('Avulsas',av.length)+av.map(a=>item(a.status==='feito',`quickDoneAvulsa('${a.id}')`,a.titulo,`<span class="pchip ${a.prioridade}">${a.prioridade}</span>${a.hora?`<span class="chip chip-time">⏱ ${esc(a.hora)}</span>`:''}${a.responsavelId?`<span class="chip chip-n">${esc(respName(a.responsavelId))}</span>`:''}`)).join('');
   if(men.length)h+=sec('Mensais',men.length)+men.map(m=>item(mex[m.id]&&mex[m.id].feito,`toggleExecDate('mensais','${m.id}','${dk}')`,m.descricao,m.responsavelId?`<span class="chip chip-n">${esc(respName(m.responsavelId))}</span>`:'')).join('');
   if(sem.length)h+=sec('Semanais',sem.length)+sem.map(m=>item(wex[m.id]&&wex[m.id].feito,`toggleExecDate('semanais','${m.id}','${dk}')`,m.descricao,m.responsavelId?`<span class="chip chip-n">${esc(respName(m.responsavelId))}</span>`:'')).join('');
   if(dia.length)h+=sec('Diárias',dia.length)+dia.map(m=>item(dex[m.id]&&dex[m.id].feito,`toggleExecDate('diarias','${m.id}','${dk}')`,m.descricao,'')).join('');
