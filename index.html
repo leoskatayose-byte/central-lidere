@@ -802,6 +802,8 @@ tbody tr:hover{background:var(--panel2)}
   <div class="modal-body">
     <input type="hidden" id="ec_id">
     <div class="field"><label>Nome *</label><input id="ec_nome"></div>
+    <div class="field"><label>Fase do processo</label><select id="ec_fase"></select>
+      <div class="muted" style="font-size:11px;margin-top:5px" id="ec_fase_dica"></div></div>
     <div class="field"><label>Tipo</label><select id="ec_tipo"><option value="normal">Normal</option><option value="ganho">Ganho (fecha o negócio)</option><option value="perdido">Perdido</option></select></div>
     <div class="field"><label>Cor</label><div id="ec_colors" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
   </div>
@@ -1077,14 +1079,16 @@ async function loadAll(){
     onbOperadores:(OO.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     onbModelo:(OM.data||[]).map(r=>({id:r.id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,deletedAt:fromISO(r.deleted_at)})),
     onbClientes,
-    crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',ordem:e.ordem||0})),
+    crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',deletedAt:fromISO(l.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',deletedAt:fromISO(l.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
     crmOrigens:(CX.data||[]).filter(x=>x.tipo==='origem').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
     crmServicos:(CX.data||[]).filter(x=>x.tipo==='servico').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
-    crmMsgs:(function(){const o={};(CX.data||[]).filter(x=>x.tipo==='msg_cadencia').forEach(x=>{o[x.ordem]={id:x.id,valor:x.valor||''}});return o})(),
+    crmMsgs:(function(){const o={prospeccao:{},proposta:{}};(CX.data||[]).forEach(x=>{
+      const r=x.tipo==='msg_cadencia'?'prospeccao':x.tipo==='msg_proposta'?'proposta':null;
+      if(r)o[r][x.ordem]={id:x.id,valor:x.valor||''}});return o})(),
     pnAreas:(PA.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(a=>({id:a.id,nome:a.nome,icon:a.icon,ordem:a.ordem||0,deletedAt:fromISO(a.deleted_at)})),
     pnTarefas:(PT.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(t=>({id:t.id,areaId:t.area_id,codigo:t.codigo||'',titulo:t.titulo,instrucao:t.instrucao||'',faixa:t.faixa||PN_FAIXAS[0],prioridade:t.prioridade||'executa',responsavel:t.responsavel||'',dataPlanejada:t.data_planejada||'',dataRealizada:t.data_realizada||'',status:t.status||'planejado',observacoes:t.observacoes||'',ordem:t.ordem||0,deletedAt:fromISO(t.deleted_at)})),
     pnEquipe:(PE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,cargo:e.cargo||'',faixa:e.faixa||'',qtd:e.qtd||'',tipo:e.tipo||'',remuneracao:e.remuneracao||'',responsabilidades:e.responsabilidades||'',habilidades:e.habilidades||'',prioridade:e.prioridade||'',ordem:e.ordem||0,deletedAt:fromISO(e.deleted_at)})),
@@ -2082,9 +2086,9 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
-function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,ordem:e.ordem||0})}
-function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,ordem:i})})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
+function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistCrmAtiv(a){up('crm_atividades',{id:a.id,lead_id:a.leadId||null,data:a.data||null,tipo:a.tipo||null,proxima_acao:a.proximaAcao||null,data_proxima:a.dataProxima||null,obs:a.obs||null,deleted_at:toISO(a.deletedAt)})}
 function persistCrmMeta(m){up('crm_metas',{id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica,realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deleted_at:toISO(m.deletedAt)})}
@@ -2110,7 +2114,8 @@ const CRM_METRICAS={
   altaPrioridade:{label:'Leads de alta prioridade',fn:()=>crmLeadsAtivos().filter(l=>l.prioridade==='alta').length},
   callsRealizadas:{label:'Calls/ligações realizadas',fn:()=>alive(DB.crmAtividades).filter(a=>/liga|call|reuni/i.test(a.tipo)).length},
   propostasEnviadas:{label:'Propostas enviadas',fn:()=>alive(DB.crmAtividades).filter(a=>/proposta/i.test(a.tipo)).length},
-  toquesFeitos:{label:'Toques de cadência enviados',fn:()=>crmLeadsAtivos().reduce((s,l)=>s+CAD_TOQUES.filter(t=>cadEstado(l,t.n).st==='feito').length,0)},
+  toquesFeitos:{label:'Toques enviados (as duas réguas)',fn:()=>crmLeadsAtivos().reduce((s,l)=>s+CAD_REGUAS.reduce((k,r)=>k+REG(r).toques.filter(t=>cadEstado(l,r,t.n).st==='feito').length,0),0)},
+  propostasFollowup:{label:'Follow-ups de proposta enviados',fn:()=>crmLeadsAtivos().reduce((s,l)=>s+PROP_TOQUES.filter(t=>cadEstado(l,'proposta',t.n).st==='feito').length,0)},
   complianceCadencia:{label:'Compliance da cadência (%)',fn:()=>cadCompliance()},
   prediagFeitas:{label:'Ligações de pré-diagnóstico feitas',fn:()=>crmLeadsAtivos().filter(l=>l.prediagStatus==='feita').length},
   manual:{label:'Manual (eu informo o realizado)',fn:m=>(+((m&&m.realizado)||0))},
@@ -2125,7 +2130,20 @@ function waHref(tel,msg){const d=waNum(tel);return d?('https://wa.me/'+d+(msg?('
 function waIcon(tel,msg,titulo){const h=waHref(tel,msg);
   return h?`<a class="iconbtn wa" title="${esc(titulo||'Abrir no WhatsApp')}" href="${h}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${WA_SVG}</a>`:''}
 
-/* ===== Cadência de 7 mensagens (Playbook Comercial Lidere v1) ===== */
+/* ===== Fases do processo comercial =====
+   A fase mora na etapa do funil (Configurações) e decide qual régua roda:
+   prospecção → cadência de 7 mensagens · reunião → só a ligação de pré-diagnóstico
+   proposta → follow-up de proposta · fechado → nenhuma. */
+const CAD_FASES=[
+  ['prospeccao','Prospecção','antes da reunião — roda a cadência de 7 mensagens'],
+  ['reuniao','Reunião marcada','a prospecção para aqui; é a hora da ligação de pré-diagnóstico'],
+  ['proposta','Proposta enviada','roda o follow-up de proposta'],
+  ['fechado','Fechado','ganho ou perdido — fora das réguas']];
+const FASE_LABEL={};CAD_FASES.forEach(f=>FASE_LABEL[f[0]]=f[1]);
+function crmFase(l){const e=crmEstById(l&&l.estagioId);if(!e)return'prospeccao';
+  if(e.tipo==='ganho'||e.tipo==='perdido')return'fechado';return e.fase||'prospeccao'}
+
+/* ===== Régua 1 · Cadência de prospecção (Playbook Comercial Lidere v1, seção 4) ===== */
 const CAD_TOQUES=[
   {n:1,dia:0,canal:'WhatsApp',obj:'Abordagem inicial + dor',hora:'Manhã'},
   {n:2,dia:2,canal:'WhatsApp',obj:'Reforço de valor + case',hora:'Manhã'},
@@ -2134,7 +2152,6 @@ const CAD_TOQUES=[
   {n:5,dia:12,canal:'Ligação + WhatsApp',obj:'Tentativa de contato direto',hora:'Manhã',ligacao:true},
   {n:6,dia:16,canal:'WhatsApp',obj:'Urgência suave (vagas)',hora:'Manhã'},
   {n:7,dia:21,canal:'WhatsApp',obj:'Fechamento da cadência (porta aberta)',hora:'Tarde'}];
-const CAD_TOQUE=n=>CAD_TOQUES.find(t=>t.n===+n)||CAD_TOQUES[0];
 const CAD_MSG_PADRAO={
  1:'Olá, [NOME]! Aqui é o(a) [SEU NOME], da Lidere BPO Financeiro. Tudo bem?\n\nAjudamos donos de [SEGMENTO] a organizar o financeiro e enxergar com clareza quanto realmente sobra no fim do mês — sem precisar montar um departamento interno.\n\nMuitos clientes chegam até nós faturando bem, mas sem tempo para conciliar contas, controlar caixa e não perder prazos. Isso faz sentido para o seu momento?',
  2:'[NOME], só complementando: recentemente ajudamos um(a) [cliente do mesmo segmento] que vivia apagando incêndio com boletos e impostos.\n\nEm 30 dias ele já tinha fluxo de caixa organizado, relatórios claros e parou de perder prazos. Hoje decide o negócio olhando números confiáveis.\n\nPosso te mostrar em 20 minutos como funcionaria no seu caso? Sem compromisso.',
@@ -2143,112 +2160,179 @@ const CAD_MSG_PADRAO={
  5:'[NOME], tentei te ligar agora há pouco. Queria entender rapidinho como está a organização financeira do seu negócio hoje e ver se conseguimos ajudar. Qual o melhor horário pra gente falar 10 minutinhos amanhã de manhã?',
  6:'[NOME], estamos com as últimas vagas de implantação para este mês (atendemos um número limitado de novos clientes por vez, para garantir a qualidade).\n\nSe quiser organizar o financeiro ainda neste ciclo, consigo reservar um horário de diagnóstico pra você esta semana. Posso agendar?',
  7:'[NOME], vou parar de te enviar mensagens por aqui para não incomodar. 🙂\n\nFica o convite aberto: quando sentir que o financeiro está tomando tempo demais ou tirando sua tranquilidade, é só me chamar. Vou deixar meu contato salvo e sigo à disposição. Sucesso no [SEGMENTO]!'};
-const crmMsgs=()=>DB.crmMsgs||{};
-function crmMsgTexto(n){const r=crmMsgs()[n];return (r&&r.valor)||CAD_MSG_PADRAO[n]||''}
-function crmMsgCustom(n){const r=crmMsgs()[n];return !!(r&&r.valor)}
+
+/* ===== Régua 2 · Follow-up de proposta =====
+   Não vem pronta do playbook: montada a partir das regras dele — SLA de follow-up em 48h
+   (seção 5.1), quebra de objeção (2.3) e script de fechamento (6.2). 5 toques em 12 dias. */
+const PROP_TOQUES=[
+  {n:1,dia:0,canal:'WhatsApp',obj:'Confirma o envio e combina o retorno',hora:'Logo após enviar'},
+  {n:2,dia:2,canal:'Ligação + WhatsApp',obj:'Tirar dúvida da proposta (regra das 48h)',hora:'Manhã',ligacao:true},
+  {n:3,dia:5,canal:'WhatsApp',obj:'Quebra de objeção + prova de valor',hora:'Manhã'},
+  {n:4,dia:8,canal:'WhatsApp',obj:'Fechamento com data',hora:'Manhã'},
+  {n:5,dia:12,canal:'WhatsApp',obj:'Última chamada · porta aberta',hora:'Tarde'}];
+const PROP_MSG_PADRAO={
+ 1:'[NOME], acabei de te enviar a proposta da Lidere. 📄\n\nÉ exatamente o que a gente conversou: [SERVICO] por [VALOR]/mês, com a implantação em cerca de 5 dias.\n\nDá uma olhada com calma e me manda qualquer dúvida por aqui. Combinamos assim: eu te chamo daqui a dois dias pra gente conversar sobre ela — pode ser?',
+ 2:'[NOME], tentei te ligar pra falar da proposta. Não precisa decidir nada agora — eu queria só entender se ficou clara e o que você achou do escopo.\n\nTem algum ponto que você tiraria ou incluiria?',
+ 3:'[NOME], uma conta que costuma ajudar na decisão: um assistente financeiro interno sai entre R$ 3.500 e R$ 4.500 por mês com encargos — e ainda depende de férias, treinamento e da confiança de uma pessoa só.\n\nA proposta que te mandei é [VALOR]/mês com um time inteiro, processo padronizado e segregação de funções (quem lança não é quem paga).\n\nO que ainda pesa na sua decisão?',
+ 4:'[NOME], pelo que você me contou, o que mais pesa hoje é [DOR]. É exatamente isso que a proposta resolve.\n\nA implantação leva cerca de 5 dias e já no primeiro fechamento você vê tudo organizado. Conseguimos começar ainda este mês?',
+ 5:'[NOME], não vou ficar insistindo, então essa é a minha última mensagem sobre a proposta. 🙂\n\nSe o momento não é agora, tudo bem — me diz e eu te procuro mais pra frente. Se for questão de escopo ou de valor, a gente ajusta o plano pro seu momento.\n\nQual dos dois é?'};
+
+/* ===== Motor das réguas ===== */
+const REGUAS={
+  prospeccao:{nome:'Cadência de prospecção',curto:'prospecção',fase:'prospeccao',toques:CAD_TOQUES,padrao:CAD_MSG_PADRAO,
+    campo:'cadencia',inicio:'cadenciaInicio',tipoMsg:'msg_cadencia',rotuloInicio:'Início (D+0)',
+    dica:'7 toques em 21 dias. A maioria das vendas acontece entre o 4º e o 6º toque — quem para no D+2 perde dinheiro.',
+    fim:'Depois do D+21 sem resposta, o lead vai para nutrição — não descarte.'},
+  proposta:{nome:'Follow-up de proposta',curto:'proposta',fase:'proposta',toques:PROP_TOQUES,padrao:PROP_MSG_PADRAO,
+    campo:'cadenciaProp',inicio:'propostaData',tipoMsg:'msg_proposta',rotuloInicio:'Proposta enviada em',
+    dica:'5 toques em 12 dias. O playbook manda o primeiro follow-up em até 48h — é o toque 2.',
+    fim:'Sem resposta até o D+12, pare de cobrar: registre como perdido ou devolva para nutrição.'}};
+const REG=r=>REGUAS[r]||REGUAS.prospeccao;
+const CAD_REGUAS=['prospeccao','proposta'];
+function cadReguaAtiva(l){const f=crmFase(l);return f==='prospeccao'?'prospeccao':f==='proposta'?'proposta':null}
+const crmFinalizado=l=>crmFase(l)==='fechado';
+const cadToque=(r,n)=>REG(r).toques.find(t=>t.n===+n)||REG(r).toques[0];
+const cadInicio=(l,r)=>(l&&l[REG(r).inicio])||'';
+const cadLista=(l,r)=>(l&&l[REG(r).campo])||[];
+const cadEstado=(l,r,n)=>cadLista(l,r).find(x=>+x.n===+n)||{n:+n,st:'pendente',data:''};
+const cadPrev=(l,r,n)=>{const i=cadInicio(l,r);return i?addDias(i,cadToque(r,n).dia):''};
+function cadSet(l,r,n,st,data){const arr=cadLista(l,r).filter(x=>+x.n!==+n);
+  if(st!=='pendente')arr.push({n:+n,st,data:data||todayKey()});
+  l[REG(r).campo]=arr.sort((a,b)=>a.n-b.n)}
+function cadProximoToque(l,r){if(!cadInicio(l,r))return null;
+  const t=REG(r).toques.find(t=>cadEstado(l,r,t.n).st==='pendente');return t?{t,prev:cadPrev(l,r,t.n)}:null}
+function cadResumo(l,r){const T=REG(r).toques;
+  const feitos=T.filter(t=>cadEstado(l,r,t.n).st==='feito').length;
+  const pulados=T.filter(t=>cadEstado(l,r,t.n).st==='pulado').length;
+  const px=cadProximoToque(l,r);
+  return {total:T.length,feitos,pulados,prox:px,iniciada:!!cadInicio(l,r),
+    concluida:!!cadInicio(l,r)&&!px,atrasada:!!(px&&px.prev&&px.prev<todayKey())}}
+
+/* ===== Mensagens ===== */
+const crmMsgs=r=>((DB.crmMsgs||{})[r]||{});
+function crmMsgTexto(r,n){const x=crmMsgs(r)[n];return (x&&x.valor)||REG(r).padrao[n]||''}
+function crmMsgCustom(r,n){const x=crmMsgs(r)[n];return !!(x&&x.valor)}
 function crmVendedorNome(l){const r=l&&crmRespById(l.responsavelId);if(r&&r.nome)return r.nome;
   const e=(ME&&ME.email)||'';const b=e.split('@')[0].replace(/[._\-]+/g,' ').trim();
   return b?b.split(' ').map(w=>w?w[0].toUpperCase()+w.slice(1):'').join(' '):'[SEU NOME]'}
-function crmMsgRender(n,l){const nome=String((l&&(l.contato||l.empresa))||'').trim().split(' ')[0]||'';
+function crmMsgRender(r,n,l){
+  const nome=String((l&&(l.contato||l.empresa))||'').trim().split(' ')[0]||'';
   const seg=(l&&(l.segmento||l.servico))||'seu segmento';
-  return crmMsgTexto(n).replace(/\[NOME\]/g,nome).replace(/\[SEU NOME\]/g,crmVendedorNome(l))
-    .replace(/\[segmento\]/gi,seg).replace(/\[LINK\]/g,(l&&l.linkProposta)||'https://prosperesec.com.br')}
-/* estado dos toques */
-const crmFinalizado=l=>{const e=crmEstById(l.estagioId);return !!e&&(e.tipo==='ganho'||e.tipo==='perdido')};
-const cadInicio=l=>(l&&(l.cadenciaInicio||''))||'';
-const cadEstado=(l,n)=>((l&&l.cadencia)||[]).find(x=>+x.n===+n)||{n:+n,st:'pendente',data:''};
-const cadPrev=(l,n)=>{const i=cadInicio(l);return i?addDias(i,CAD_TOQUE(n).dia):''};
-function cadSet(l,n,st,data){const arr=((l.cadencia)||[]).filter(x=>+x.n!==+n);
-  if(st!=='pendente')arr.push({n:+n,st,data:data||todayKey()});
-  l.cadencia=arr.sort((a,b)=>a.n-b.n)}
-function cadProximoToque(l){if(!cadInicio(l))return null;
-  const t=CAD_TOQUES.find(t=>cadEstado(l,t.n).st==='pendente');return t?{t,prev:cadPrev(l,t.n)}:null}
-function cadResumo(l){const feitos=CAD_TOQUES.filter(t=>cadEstado(l,t.n).st==='feito').length;
-  const pulados=CAD_TOQUES.filter(t=>cadEstado(l,t.n).st==='pulado').length;
-  const px=cadProximoToque(l);
-  return {feitos,pulados,prox:px,iniciada:!!cadInicio(l),concluida:!!cadInicio(l)&&!px,atrasada:!!(px&&px.prev&&px.prev<todayKey())}}
-/* agenda do time: só o próximo toque pendente de cada lead */
-function cadAgenda(){const hoje=todayKey();const out=[];
-  crmLeadsAtivos().forEach(l=>{if(crmFinalizado(l))return;const px=cadProximoToque(l);if(!px||!px.prev)return;
-    out.push({l,t:px.t,prev:px.prev,atrasado:px.prev<hoje,hoje:px.prev===hoje})});
+  return crmMsgTexto(r,n)
+    .replace(/\[NOME\]/g,nome).replace(/\[SEU NOME\]/g,crmVendedorNome(l))
+    .replace(/\[segmento\]/gi,seg)
+    .replace(/\[servico\]/gi,(l&&l.servico)||'o BPO financeiro')
+    .replace(/\[valor\]/gi,(l&&+l.ticket)?brl(l.ticket):'[VALOR]')
+    .replace(/\[dor\]/gi,(l&&(l.prediagObs||l.obs))||'[DOR]')
+    .replace(/\[LINK\]/g,(l&&l.linkProposta)||'https://prosperesec.com.br')}
+
+/* ===== Agenda do time — só a régua ativa de cada lead ===== */
+function cadAgenda(){const hoje=todayKey(),out=[];
+  crmLeadsAtivos().forEach(l=>{const r=cadReguaAtiva(l);if(!r)return;
+    const px=cadProximoToque(l,r);if(!px||!px.prev)return;
+    out.push({l,r,t:px.t,prev:px.prev,atrasado:px.prev<hoje,hoje:px.prev===hoje})});
   return out.sort((a,b)=>String(a.prev).localeCompare(String(b.prev))||a.t.n-b.t.n)}
 function cadCompliance(){let prev=0,feito=0;const hoje=todayKey();
-  crmLeadsAtivos().forEach(l=>{const i=cadInicio(l);if(!i)return;
-    CAD_TOQUES.forEach(t=>{const e=cadEstado(l,t.n);if(addDias(i,t.dia)<=hoje)prev++;if(e.st==='feito')feito++})});
+  crmLeadsAtivos().forEach(l=>{const r=cadReguaAtiva(l);if(!r)return;const i=cadInicio(l,r);if(!i)return;
+    REG(r).toques.forEach(t=>{if(addDias(i,t.dia)<=hoje)prev++;if(cadEstado(l,r,t.n).st==='feito')feito++})});
   return prev?Math.round(feito/prev*100):0}
-/* ações */
-let cadLeadId=null;
-function cadRefresh(l){if(gEl('ovCad').classList.contains('show')&&cadLeadId===l.id)gEl('cadBody').innerHTML=cadBodyHTML(l)}
-function cadReagenda(l){const px=cadProximoToque(l);
+function cadSemRegua(){return crmLeadsAtivos().filter(l=>{const r=cadReguaAtiva(l);return r&&!cadInicio(l,r)})}
+
+/* ===== Ações ===== */
+let cadLeadId=null,cadReguaAberta='prospeccao';
+function cadRefresh(l){if(gEl('ovCad').classList.contains('show')&&cadLeadId===l.id)gEl('cadBody').innerHTML=cadBodyHTML(l,cadReguaAberta)}
+function cadReagenda(l,r){const px=cadProximoToque(l,r);
   if(px&&px.prev&&(!l.proximoContato||l.proximoContato<=todayKey()))l.proximoContato=px.prev}
-function cadIniciar(id,dk){const l=crmLeadById(id);if(!l)return;l.cadenciaInicio=dk||todayKey();
-  cadReagenda(l);persistCrmLead(l);render();cadRefresh(l);toast('Cadência iniciada em '+fmtBR(l.cadenciaInicio))}
-function cadSetInicio(id,dk){const l=crmLeadById(id);if(!l||!dk)return;l.cadenciaInicio=dk;cadReagenda(l);persistCrmLead(l);render();cadRefresh(l)}
-function cadMarcar(id,n,st){const l=crmLeadById(id);if(!l)return;
-  if(!cadInicio(l))l.cadenciaInicio=todayKey();
-  cadSet(l,n,st);
-  if(st==='feito'){const t=CAD_TOQUE(n);l.ultimoContato=todayKey();
+function cadIniciar(id,r,dk){const l=crmLeadById(id);if(!l)return;l[REG(r).inicio]=dk||todayKey();
+  cadReagenda(l,r);persistCrmLead(l);render();cadRefresh(l);
+  toast(REG(r).nome+' começa em '+fmtBR(l[REG(r).inicio]))}
+function cadSetInicio(id,r,dk){const l=crmLeadById(id);if(!l||!dk)return;l[REG(r).inicio]=dk;
+  cadReagenda(l,r);persistCrmLead(l);render();cadRefresh(l)}
+function cadMarcar(id,r,n,st){const l=crmLeadById(id);if(!l)return;
+  if(!cadInicio(l,r))l[REG(r).inicio]=todayKey();
+  cadSet(l,r,n,st);
+  if(st==='feito'){const t=cadToque(r,n);l.ultimoContato=todayKey();
     const at={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),leadId:l.id,data:todayKey(),
-      tipo:`Cadência ${n}/7 · D+${t.dia} · ${t.canal}`,proximaAcao:'',dataProxima:'',obs:t.obj,deletedAt:null};
+      tipo:`${REG(r).nome} ${n}/${REG(r).toques.length} · D+${t.dia} · ${t.canal}`,proximaAcao:'',dataProxima:'',obs:t.obj,deletedAt:null};
     DB.crmAtividades.push(at);persistCrmAtiv(at)}
-  cadReagenda(l);persistCrmLead(l);render();cadRefresh(l);
-  toast(st==='feito'?`Toque ${n}/7 registrado`:st==='pulado'?`Toque ${n}/7 pulado`:'Toque reaberto')}
-function cadEncerrar(id){const l=crmLeadById(id);if(!l)return;
-  if(!confirm('Encerrar a cadência deste lead? Os toques que faltam ficam como "pulado" — use quando o lead respondeu e a conversa virou humana.'))return;
-  CAD_TOQUES.forEach(t=>{if(cadEstado(l,t.n).st==='pendente')cadSet(l,t.n,'pulado')});
-  persistCrmLead(l);render();cadRefresh(l);toast('Cadência encerrada — siga na conversa')}
-function cadCopiar(id,n){const l=crmLeadById(id);if(!l)return;const txt=crmMsgRender(n,l);
+  cadReagenda(l,r);persistCrmLead(l);render();cadRefresh(l);
+  toast(st==='feito'?`Toque ${n} registrado`:st==='pulado'?`Toque ${n} pulado`:'Toque reaberto')}
+function cadEncerrar(id,r){const l=crmLeadById(id);if(!l)return;
+  if(!confirm('Encerrar '+REG(r).nome.toLowerCase()+' deste lead? Os toques que faltam ficam como "pulado" — use quando o cliente respondeu e a conversa virou humana.'))return;
+  REG(r).toques.forEach(t=>{if(cadEstado(l,r,t.n).st==='pendente')cadSet(l,r,t.n,'pulado')});
+  persistCrmLead(l);render();cadRefresh(l);toast('Régua encerrada — siga na conversa')}
+function cadCopiar(id,r,n){const l=crmLeadById(id);if(!l)return;const txt=crmMsgRender(r,n,l);
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('Mensagem copiada'),()=>toast('Não consegui copiar'));
   else toast('Copie o texto direto do quadro')}
-/* modal da cadência */
-function openCad(id){const l=crmLeadById(id);if(!l)return;cadLeadId=id;
-  gEl('cadTitle').textContent='Cadência · '+l.empresa;
-  gEl('cadBody').innerHTML=cadBodyHTML(l);showModal('ovCad')}
+/* proposta enviada: liga a régua 2 sozinha */
+function crmAutoProposta(l){if(crmFase(l)!=='proposta'&&l.statusContrato!=='Enviado')return false;
+  if(l.propostaData)return false;l.propostaData=todayKey();return true}
+
+/* ===== Modal das réguas ===== */
+function openCad(id,r){const l=crmLeadById(id);if(!l)return;
+  cadLeadId=id;cadReguaAberta=r||cadReguaAtiva(l)||(l.propostaData?'proposta':'prospeccao');
+  gEl('cadTitle').textContent=l.empresa;
+  gEl('cadBody').innerHTML=cadBodyHTML(l,cadReguaAberta);showModal('ovCad')}
+function cadTrocaRegua(r){const l=crmLeadById(cadLeadId);if(!l)return;cadReguaAberta=r;
+  gEl('cadBody').innerHTML=cadBodyHTML(l,r)}
 function openCadFromLead(){const id=gEl('l_id').value;if(!id)return toast('Salve o lead primeiro');saveLead();openCad(id)}
-function cadBodyHTML(l){
-  const ini=cadInicio(l),hoje=todayKey(),res=cadResumo(l);
-  const passos=CAD_TOQUES.map(t=>{const e=cadEstado(l,t.n);const prev=cadPrev(l,t.n);
-    const cls=e.st==='feito'?'on':e.st==='pulado'?'sk':(prev&&prev<hoje?'late':'');
+function cadBodyHTML(l,r){
+  const R=REG(r),ini=cadInicio(l,r),hoje=todayKey(),res=cadResumo(l,r);
+  const fase=crmFase(l),ativa=cadReguaAtiva(l),vale=ativa===r;
+  const abas=`<div class="tabs" style="margin-bottom:12px">${CAD_REGUAS.map(k=>{
+      const rs=cadResumo(l,k);
+      return `<button class="tab ${k===r?'active':''}" onclick="cadTrocaRegua('${k}')">${REG(k).nome}${rs.iniciada?`<span class="cnt">${rs.feitos}/${rs.total}</span>`:''}</button>`}).join('')}</div>`;
+  const passos=R.toques.map(t=>{const e=cadEstado(l,r,t.n),prev=cadPrev(l,r,t.n);
+    const cls=e.st==='feito'?'on':e.st==='pulado'?'sk':(prev&&prev<hoje&&vale?'late':'');
     return `<i class="${cls}" title="Toque ${t.n} · D+${t.dia}"></i>`}).join('');
-  const topo=`<div class="filters" style="align-items:flex-end">
+  const topo=`${abas}<div class="filters" style="align-items:flex-end">
     <div style="flex:1;min-width:170px">
       <div style="font-size:13px;font-weight:700">${esc(l.contato||l.empresa)}</div>
-      <div class="muted" style="font-size:11.5px">${esc(l.telefone||'sem telefone cadastrado')}${l.servico?' · '+esc(l.servico):''}</div>
+      <div class="muted" style="font-size:11.5px">${esc(l.telefone||'sem telefone cadastrado')} · ${esc(FASE_LABEL[fase]||fase)}</div>
     </div>
-    <div class="field" style="max-width:165px;margin:0"><label>Início (D+0)</label>
-      <input type="date" value="${ini}" onchange="cadSetInicio('${l.id}',this.value)"></div>
-    ${ini?`<button class="btn btn-sm" onclick="cadEncerrar('${l.id}')">Respondeu — encerrar</button>`:''}
+    <div class="field" style="max-width:185px;margin:0"><label>${R.rotuloInicio}</label>
+      <input type="date" value="${ini}" onchange="cadSetInicio('${l.id}','${r}',this.value)"></div>
+    ${ini&&vale?`<button class="btn btn-sm" onclick="cadEncerrar('${l.id}','${r}')">Respondeu — encerrar</button>`:''}
   </div>
-  <div class="cad-step">${passos}<span class="muted" style="font-size:11.5px;margin-left:6px">${res.feitos} de 7 enviados${res.pulados?` · ${res.pulados} pulado(s)`:''}${res.atrasada?' · <span style="color:var(--neg);font-weight:700">toque atrasado</span>':''}</span></div>`;
-  if(!ini)return topo+`<div class="empty" style="text-align:left">A cadência ainda não começou para este lead.<br><br>
-    <button class="btn btn-gold btn-sm" onclick="cadIniciar('${l.id}')">Iniciar hoje (D+0)</button></div>`;
-  const rows=CAD_TOQUES.map(t=>{const e=cadEstado(l,t.n),prev=cadPrev(l,t.n);
-    const atras=e.st==='pendente'&&prev<hoje,hj=e.st==='pendente'&&prev===hoje;
+  <div class="cad-step">${passos}<span class="muted" style="font-size:11.5px;margin-left:6px">${res.feitos} de ${res.total} enviados${res.pulados?` · ${res.pulados} pulado(s)`:''}${vale&&res.atrasada?' · <span style="color:var(--neg);font-weight:700">toque atrasado</span>':''}</span></div>`;
+  /* avisos de fase */
+  let aviso='';
+  if(r==='prospeccao'&&fase==='reuniao')aviso=`<div class="empty" style="text-align:left;border-color:var(--pos);color:var(--dim)">✓ <b>Prospecção encerrada</b> — a reunião já está marcada. Daqui pra frente não se fala mais de oferta: faça a <b>ligação de pré-diagnóstico</b> antes da reunião e, depois de enviar a proposta, use o follow-up de proposta.</div>`;
+  else if(r==='prospeccao'&&fase==='proposta')aviso=`<div class="empty" style="text-align:left;border-color:var(--meta);color:var(--dim)">A proposta já foi enviada — a régua que vale agora é o <a onclick="cadTrocaRegua('proposta')" style="color:var(--acc);cursor:pointer">follow-up de proposta</a>. O histórico abaixo fica só como registro.</div>`;
+  else if(r==='prospeccao'&&fase==='fechado')aviso=`<div class="empty" style="text-align:left">Lead fechado — histórico apenas.</div>`;
+  else if(r==='proposta'&&fase==='prospeccao')aviso=`<div class="empty" style="text-align:left;border-color:var(--meta);color:var(--dim)">Este follow-up começa quando a proposta é enviada. Mova o lead para uma etapa da fase <b>Proposta enviada</b> (ou marque o status do contrato como “Enviado”) que ele liga sozinho.</div>`;
+  else if(r==='proposta'&&fase==='reuniao')aviso=`<div class="empty" style="text-align:left;border-color:var(--meta);color:var(--dim)">Reunião marcada. Depois dela, envie a proposta e este follow-up entra em cena.</div>`;
+  if(!ini)return topo+aviso+`<div class="empty" style="text-align:left">${r==='proposta'?'Ainda não registrei a data de envio da proposta.':'A régua ainda não começou para este lead.'}<br><br>
+    <button class="btn btn-gold btn-sm" onclick="cadIniciar('${l.id}','${r}')">${r==='proposta'?'Enviei a proposta hoje':'Iniciar hoje (D+0)'}</button></div>`;
+  const rows=R.toques.map(t=>{const e=cadEstado(l,r,t.n),prev=cadPrev(l,r,t.n);
+    const atras=vale&&e.st==='pendente'&&prev<hoje,hj=vale&&e.st==='pendente'&&prev===hoje;
     const cls=e.st==='feito'?'feito':e.st==='pulado'?'pulado':atras?'atrasado':hj?'hoje':'';
-    const msg=crmMsgRender(t.n,l);
+    const msg=crmMsgRender(r,t.n,l);
     const chipData=e.st==='feito'?`<span class="chip chip-pago">enviado ${fmtBR(e.data)}</span>`
       :e.st==='pulado'?`<span class="chip chip-n">pulado</span>`
       :`<span class="chip ${atras?'chip-vencido':hj?'chip-avencer':'chip-date'}">${atras?'atrasado desde ':hj?'hoje · ':''}${fmtBR(prev)}</span>`;
-    const wa=l.telefone?`<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${waHref(l.telefone,t.audio?'':msg)}">${WA_SVG} ${t.audio?'Abrir conversa':'Enviar no WhatsApp'}</a>`:'<span class="muted" style="font-size:11px">cadastre o telefone para enviar</span>';
-    const lig=t.ligacao&&waNum(l.telefone)?`<a class="btn btn-sm" href="tel:+${waNum(l.telefone)}">☎ Ligar</a>`:'';
-    const acao=e.st==='pendente'
-      ?`<button class="btn btn-sm btn-gold" onclick="cadMarcar('${l.id}',${t.n},'feito')">✓ Enviei</button><button class="btn btn-sm" onclick="cadMarcar('${l.id}',${t.n},'pulado')">Pular</button>`
-      :`<button class="btn btn-sm" onclick="cadMarcar('${l.id}',${t.n},'pendente')">Desfazer</button>`;
+    const wa=(vale&&l.telefone)?`<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${waHref(l.telefone,t.audio?'':msg)}">${WA_SVG} ${t.audio?'Abrir conversa':'Enviar no WhatsApp'}</a>`
+      :(vale?'<span class="muted" style="font-size:11px">cadastre o telefone para enviar</span>':'');
+    const lig=(vale&&t.ligacao&&waNum(l.telefone))?`<a class="btn btn-sm" href="tel:+${waNum(l.telefone)}">☎ Ligar</a>`:'';
+    const acao=!vale?'':e.st==='pendente'
+      ?`<button class="btn btn-sm btn-gold" onclick="cadMarcar('${l.id}','${r}',${t.n},'feito')">✓ Enviei</button><button class="btn btn-sm" onclick="cadMarcar('${l.id}','${r}',${t.n},'pulado')">Pular</button>`
+      :`<button class="btn btn-sm" onclick="cadMarcar('${l.id}','${r}',${t.n},'pendente')">Desfazer</button>`;
     return `<div class="cad-t ${cls}">
       <div class="cab"><span class="num">${t.n}</span><span class="ttl">D+${t.dia} · ${esc(t.canal)}</span>${chipData}
         <span class="obj" style="margin-left:auto">${esc(t.obj)} · ${esc(t.hora)}</span></div>
       <div class="cad-msg">${esc(msg)}</div>
-      <div class="cad-acts">${wa}${lig}<button class="btn btn-sm" onclick="cadCopiar('${l.id}',${t.n})">Copiar</button>${acao}
-        ${t.audio?'<span class="muted" style="font-size:11px">roteiro do áudio — grave, não cole</span>':''}</div></div>`}).join('');
-  return topo+`<div class="cad">${rows}</div>
-    <div class="muted" style="font-size:11.5px;margin-top:14px;line-height:1.6">Regras do playbook: não pule toques e não envie dois no mesmo dia. Respondeu? Encerre a cadência e siga na conversa. Depois do D+21 sem resposta, o lead vai para nutrição — não descarte.</div>`}
+      <div class="cad-acts">${wa}${lig}<button class="btn btn-sm" onclick="cadCopiar('${l.id}','${r}',${t.n})">Copiar</button>${acao}
+        ${t.audio&&vale?'<span class="muted" style="font-size:11px">roteiro do áudio — grave, não cole</span>':''}</div></div>`}).join('');
+  return topo+aviso+`<div class="cad">${rows}</div>
+    <div class="muted" style="font-size:11.5px;margin-top:14px;line-height:1.6">${esc(R.dica)} Não envie dois toques no mesmo dia e não pule a ordem. ${esc(R.fim)}</div>`}
 
 /* ===== Ligação de pré-diagnóstico ===== */
 const PD_LABEL={pendente:'Pendente',feita:'Realizada',sem:'Não houve ligação'};
-function pdChip(l){const st=l.prediagStatus||'pendente';
+const pdRelevante=l=>['prospeccao','reuniao'].indexOf(crmFase(l))>=0;
+function pdChip(l){if(!pdRelevante(l))return'';const st=l.prediagStatus||'pendente';
   if(st==='feita')return `<span class="chip chip-pago" title="Pré-diagnóstico em ${fmtBR(l.prediagData)}">☎ pré-diag ok</span>`;
   if(st==='sem')return '<span class="chip chip-n">☎ sem ligação</span>';
-  return '<span class="chip chip-avencer">☎ pré-diag pendente</span>'}
+  return crmFase(l)==='reuniao'?'<span class="chip chip-avencer">☎ ligar antes da reunião</span>':''}
 function pdSet(id,st){const l=crmLeadById(id);if(!l)return;l.prediagStatus=st;
   if(st==='feita'&&!l.prediagData)l.prediagData=todayKey();
   if(st==='pendente'){l.prediagData='';l.prediagObs=''}
@@ -2257,10 +2341,13 @@ function pdSet(id,st){const l=crmLeadById(id);if(!l)return;l.prediagStatus=st;
 let crmCurPd='pendente';
 function pickPd(v){crmCurPd=v;document.querySelectorAll('#l_pd .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===v));
   const d=gEl('l_pd_data');if(v==='feita'&&!d.value)d.value=todayKey();if(v==='pendente')d.value=''}
-function cadChip(l){if(crmFinalizado(l))return'';const r=cadResumo(l);
-  if(!r.iniciada)return '<span class="chip chip-n">cadência não iniciada</span>';
-  if(r.concluida)return `<span class="chip chip-n">cadência 7/7</span>`;
-  return `<span class="chip ${r.atrasada?'chip-vencido':'chip-n'}">cadência ${r.feitos}/7${r.atrasada?' · atrasada':''}</span>`}
+/* chip da régua no card / na lista */
+function cadChip(l){const f=crmFase(l);if(f==='fechado')return'';
+  if(f==='reuniao')return '<span class="chip chip-avencer">reunião marcada</span>';
+  const r=cadReguaAtiva(l),R=REG(r),res=cadResumo(l,r);
+  if(!res.iniciada)return `<span class="chip chip-n">${r==='proposta'?'follow-up não iniciado':'cadência não iniciada'}</span>`;
+  if(res.concluida)return `<span class="chip chip-n">${esc(R.curto)} ${res.feitos}/${res.total}</span>`;
+  return `<span class="chip ${res.atrasada?'chip-vencido':'chip-n'}">${esc(R.curto)} ${res.feitos}/${res.total}${res.atrasada?' · atrasada':''}</span>`}
 
 /* ===== abas ===== */
 function setCrmTab(id){crmTab=id;render()}
@@ -2326,58 +2413,68 @@ function viewCrmKanban(){
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
 function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove('over');if(!_crmDrag)return;const l=crmLeadById(_crmDrag);
-  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraGanho=(crmEstById(l.estagioId)||{}).tipo==='ganho';l.estagioId=estId;persistCrmLead(l);render();
-    if(alvo&&alvo.tipo==='ganho'&&!eraGanho)toast('🎉 Lead fechado: '+alvo.nome);else toast('→ '+(alvo?alvo.nome:''))}
+  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraGanho=(crmEstById(l.estagioId)||{}).tipo==='ganho';l.estagioId=estId;
+    const ligou=crmAutoProposta(l);persistCrmLead(l);render();
+    if(alvo&&alvo.tipo==='ganho'&&!eraGanho)toast('🎉 Lead fechado: '+alvo.nome);
+    else if(ligou)toast('→ '+alvo.nome+' · follow-up de proposta começou hoje');
+    else toast('→ '+(alvo?alvo.nome:''))}
   _crmDrag=null}
-function crmEstIdx(l){return crmEstagios().findIndex(x=>x.id===l.estagioId)}
 function pdPendentes(){return crmLeadsAtivos()
-  .filter(l=>!crmFinalizado(l)&&(l.prediagStatus||'pendente')==='pendente'&&(!!l.proximoContato||crmEstIdx(l)>0))
+  .filter(l=>crmFase(l)==='reuniao'&&(l.prediagStatus||'pendente')==='pendente')
   .sort((a,b)=>String(a.proximoContato||'9999-12-31').localeCompare(String(b.proximoContato||'9999-12-31')))}
 function viewCrmCadencia(){
   const ag=cadAgenda(),hoje=todayKey(),lim=addDias(hoje,7);
   const atr=ag.filter(x=>x.atrasado),hj=ag.filter(x=>x.hoje),prox=ag.filter(x=>!x.atrasado&&!x.hoje&&x.prev<=lim);
-  const semCad=crmLeadsAtivos().filter(l=>!crmFinalizado(l)&&!cadInicio(l));
-  const comp=cadCompliance();
+  const sem=cadSemRegua(),comp=cadCompliance();
   const stats=`<div class="stats">
     <div class="stat"><div class="k">Atrasados</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">toques que venceram</div></div>
     <div class="stat"><div class="k">Para hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">na régua de hoje</div></div>
     <div class="stat"><div class="k">Próximos 7 dias</div><div class="v" style="color:var(--meta)">${prox.length}</div><div class="sub">já agendados</div></div>
     <div class="stat"><div class="k">Compliance</div><div class="v" style="color:${comp>=95?'var(--pos)':comp>=70?'var(--meta)':'var(--neg)'}">${comp}%</div><div class="sub">meta do playbook: ≥ 95%</div></div>
-    <div class="stat"><div class="k">Sem cadência</div><div class="v" style="color:${semCad.length?'var(--warn)':'var(--txt)'}">${semCad.length}</div><div class="sub">leads ativos fora da régua</div></div>
+    <div class="stat"><div class="k">Fora da régua</div><div class="v" style="color:${sem.length?'var(--warn)':'var(--txt)'}">${sem.length}</div><div class="sub">leads sem toque programado</div></div>
   </div>`;
-  const linha=x=>{const l=x.l,t=x.t,msg=crmMsgRender(t.n,l),r=crmRespById(l.responsavelId);
-    return `<div class="row" style="cursor:pointer" onclick="openCad('${l.id}')">
+  const linha=x=>{const l=x.l,t=x.t,r=x.r,msg=crmMsgRender(r,t.n,l),resp=crmRespById(l.responsavelId),R=REG(r);
+    return `<div class="row" style="cursor:pointer" onclick="openCad('${l.id}','${r}')">
       <span style="width:24px;height:24px;border-radius:7px;background:var(--raise);color:var(--dim);font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto">${t.n}</span>
-      <div class="row-body"><div class="row-title">${esc(l.empresa)}<span class="muted"> · toque ${t.n}/7 · D+${t.dia}</span></div>
+      <div class="row-body"><div class="row-title">${esc(l.empresa)}<span class="muted"> · ${esc(R.curto)} ${t.n}/${R.toques.length} · D+${t.dia}</span></div>
         <div class="row-meta"><span class="chip ${x.atrasado?'chip-vencido':x.hoje?'chip-avencer':'chip-date'}">${x.atrasado?'venceu ':''}${fmtBR(x.prev)}</span>
           <span class="chip chip-n">${esc(t.canal)}</span><span class="muted">${esc(t.obj)} · ${esc(t.hora)}</span>
-          ${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}${pdChip(l)}</div></div>
+          ${resp?`<span class="chip chip-n" style="color:${resp.cor}">${esc(resp.nome.split(' ')[0])}</span>`:''}${pdChip(l)}</div></div>
       <div class="row-actions">${l.telefone?`<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${waHref(l.telefone,t.audio?'':msg)}" onclick="event.stopPropagation()">${WA_SVG} WhatsApp</a>`:'<span class="muted" style="font-size:11px">sem telefone</span>'}
-        <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();cadMarcar('${l.id}',${t.n},'feito')">✓ Enviei</button></div></div>`};
+        <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();cadMarcar('${l.id}','${r}',${t.n},'feito')">✓ Enviei</button></div></div>`};
   const bloco=(tit,sub,arr)=>`<div class="panel"><div class="panel-head"><h2>${tit}<small>${sub}</small></h2></div>${arr.length?arr.map(linha).join(''):'<div class="empty" style="padding:14px">Nada por aqui.</div>'}</div>`;
   const pd=pdPendentes();
-  const pdRows=pd.map(l=>{const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);
+  const pdRows=pd.map(l=>{const e=crmEstById(l.estagioId),resp=crmRespById(l.responsavelId);
     const atrasoReuniao=l.proximoContato&&l.proximoContato<hoje;
     return `<div class="row" style="cursor:pointer" onclick="openLead('${l.id}')">
       <div class="row-body"><div class="row-title">${esc(l.empresa)}${l.contato?`<span class="muted"> · ${esc(l.contato)}</span>`:''}</div>
         <div class="row-meta">${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:''}
-          ${l.proximoContato?`<span class="chip ${atrasoReuniao?'chip-vencido':'chip-date'}">reunião/contato ${fmtBR(l.proximoContato)}</span>`:'<span class="muted">sem data marcada</span>'}
-          ${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div></div>
+          ${l.proximoContato?`<span class="chip ${atrasoReuniao?'chip-vencido':'chip-date'}">reunião ${fmtBR(l.proximoContato)}</span>`:'<span class="muted">sem data marcada</span>'}
+          ${resp?`<span class="chip chip-n" style="color:${resp.cor}">${esc(resp.nome.split(' ')[0])}</span>`:''}</div></div>
       <div class="row-actions">${waIcon(l.telefone,'','WhatsApp')}
         <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();pdSet('${l.id}','feita')">✓ Liguei</button>
         <button class="btn btn-sm" onclick="event.stopPropagation();pdSet('${l.id}','sem')">Não houve ligação</button></div></div>`}).join('')
-    ||'<div class="empty">Nenhuma ligação de pré-diagnóstico pendente.</div>';
-  const semRows=semCad.slice(0,12).map(l=>`<div class="row" style="cursor:pointer" onclick="openLead('${l.id}')">
-      <div class="row-body"><div class="row-title">${esc(l.empresa)}</div><div class="row-meta"><span class="muted">entrou em ${fmtBR(l.dataEntrada)||'—'}</span>${pdChip(l)}</div></div>
-      <div class="row-actions">${waIcon(l.telefone,crmMsgRender(1,l),'Enviar o toque 1 no WhatsApp')}
-        <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();cadIniciar('${l.id}')">Iniciar cadência</button></div></div>`).join('')
-    ||'<div class="empty">Todos os leads ativos estão na régua.</div>';
+    ||'<div class="empty" style="padding:14px">Nenhuma ligação de pré-diagnóstico pendente.</div>';
+  const semRows=sem.slice(0,12).map(l=>{const r=cadReguaAtiva(l);
+    return `<div class="row" style="cursor:pointer" onclick="openCad('${l.id}','${r}')">
+      <div class="row-body"><div class="row-title">${esc(l.empresa)}</div>
+        <div class="row-meta"><span class="chip chip-n">${esc(REG(r).nome)}</span><span class="muted">${r==='proposta'?'proposta enviada, follow-up não começou':'entrou em '+(fmtBR(l.dataEntrada)||'—')}</span></div></div>
+      <div class="row-actions">${waIcon(l.telefone,crmMsgRender(r,1,l),'Enviar o toque 1 no WhatsApp')}
+        <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();cadIniciar('${l.id}','${r}')">${r==='proposta'?'Enviei a proposta hoje':'Iniciar cadência'}</button></div></div>`}).join('')
+    ||'<div class="empty" style="padding:14px">Todos os leads ativos estão numa régua.</div>';
+  const trilho=`<div class="panel"><div class="panel-head"><h2>Como o processo funciona<small>a régua muda conforme a fase da etapa em que o lead está — configure em Configurações</small></h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+      ${CAD_FASES.map(([k,nome,desc])=>{const n=crmLeadsAtivos().filter(l=>crmFase(l)===k).length;
+        return `<div style="border:1px solid var(--line);border-left:2px solid ${k==='prospeccao'?'var(--acc)':k==='reuniao'?'var(--warn)':k==='proposta'?'var(--meta)':'var(--mut)'};border-radius:0 10px 10px 0;background:var(--panel2);padding:11px 13px">
+          <div style="font-size:12.5px;font-weight:700">${esc(nome)} <span class="muted">· ${n}</span></div>
+          <div class="muted" style="font-size:11px;line-height:1.5;margin-top:3px">${esc(desc)}</div></div>`}).join('')}
+    </div></div>`;
   return stats+
     bloco('Atrasados','o toque venceu e não foi enviado — o playbook diz que a venda morre aqui',atr)+
     bloco('Para hoje','a régua de hoje',hj)+
     bloco('Próximos 7 dias','o que vem pela frente',prox)+
-    `<div class="panel"><div class="panel-head"><h2>Ligação de pré-diagnóstico<small>quem tem reunião chegando e ainda não recebeu a ligação</small></h2></div>${pdRows}</div>
-     <div class="panel"><div class="panel-head"><h2>Leads fora da cadência<small>ativos que nunca receberam o D+0${semCad.length>12?` · mostrando 12 de ${semCad.length}`:''}</small></h2></div>${semRows}</div>`}
+    `<div class="panel"><div class="panel-head"><h2>Ligação de pré-diagnóstico<small>reunião marcada e a ligação ainda não foi feita</small></h2></div>${pdRows}</div>
+     <div class="panel"><div class="panel-head"><h2>Fora da régua<small>leads ativos sem toque programado${sem.length>12?` · mostrando 12 de ${sem.length}`:''}</small></h2></div>${semRows}</div>`+trilho}
 function viewCrmLeads(){
   let a=crmLeadsAtivos();const q=crmLeadFilter.q.toLowerCase();
   if(q)a=a.filter(l=>[l.empresa,l.contato,l.email,l.servico].some(x=>(x||'').toLowerCase().includes(q)));
@@ -2419,7 +2516,8 @@ function viewCrmConfig(){
   const est=crmEstagios();
   const etRows=est.map((e,i)=>{const cnt=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
     return `<div class="row"><span class="avatar" style="background:${e.cor};width:22px;height:22px;border-radius:6px"></span>
-      <div class="row-body"><div class="row-title">${esc(e.nome)}${e.tipo!=='normal'?` <span class="pill ${e.tipo==='ganho'?'g':'r'}">${e.tipo}</span>`:''}</div><div class="row-meta">${cnt} lead(s)</div></div>
+      <div class="row-body"><div class="row-title">${esc(e.nome)}${e.tipo!=='normal'?` <span class="pill ${e.tipo==='ganho'?'g':'r'}">${e.tipo}</span>`:''}</div>
+      <div class="row-meta"><span class="chip chip-n">${esc(FASE_LABEL[e.tipo==='normal'?(e.fase||'prospeccao'):'fechado'])}</span><span class="muted">${cnt} lead(s)</span></div></div>
       <div class="row-actions"><button class="iconbtn" onclick="moveEtapaCrm('${e.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="iconbtn" onclick="moveEtapaCrm('${e.id}',1)" ${i===est.length-1?'disabled':''}>↓</button>
       <button class="iconbtn" onclick="openEtapaCrm('${e.id}')">✎</button><button class="iconbtn del" onclick="delEtapaCrm('${e.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhuma etapa.</div>';
   const respRows=alive(DB.crmResponsaveis).map(r=>{const cnt=crmLeadsAtivos().filter(l=>l.responsavelId===r.id).length;
@@ -2427,14 +2525,18 @@ function viewCrmConfig(){
       <div class="row-body"><div class="row-title">${esc(r.nome)}</div><div class="row-meta">${cnt} lead(s)</div></div>
       <div class="row-actions"><button class="iconbtn" onclick="openRespCrm('${r.id}')">✎</button><button class="iconbtn del" onclick="delRespCrm('${r.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhum responsável.</div>';
   const chips=(arr,kind)=>arr.map((x,i)=>`<span class="pill">${esc(x)} <span style="cursor:pointer;font-weight:900" onclick="delSimpleCrm('${kind}',${i})">×</span></span>`).join(' ')||'<span class="muted">vazio</span>';
-  const msgRows=CAD_TOQUES.map(t=>`<div class="field">
-      <label>Toque ${t.n} · D+${t.dia} · ${esc(t.canal)} ${crmMsgCustom(t.n)?'<span class="pill g">editada</span>':'<span class="pill">padrão do playbook</span>'}</label>
-      <textarea id="cadmsg_${t.n}" rows="6">${esc(crmMsgTexto(t.n))}</textarea>
-      <div class="cad-acts" style="margin:6px 0 4px"><button class="btn btn-sm" onclick="crmMsgSalvar(${t.n})">Salvar</button>
-        ${crmMsgCustom(t.n)?`<button class="btn btn-sm btn-ghost" onclick="crmMsgReset(${t.n})">Voltar ao padrão</button>`:''}
+  const msgPanel=r=>{const R=REG(r);
+    const rows=R.toques.map(t=>`<div class="field">
+      <label>Toque ${t.n} · D+${t.dia} · ${esc(t.canal)} ${crmMsgCustom(r,t.n)?'<span class="pill g">editada</span>':'<span class="pill">texto padrão</span>'}</label>
+      <textarea id="cadmsg_${r}_${t.n}" rows="6">${esc(crmMsgTexto(r,t.n))}</textarea>
+      <div class="cad-acts" style="margin:6px 0 4px"><button class="btn btn-sm" onclick="crmMsgSalvar('${r}',${t.n})">Salvar</button>
+        ${crmMsgCustom(r,t.n)?`<button class="btn btn-sm btn-ghost" onclick="crmMsgReset('${r}',${t.n})">Voltar ao padrão</button>`:''}
         <span class="muted" style="font-size:11px">${esc(t.obj)} · enviar de ${esc(t.hora.toLowerCase())}</span></div></div>`).join('');
-  return `<div class="panel"><div class="panel-head"><h2>Mensagens da cadência<small>os 7 toques do Playbook Comercial · marcadores [NOME], [SEU NOME], [segmento] e [LINK] são preenchidos com os dados do lead</small></h2></div>${msgRows}</div>
-    <div class="panel"><div class="panel-head"><h2>Etapas do funil<small>o Kanban e o Dashboard seguem estas etapas</small></h2><button class="btn btn-sm btn-gold" onclick="openEtapaCrm()">+ Nova etapa</button></div>${etRows}</div>
+    const fonte=r==='prospeccao'?'os 7 toques da seção 4 do Playbook Comercial':'5 toques montados a partir das regras do playbook (follow-up em 48h, quebra de objeção e script de fechamento)';
+    return `<div class="panel"><div class="panel-head"><h2>${esc(R.nome)}<small>${fonte} · roda na fase “${esc(FASE_LABEL[R.fase])}”</small></h2></div>
+      <div class="muted" style="font-size:11.5px;margin-bottom:12px">Marcadores preenchidos automaticamente: [NOME] · [SEU NOME] · [segmento] · [servico] · [valor] · [dor] · [LINK]</div>${rows}</div>`};
+  return msgPanel('prospeccao')+msgPanel('proposta')+`
+    <div class="panel"><div class="panel-head"><h2>Etapas do funil<small>a fase de cada etapa decide qual régua de mensagens roda</small></h2><button class="btn btn-sm btn-gold" onclick="openEtapaCrm()">+ Nova etapa</button></div>${etRows}</div>
     <div class="panel"><div class="panel-head"><h2>Responsáveis (BPO)</h2><button class="btn btn-sm btn-gold" onclick="openRespCrm()">+ Novo responsável</button></div>${respRows}</div>
     <div class="panel"><div class="panel-head"><h2>Origens de lead</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(DB.crmOrigens,'crmOrigens')}</div>
       <div class="filters"><input id="add_origem" placeholder="Nova origem" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('crmOrigens','add_origem')"><button class="btn btn-sm" onclick="addSimpleCrm('crmOrigens','add_origem')">Adicionar</button></div></div>
@@ -2446,13 +2548,13 @@ function viewCrmExcluidos(){
   const arows=da.map(a=>`<div class="row"><div class="row-body"><div class="row-title">${esc(a.tipo)}</div><div class="row-meta">Atividade · ${fmtBR(a.data)}</div></div><div class="row-actions"><button class="btn btn-sm" onclick="restoreAtiv('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeAtiv('${a.id}')">🗑</button></div></div>`).join('');
   return `<div class="panel"><div class="panel-head"><h2>Excluídos</h2></div>${(lrows+arows)||'<div class="empty">Lixeira vazia.</div>'}</div>`}
 /* ===== mutações: mensagens da cadência ===== */
-function crmMsgSalvar(n){const el=gEl('cadmsg_'+n);if(!el)return;const v=el.value;
-  const cur=crmMsgs()[n];const id=(cur&&cur.id)||(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
-  DB.crmMsgs=DB.crmMsgs||{};DB.crmMsgs[n]={id,valor:v};
-  up('crm_listas',{id,tipo:'msg_cadencia',valor:v,ordem:n});render();toast('Mensagem do toque '+n+' salva')}
-function crmMsgReset(n){const cur=crmMsgs()[n];if(!cur)return;
-  if(!confirm('Voltar o toque '+n+' ao texto padrão do playbook?'))return;
-  onbDelRow('crm_listas',cur.id);delete DB.crmMsgs[n];render();toast('Texto padrão restaurado')}
+function crmMsgSalvar(r,n){const el=gEl('cadmsg_'+r+'_'+n);if(!el)return;const v=el.value;
+  const cur=crmMsgs(r)[n];const id=(cur&&cur.id)||(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
+  DB.crmMsgs=DB.crmMsgs||{};DB.crmMsgs[r]=DB.crmMsgs[r]||{};DB.crmMsgs[r][n]={id,valor:v};
+  up('crm_listas',{id,tipo:REG(r).tipoMsg,valor:v,ordem:n});render();toast('Mensagem do toque '+n+' salva')}
+function crmMsgReset(r,n){const cur=crmMsgs(r)[n];if(!cur)return;
+  if(!confirm('Voltar o toque '+n+' ao texto padrão?'))return;
+  onbDelRow('crm_listas',cur.id);delete DB.crmMsgs[r][n];render();toast('Texto padrão restaurado')}
 
 /* ===== mutações: lead ===== */
 function pickPriLead(p){crmCurPri=p;document.querySelectorAll('#l_pri .o').forEach(o=>o.classList.toggle('sel',o.dataset.p===p))}
@@ -2469,10 +2571,11 @@ function openLead(id){const l=id?crmLeadById(id):null;
   set('l_pd_data',l?l.prediagData:'');set('l_pd_obs',l?l.prediagObs:'');
   pickPd(l?(l.prediagStatus||'pendente'):'pendente');
   updLeadWa();
-  const res=l?cadResumo(l):null;
-  gEl('l_cad_res').innerHTML=!l?'Salve o lead para iniciar a cadência de 7 mensagens.'
-    :res.iniciada?`Cadência ${res.feitos}/7 · início em ${fmtBR(cadInicio(l))}${res.atrasada?' · <b style="color:var(--neg)">toque atrasado</b>':res.concluida?' · concluída':''}`
-    :'Cadência ainda não iniciada.';
+  const rAtiva=l?cadReguaAtiva(l):null;const res=rAtiva?cadResumo(l,rAtiva):null;
+  gEl('l_cad_res').innerHTML=!l?'Salve o lead para começar a cadência de prospecção.'
+    :!rAtiva?(crmFase(l)==='reuniao'?'Reunião marcada — a prospecção para aqui. Faça a ligação de pré-diagnóstico.':'Lead fechado — fora das réguas.')
+    :res.iniciada?`${REG(rAtiva).nome} ${res.feitos}/${res.total} · início em ${fmtBR(cadInicio(l,rAtiva))}${res.atrasada?' · <b style="color:var(--neg)">toque atrasado</b>':res.concluida?' · concluída':''}`
+    :`${REG(rAtiva).nome} ainda não iniciada.`;
   showModal('ovLead');setTimeout(()=>gEl('l_empresa').focus(),60)}
 function updLeadWa(){const a=gEl('l_wa');if(!a)return;const h=waHref(gEl('l_tel').value,'');
   a.innerHTML=WA_SVG+' WhatsApp';a.style.display=h?'':'none';a.href=h||'#'}
@@ -2482,7 +2585,8 @@ function saveLead(){const empresa=gEl('l_empresa').value.trim();if(!empresa)retu
     prediagStatus:crmCurPd,prediagData:g('l_pd_data'),prediagObs:g('l_pd_obs').trim()};
   const id=g('l_id');let lead;
   if(id){lead=crmLeadById(id);Object.assign(lead,data)}else{lead=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),dataEntrada:todayKey(),cadencia:[],cadenciaInicio:'',deletedAt:null},data);DB.crmLeads.push(lead)}
-  persistCrmLead(lead);closeModal('ovLead');render();toast('Lead salvo')}
+  const ligou=crmAutoProposta(lead);
+  persistCrmLead(lead);closeModal('ovLead');render();toast(ligou?'Lead salvo · follow-up de proposta começou hoje':'Lead salvo')}
 function delLead(id){const l=crmLeadById(id);if(!l)return;l.deletedAt=Date.now();persistCrmLead(l);render();toast('Movido para Excluídos')}
 function restoreLead(id){const l=crmLeadById(id);if(l){l.deletedAt=null;persistCrmLead(l);render();toast('Restaurado')}}
 function purgeLead(id){if(!confirm('Excluir este lead definitivamente?'))return;DB.crmLeads=DB.crmLeads.filter(x=>x.id!==id);onbDelRow('crm_leads',id);render()}
@@ -2491,11 +2595,16 @@ function renderSwatchCrm(id,cur,setter){gEl(id).innerHTML=PALETTE.map(c=>`<div c
 function setEtColor(c){crmCurColor=c;renderSwatchCrm('ec_colors',c,'setEtColor')}
 function openEtapaCrm(id){const e=id?crmEstById(id):null;gEl('etapaCrmTitle').textContent=e?'Editar etapa':'Nova etapa';
   gEl('ec_id').value=e?e.id:'';gEl('ec_nome').value=e?e.nome:'';gEl('ec_tipo').value=e?e.tipo:'normal';
+  gEl('ec_fase').innerHTML=CAD_FASES.filter(f=>f[0]!=='fechado').map(([k,nome])=>`<option value="${k}" ${((e&&e.fase)||'prospeccao')===k?'selected':''}>${nome}</option>`).join('');
+  gEl('ec_fase').onchange=faseDica;faseDica();
   crmCurColor=e?e.cor:PALETTE[Math.floor(Math.random()*PALETTE.length)];renderSwatchCrm('ec_colors',crmCurColor,'setEtColor');
   showModal('ovEtapaCrm');setTimeout(()=>gEl('ec_nome').focus(),60)}
 function saveEtapaCrm(){const nome=gEl('ec_nome').value.trim();if(!nome)return toast('Informe o nome');const tipo=gEl('ec_tipo').value;const id=gEl('ec_id').value;
-  let e;if(id){e=crmEstById(id);Object.assign(e,{nome,tipo,cor:crmCurColor})}else{e={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome,tipo,cor:crmCurColor,ordem:DB.crmEstagios.length};DB.crmEstagios.push(e)}
+  const fase=tipo==='normal'?gEl('ec_fase').value:'fechado';
+  let e;if(id){e=crmEstById(id);Object.assign(e,{nome,tipo,cor:crmCurColor,fase})}else{e={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome,tipo,cor:crmCurColor,fase,ordem:DB.crmEstagios.length};DB.crmEstagios.push(e)}
   persistCrmEstagio(e);closeModal('ovEtapaCrm');render();toast('Etapa salva')}
+function faseDica(){const v=gEl('ec_fase').value;const f=CAD_FASES.find(x=>x[0]===v);
+  gEl('ec_fase_dica').textContent=f?f[2]:''}
 function moveEtapaCrm(id,dir){const arr=DB.crmEstagios;const i=arr.findIndex(e=>e.id===id);const j=i+dir;if(j<0||j>=arr.length)return;const t=arr[i];arr[i]=arr[j];arr[j]=t;persistCrmOrdemEstagios();render()}
 function delEtapaCrm(id){const cnt=crmLeadsAtivos().filter(l=>l.estagioId===id).length;const others=crmEstagios().filter(e=>e.id!==id);
   if(!others.length)return toast('Deixe ao menos uma etapa');
