@@ -784,6 +784,7 @@ tbody tr:hover{background:var(--panel2)}
       <div class="field"><label>Data da ligação</label><input id="l_pd_data" type="date"></div>
       <div class="field"><label>O que saiu da ligação</label><input id="l_pd_obs" placeholder="dor principal, quem decide, urgência"></div>
     </div>
+    <div class="field"><label>Pré-diagnóstico e proposta</label><div id="l_vinc" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div></div>
     <div class="field"><label>Observações</label><textarea id="l_obs" rows="2"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovLead')">Cancelar</button><button class="btn btn-gold" onclick="saveLead()">Salvar</button></div>
@@ -1055,7 +1056,7 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle()]);
+  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas')]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em)}});
@@ -1081,7 +1082,8 @@ async function loadAll(){
     onbClientes,
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',deletedAt:fromISO(l.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',deletedAt:fromISO(l.deleted_at)})),
+    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
     crmOrigens:(CX.data||[]).filter(x=>x.tipo==='origem').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
@@ -1177,16 +1179,18 @@ const IC={
  contas:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.3 0 012.5-1.6c1.4 0 2.5.8 2.5 1.9s-1 1.4-2.5 1.9-2.5 1-2.5 1.9 1.1 1.9 2.5 1.9a2.5 2.3 0 002.5-1.6M12 5.8V7M12 17v1.2"/>',
  plano:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
  lixeira:'<path d="M3.5 6h17M8.5 6V3.6h7V6M6.4 6v14.4h11.2V6"/>',
+ prop:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
  admin:'<path d="M4 19h16M4 19l1.4-8.6L9 14l3-8 3 8 3.6-3.6L20 19"/>'
 };
 const svgIc=k=>'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(IC[k]||'')+'</svg>';
 function NAV(){const base=[
   {g:'Visão geral',its:[['home','Painel']]},
-  {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário'],['rotinas','Rotinas'],['resp','Responsáveis'],['onb','Implantação']]},
-  {g:'Comercial',its:[['crm','CRM'],['prediag','Pré-Diagnóstico']]},
+  {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário']]},
+  {g:'Operação',its:[['rotinas','Rotinas'],['onb','Implantação']]},
+  {g:'Comercial',its:[['crm','CRM'],['prediag','Pré-Diagnóstico'],['prop','Propostas']]},
   {g:'Financeiro',its:[['contas','Contas a Pagar']]},
   {g:'Planejamento',its:[['plano','Plano de Negócio']]},
-  {g:'Ajustes',its:[['lixeira','Excluídos']]}
+  {g:'Ajustes',its:[['resp','Responsáveis'],['lixeira','Excluídos']]}
 ];
  if(ME&&ME.is_admin)base[base.length-1].its.push(['admin','Administração']);
  return base}
@@ -1199,6 +1203,7 @@ const SECAO={
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
   crm:['CRM Comercial','Funil, leads, atividades e metas comerciais'],
   prediag:['Pré-Diagnóstico','Ligação de qualificação, diagnóstico de perfil e relatório do cliente'],
+  prop:['Propostas','Do pré-diagnóstico à proposta assinada — valores, benefícios e documento'],
   contas:['Contas a Pagar','Vencimentos, pagamentos e fluxo por empresa'],
   plano:['Plano de Negócio','Roteiro de 100 tarefas em 6 áreas, equipe e portfólio'],
   lixeira:['Excluídos','Nada some de imediato'],
@@ -1211,6 +1216,7 @@ function tabCount(id){
   if(id==='crm')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
   if(id==='prediag')return alive(DB.pdClientes).filter(c=>!pdDiag(c).completo).length||null;
+  if(id==='prop')return alive(DB.crmPropostas).filter(p=>p.status==='rascunho').length||null;
   if(id==='lixeira'){const dm=t=>DB[t].modelos.filter(m=>m.deletedAt).length;
     return (DB.avulsas.filter(a=>a.deletedAt).length+dm('mensais')+dm('semanais')+dm('diarias'))||null}
   return null}
@@ -1228,7 +1234,7 @@ function render(){
   gEl('pgTitle').childNodes[0].nodeValue=t;gEl('pgSub').textContent=sub;
   gEl('pgActs').innerHTML=activeTab==='pend'?'<button class="btn btn-gold" onclick="openTask()">+ Nova tarefa</button>':'';
   renderNav();renderTemas();
-  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,resp:viewResp,contas:viewContas,onb:viewOnb,crm:viewCrm,prediag:viewPd,plano:viewPn,lixeira:viewLixo,admin:viewAdmin};
+  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,resp:viewResp,contas:viewContas,onb:viewOnb,crm:viewCrm,prediag:viewPd,prop:viewProp,plano:viewPn,lixeira:viewLixo,admin:viewAdmin};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
   if(activeTab==='admin')setTimeout(loadAdmin,0)}
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
@@ -2086,7 +2092,7 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
 function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
 function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
@@ -2166,16 +2172,16 @@ const CAD_MSG_PADRAO={
    (seção 5.1), quebra de objeção (2.3) e script de fechamento (6.2). 5 toques em 12 dias. */
 const PROP_TOQUES=[
   {n:1,dia:0,canal:'WhatsApp',obj:'Confirma o envio e combina o retorno',hora:'Logo após enviar'},
-  {n:2,dia:2,canal:'Ligação + WhatsApp',obj:'Tirar dúvida da proposta (regra das 48h)',hora:'Manhã',ligacao:true},
-  {n:3,dia:5,canal:'WhatsApp',obj:'Quebra de objeção + prova de valor',hora:'Manhã'},
+  {n:2,dia:2,canal:'Ligação + WhatsApp',obj:'Ligação de dúvidas (regra das 48h)',hora:'Manhã',ligacao:true},
+  {n:3,dia:5,canal:'WhatsApp',obj:'Comparação de custo + prova de valor',hora:'Manhã'},
   {n:4,dia:8,canal:'WhatsApp',obj:'Fechamento com data',hora:'Manhã'},
-  {n:5,dia:12,canal:'WhatsApp',obj:'Última chamada · porta aberta',hora:'Tarde'}];
+  {n:5,dia:12,canal:'WhatsApp',obj:'Última chamada com pergunta de saída',hora:'Tarde'}];
 const PROP_MSG_PADRAO={
- 1:'[NOME], acabei de te enviar a proposta da Lidere. 📄\n\nÉ exatamente o que a gente conversou: [SERVICO] por [VALOR]/mês, com a implantação em cerca de 5 dias.\n\nDá uma olhada com calma e me manda qualquer dúvida por aqui. Combinamos assim: eu te chamo daqui a dois dias pra gente conversar sobre ela — pode ser?',
- 2:'[NOME], tentei te ligar pra falar da proposta. Não precisa decidir nada agora — eu queria só entender se ficou clara e o que você achou do escopo.\n\nTem algum ponto que você tiraria ou incluiria?',
- 3:'[NOME], uma conta que costuma ajudar na decisão: um assistente financeiro interno sai entre R$ 3.500 e R$ 4.500 por mês com encargos — e ainda depende de férias, treinamento e da confiança de uma pessoa só.\n\nA proposta que te mandei é [VALOR]/mês com um time inteiro, processo padronizado e segregação de funções (quem lança não é quem paga).\n\nO que ainda pesa na sua decisão?',
- 4:'[NOME], pelo que você me contou, o que mais pesa hoje é [DOR]. É exatamente isso que a proposta resolve.\n\nA implantação leva cerca de 5 dias e já no primeiro fechamento você vê tudo organizado. Conseguimos começar ainda este mês?',
- 5:'[NOME], não vou ficar insistindo, então essa é a minha última mensagem sobre a proposta. 🙂\n\nSe o momento não é agora, tudo bem — me diz e eu te procuro mais pra frente. Se for questão de escopo ou de valor, a gente ajusta o plano pro seu momento.\n\nQual dos dois é?'};
+ 1:'[NOME], acabei de te enviar a proposta da Lidere. 📄\n\nO que está lá é o que a gente conversou: [servico] por [valor]/mês, com a implantação rodando por etapas: levantamento, migração dos dados, padronização dos processos e acompanhamento até o primeiro fechamento sair certo.\n\nLê com calma. Eu te chamo daqui a dois dias pra gente passar ponto a ponto. Se surgir dúvida antes, me manda por aqui.',
+ 2:'[NOME], te liguei agora pra falar da proposta. Não precisa de decisão nenhuma nessa conversa.\n\nEu queria só confirmar se o escopo ficou claro: o que fica com a Lidere, o que continua com a sua equipe e como você recebe o relatório todo mês.\n\nTem algum ponto que você tiraria ou incluiria?',
+ 3:'[NOME], uma comparação que costuma ajudar na decisão.\n\nUm assistente financeiro interno custa entre R$ 3.500 e R$ 4.500 por mês com encargos, e ainda depende de férias, treinamento e da confiança de uma pessoa só.\n\nNa proposta você tem [valor]/mês com um time inteiro, processo padronizado e segregação de funções: quem lança não é quem paga, quem paga não é quem concilia.\n\nO que ainda pesa na sua decisão: escopo, valor ou momento?',
+ 4:'[NOME], pelo que você me contou na ligação, o que mais pesa hoje é [dor]. É exatamente essa parte que sai das suas costas.\n\nA implantação roda por etapas e o cronograma só começa a contar da assinatura. Quanto antes a gente inicia, antes você tem o primeiro fechamento em ordem.\n\nConsegue me dar um retorno até sexta pra eu reservar a sua vaga de implantação deste mês?',
+ 5:'[NOME], essa é a minha última mensagem sobre a proposta, não quero ficar insistindo. 🙂\n\nMe ajuda com um número só:\n1. Momento (faz sentido, mas não agora)\n2. Escopo (falta ou sobra alguma coisa)\n3. Valor (não fecha no orçamento)\n\nSe for 1, eu paro por aqui e te procuro mais pra frente. Se for 2 ou 3, a gente ajusta o plano hoje mesmo.'};
 
 /* ===== Motor das réguas ===== */
 const REGUAS={
@@ -2570,7 +2576,7 @@ function openLead(id){const l=id?crmLeadById(id):null;
   gEl('l_status').value=l?(l.statusContrato||'Aguardando'):'Aguardando';pickPriLead(l?l.prioridade:'media');
   set('l_pd_data',l?l.prediagData:'');set('l_pd_obs',l?l.prediagObs:'');
   pickPd(l?(l.prediagStatus||'pendente'):'pendente');
-  updLeadWa();
+  updLeadWa();renderLeadVinc(l);
   const rAtiva=l?cadReguaAtiva(l):null;const res=rAtiva?cadResumo(l,rAtiva):null;
   gEl('l_cad_res').innerHTML=!l?'Salve o lead para começar a cadência de prospecção.'
     :!rAtiva?(crmFase(l)==='reuniao'?'Reunião marcada — a prospecção para aqui. Faça a ligação de pré-diagnóstico.':'Lead fechado — fora das réguas.')
@@ -3041,7 +3047,7 @@ function pdNovoRegistro(){return{id:(crypto.randomUUID?crypto.randomUUID():Date.
  contasCorrentes:1,contasAplicacao:0,adquirentes:0,vendeSite:'Não',cartaoEmpresarial:'Não',erp:'',emprestimo:'Não',
  certificado:'Não tem',nfServico:'Não',nfProduto:'Não',emiteBoletos:'Não',mediaNF:'0',gestaoFin:'Não Faz',
  centroCusto:'Não',departamento:'Não',hRelatorios:1,hConsultivas:0,hImplantacao:0,
- respostas:{},reuniao:'',anotacoes:'',deletedAt:null}}
+ respostas:{},reuniao:'',anotacoes:'',leadId:'',deletedAt:null}}
 function pdSetF(campo,v){const c=pdAtual();c[campo]=v;savePd();pdUpdateLive()}
 function pdSetT(campo,v){pdSetF(campo,v);document.querySelectorAll(`[data-tg="${campo}"] .o`).forEach(b=>b.classList.toggle('sel',b.dataset.v===v))}
 function pdUpdateLive(){const c=pdAtual();if(!c)return;const k=pdCalc(c),d=pdDiag(c);
@@ -3088,7 +3094,7 @@ function viewPdLigacao(){
  const nav=`<div class="navbtns">
    <button class="btn" onclick="pdGoStep(${pdStep-1})" ${pdStep===1?'disabled':''}>← Anterior</button>
    <div style="display:flex;gap:9px">
-     ${pdStep===5?`<button class="btn btn-gold" onclick="setPdTab('relatorio')">Ver o relatório →</button>`
+     ${pdStep===5?`<button class="btn" onclick="propDoPd()">Gerar proposta →</button><button class="btn btn-gold" onclick="setPdTab('relatorio')">Ver o relatório →</button>`
        :`<button class="btn btn-gold" onclick="pdGoStep(${pdStep+1})">Próximo →</button>`}
    </div></div>`;
  const body={1:pdSAbertura,2:pdSContexto,3:pdSMapeamento,4:pdSDiagnostico,5:pdSFechamento}[pdStep]();
@@ -3101,6 +3107,7 @@ function pdSAbertura(){
   <div class="tip">Comece sempre pelo nome — é o dado mais fácil de dar e destrava a conversa.</div>
   <div class="sec-t">Identificação</div>
   <div class="pgrid">${pdInp('empresa','Nome da empresa *')}${pdInp('responsavel','Consultor responsável *')}${pdInp('contato','Contato (nome de quem atende)')}${pdInp('cnpj','CNPJ')}${pdInp('data','Data da ligação','date')}</div>
+  ${pdCampoLead()}
  </div>`}
 function pdSContexto(){
  return `<div class="panel">
@@ -3280,6 +3287,7 @@ function viewPdRelatorio(){const c=pdAtual();if(!c)return '<div class="empty">Ne
  if(!d.completo)return `<div class="panel"><div class="empty">O diagnóstico ainda não está completo.<br>Volte ao passo 4 (Diagnóstico) na aba Ligação para concluir as 10 perguntas.<br><br><button class="btn btn-sm" onclick="setPdTab('ligacao');pdGoStep(4)">Ir para o Diagnóstico</button></div></div>`;
  if(!c.empresa)return `<div class="panel"><div class="empty">Falta o nome da empresa — preencha no passo 1 (Abertura).<br><br><button class="btn btn-sm" onclick="setPdTab('ligacao');pdGoStep(1)">Ir para Abertura</button></div></div>`;
  return `<div class="panel"><div class="panel-head"><h2>Relatório do cliente<small>documento sem preços — o valor você fala na reunião</small></h2>
+  <button class="btn btn-sm" onclick="propDoPd()">Gerar proposta</button>
   <button class="btn btn-sm" onclick="pdImprimir()">🖨 Imprimir / salvar em PDF</button><button class="btn btn-sm" onclick="pdBaixarRelatorio()">⬇ Baixar HTML</button></div>
   <iframe id="pdRepFrame" style="width:100%;height:70vh;border:1px solid var(--line);border-radius:10px;background:#fff" srcdoc="${esc(pdRelatorioHTML(c))}"></iframe></div>`}
 function pdImprimir(){const f=gEl('pdRepFrame');
@@ -3351,6 +3359,448 @@ function viewPd(){
     return `<button class="tab ${pdTab===id?'active':''}" onclick="setPdTab('${id}')">${lbl}${c!==null&&c!==undefined?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`;
   const body=({ligacao:viewPdLigacao,resultado:viewPdResultado,relatorio:viewPdRelatorio,clientes:viewPdClientes,config:viewPdConfig,excluidos:viewPdExcluidos}[pdTab]||viewPdLigacao)();
   return tabsHTML+body}
+
+
+/* ===== Propostas comerciais (do pré-diagnóstico ao documento assinado) ===== */
+const PROP_ESCOPO_PADRAO=[
+ {id:'pagar',t:'Contas a pagar',d:'Recebimento, conferência e agendamento dos títulos dentro da régua de aprovação da empresa. Quem lança não é quem paga.'},
+ {id:'receber',t:'Contas a receber',d:'Emissão e baixa dos títulos, cobrança dos vencidos e controle da inadimplência.'},
+ {id:'banco',t:'Conciliação bancária',d:'Conciliação das contas correntes e aplicações, com o saldo do sistema batendo com o extrato ao centavo.'},
+ {id:'cartoes',t:'Conciliação de cartões e marketplaces',d:'Cruzamento das vendas, taxas e repasses das adquirentes contra o crédito efetivo no banco.'},
+ {id:'fiscal',t:'Rotina de notas e boletos',d:'Emissão de notas fiscais e boletos dentro do prazo, com o certificado digital da empresa.'},
+ {id:'relat',t:'Relatórios gerenciais',d:'Fluxo de caixa, DRE gerencial e posição de pagar e receber, entregues em data fixa todo mês.'},
+ {id:'reuniao',t:'Reunião de acompanhamento',d:'Reunião mensal de leitura dos números com a direção, para decisão e não só para conferência.'},
+ {id:'centro',t:'Centro de custo e departamento',d:'Classificação dos lançamentos por centro de custo e departamento, para enxergar onde o dinheiro entra e sai.'}];
+const PROP_BENEF_PADRAO=[
+ {id:'impl_isenta',t:'Implantação isenta',d:'A implantação entra sem custo nesta proposta.'},
+ {id:'impl_parcel',t:'Implantação parcelada',d:'O valor de implantação pode ser dividido em até 3 vezes, sem juros.'},
+ {id:'mes1',t:'Primeiro mês de cortesia',d:'A primeira mensalidade não é cobrada.'},
+ {id:'desc_anual',t:'Desconto no pagamento anual',d:'Pagamento anual antecipado com desconto equivalente a uma mensalidade.'},
+ {id:'sem_multa',t:'Saída livre nos 90 primeiros dias',d:'Se a Lidere não entregar o combinado nos 90 primeiros dias, a empresa sai sem multa.'},
+ {id:'migra',t:'Migração de dados inclusa',d:'A migração do histórico para o sistema entra sem custo adicional.'},
+ {id:'consultiva',t:'Horas consultivas inclusas',d:'Horas de análise consultiva já incluídas na mensalidade, sem cobrança à parte.'}];
+const PROP_PERFIS={
+ A:{nome:'Perfil A',dias:60,desc:'operação simples, poucos bancos e volume baixo'},
+ B:{nome:'Perfil B',dias:90,desc:'operação com vários bancos, adquirentes ou filiais'},
+ C:{nome:'Perfil C',dias:120,desc:'operação complexa, com marketplaces, centro de custo e histórico a sanear'}};
+const PROP_ETAPAS=[
+ {t:'Levantamento e acessos',d:'Reunião de abertura, mapeamento dos processos atuais, liberação dos acessos aos bancos, adquirentes e sistema.',p:.15},
+ {t:'Migração e saneamento dos dados',d:'Carga dos cadastros, títulos em aberto e saldos, com conferência contra o que está no banco e na contabilidade.',p:.4},
+ {t:'Padronização do processo e do plano de contas',d:'Plano de contas gerencial, centros de custo, régua de aprovação e segregação de funções desenhados e escritos.',p:.65},
+ {t:'Operação assistida',d:'A Lidere assume a rotina com acompanhamento próximo da equipe da empresa, corrigindo o que aparecer.',p:.85},
+ {t:'Primeiro fechamento entregue',d:'Primeiro mês fechado e conciliado, com os relatórios gerenciais entregues e lidos em reunião.',p:1}];
+const PROP_COND_PADRAO={
+ pagamento:'Boleto ou PIX, com vencimento todo dia 10 de cada mês.',
+ reajuste:'Reajuste de 8% ao ano, aplicado na data de aniversário do contrato.',
+ vigencia:'Prazo mínimo de 12 meses no primeiro período, com renovação automática e pré-aviso de 30 dias para não renovar.',
+ multa:'Encerramento antes dos 12 meses: 10% dos honorários vincendos, limitado a 3 mensalidades.'};
+const PROP_STATUS=[['rascunho','Rascunho'],['enviada','Enviada'],['aceita','Aceita'],['recusada','Recusada']];
+const PROP_PLANOS=[['basico','Básico'],['inter','Intermediário'],['avancado','Avançado']];
+
+let propTab='lista', propSelId=null;
+const propAtual=()=>DB.crmPropostas.find(p=>p.id===propSelId)||null;
+const propById=id=>DB.crmPropostas.find(p=>p.id===id);
+const propStatusLabel=k=>(PROP_STATUS.find(x=>x[0]===k)||PROP_STATUS[0])[1];
+const propPlanoLabel=k=>(PROP_PLANOS.find(x=>x[0]===k)||PROP_PLANOS[1])[1];
+function propNumero(){const ano=new Date().getFullYear();
+ const usados=DB.crmPropostas.map(p=>{const m=/^(\d+)\/(\d{4})$/.exec(p.numero||'');return m&&+m[2]===ano?+m[1]:0});
+ const prox=Math.max(0,...usados)+1;return String(prox).padStart(3,'0')+'/'+ano}
+function persistProposta(p){up('crm_propostas',{id:p.id,lead_id:p.leadId||null,prediag_id:p.prediagId||null,numero:p.numero||null,data:p.data||null,
+ validade_dias:p.validadeDias||30,empresa:p.empresa||null,contato:p.contato||null,cargo:p.cargo||null,email:p.email||null,telefone:p.telefone||null,
+ cnpj:p.cnpj||null,segmento:p.segmento||null,necessidade:p.necessidade||null,plano:p.plano||'inter',mensalidade:+p.mensalidade||0,
+ implantacao:+p.implantacao||0,perfil_impl:p.perfilImpl||'B',escopo:p.escopo||[],beneficios:p.beneficios||[],condicoes:p.condicoes||{},
+ numeros:p.numeros||{},status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
+
+/* perfil de implantação sugerido pelo tamanho e pela complexidade da operação */
+function propPerfilSugerido(c,k){if(!c)return 'B';
+ const docs=k?k.docs:0, comp=k?k.complexPct:0;
+ const marketplace=pdNum(c.adquirentes)>1||c.vendeSite==='Sim';
+ const multi=pdNum(c.contasCorrentes)>2;
+ if(marketplace||comp>=70||docs>=260||c.centroCusto==='Sim'&&c.departamento==='Sim')return 'C';
+ if(multi||comp>=45||docs>=90||pdNum(c.adquirentes)>0)return 'B';
+ return 'A'}
+function propNecessidadeAuto(c,k,d){if(!c)return '';
+ const partes=[];
+ if(c.oQueFaz)partes.push('A '+(c.empresa||'empresa')+' atua com '+c.oQueFaz.replace(/\.$/,'')+(c.tempoMercado?' há '+c.tempoMercado:'')+'.');
+ if(k&&k.docs)partes.push('A operação movimenta cerca de '+k.docs+' documentos financeiros por mês e consome aproximadamente '+pdH1(k.tTotal)+' horas de rotina, hoje absorvidas internamente.');
+ if(d&&d.completo)partes.push('O diagnóstico apontou o perfil '+d.perfil.nome+': '+d.perfil.resumo);
+ partes.push('Esta proposta assume essa rotina com processo padronizado e segregação de funções, devolvendo à direção o tempo e os números para decidir.');
+ return partes.join(' ')}
+function propEscopoDe(c){return PROP_ESCOPO_PADRAO.map(e=>{let on=true;
+ if(!c)return {id:e.id,t:e.t,d:e.d,on:['pagar','receber','banco','relat','reuniao'].indexOf(e.id)>=0};
+ if(e.id==='pagar')on=pdNum(c.cPagar)>0;
+ else if(e.id==='receber')on=pdNum(c.cReceber)>0;
+ else if(e.id==='cartoes')on=pdNum(c.adquirentes)>0||c.vendeSite==='Sim';
+ else if(e.id==='fiscal')on=pdNum(c.notas)>0||pdNum(c.boletos)>0||c.emiteBoletos==='Sim';
+ else if(e.id==='centro')on=c.centroCusto==='Sim'||c.departamento==='Sim';
+ return {id:e.id,t:e.t,d:e.d,on:!!on}})}
+function propBeneficiosDe(){return PROP_BENEF_PADRAO.map(b=>({id:b.id,t:b.t,d:b.d,on:false}))}
+
+function propNova(c,lead){
+ const k=c?pdCalc(c):null, d=c?pdDiag(c):null, as=c?pdAreas(c):[];
+ const perfil=propPerfilSugerido(c,k);
+ const p={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+  leadId:lead?lead.id:'',prediagId:c?c.id:'',numero:propNumero(),data:todayKey(),validadeDias:30,
+  empresa:(c&&c.empresa)||(lead&&lead.empresa)||'',contato:(c&&c.contato)||(lead&&lead.contato)||'',
+  cargo:(lead&&lead.cargo)||'',email:(lead&&lead.email)||'',telefone:(lead&&lead.telefone)||'',
+  cnpj:(c&&c.cnpj)||'',segmento:(c&&c.segmento)||(lead&&lead.segmento)||'',
+  necessidade:propNecessidadeAuto(c,k,d),plano:'inter',
+  mensalidade:k?k.inter:(lead?+lead.ticket||0:0),implantacao:k?k.implantacao:0,perfilImpl:perfil,
+  escopo:propEscopoDe(c),beneficios:propBeneficiosDe(),condicoes:Object.assign({},PROP_COND_PADRAO),
+  numeros:k?{docs:k.docs,horas:k.tTotal,complexPct:k.complexPct,precoHora:k.precoHora,
+    perfil:d&&d.completo?{nome:d.perfil.nome,icone:d.perfil.icone,resumo:d.perfil.resumo,risco:d.perfil.risco,servico:d.perfil.servico}:null,
+    areas:as,planos:{basico:k.basico,inter:k.inter,avancado:k.avancado,implantacao:k.implantacao},
+    dor:c?c.dorFrase||'':''}:{},
+  status:'rascunho',obs:'',deletedAt:null};
+ DB.crmPropostas.push(p);persistProposta(p);return p}
+
+function propDoPd(){const c=pdAtual();if(!c)return toast('Nenhuma ligação selecionada');
+ if(!c.empresa)return toast('Preencha o nome da empresa no passo 1');
+ const lead=c.leadId?crmLeadById(c.leadId):null;
+ const ja=alive(DB.crmPropostas).find(p=>p.prediagId===c.id);
+ if(ja){propSelId=ja.id;propTab='editor';go('prop');return toast('Esta ligação já tem proposta — abri a existente')}
+ const p=propNova(c,lead);
+ if(lead&&!lead.linkProposta){lead.propostaData=lead.propostaData||todayKey();persistCrmLead(lead)}
+ propSelId=p.id;propTab='editor';go('prop');toast('Proposta '+p.numero+' criada a partir do pré-diagnóstico')}
+
+function propNovaAvulsa(){const p=propNova(null,null);propSelId=p.id;propTab='editor';render();toast('Proposta '+p.numero+' criada em branco')}
+
+function propDuplicar(id){const o=propById(id);if(!o)return;
+ const p=JSON.parse(JSON.stringify(o));
+ p.id=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));p.numero=propNumero();p.data=todayKey();p.status='rascunho';p.deletedAt=null;
+ DB.crmPropostas.push(p);persistProposta(p);propSelId=p.id;propTab='editor';render();toast('Proposta duplicada como '+p.numero)}
+function propExcluir(id){const p=propById(id);if(!p)return;
+ if(!confirm('Mandar a proposta '+p.numero+' para os excluídos?'))return;
+ p.deletedAt=Date.now();persistProposta(p);if(propSelId===id){propSelId=null;propTab='lista'}render();toast('Proposta excluída')}
+function propRestaurar(id){const p=propById(id);if(!p)return;p.deletedAt=null;persistProposta(p);render();toast('Proposta restaurada')}
+function propAbrir(id){propSelId=id;propTab='editor';render()}
+function setPropTab(t){propTab=t;render()}
+let _propTimer=null;
+function propSalvaLento(){clearTimeout(_propTimer);const p=propAtual();if(!p)return;_propTimer=setTimeout(()=>persistProposta(p),600)}
+function propSet(campo,v){const p=propAtual();if(!p)return;
+ p[campo]=(campo==='mensalidade'||campo==='implantacao'||campo==='validadeDias')?(+v||0):v;propSalvaLento();propLive()}
+function propSetCond(campo,v){const p=propAtual();if(!p)return;p.condicoes=p.condicoes||{};p.condicoes[campo]=v;propSalvaLento()}
+function propSetPlano(k){const p=propAtual();if(!p)return;p.plano=k;
+ const pl=(p.numeros&&p.numeros.planos)||null;if(pl&&pl[k])p.mensalidade=pl[k];
+ persistProposta(p);render()}
+function propTogItem(lista,id){const p=propAtual();if(!p)return;
+ const arr=p[lista]||[];const it=arr.find(x=>x.id===id);if(!it)return;it.on=!it.on;
+ if(lista==='beneficios'&&id==='impl_isenta'&&it.on)p.implantacao=0;
+ persistProposta(p);render()}
+function propAddBenef(){const p=propAtual();if(!p)return;
+ const t=prompt('Nome do benefício (ex.: Treinamento da equipe incluso):');if(!t)return;
+ const d=prompt('Explique em uma frase o que esse benefício dá ao cliente:')||'';
+ p.beneficios=(p.beneficios||[]).concat([{id:'x'+Date.now().toString(36),t:t.trim(),d:d.trim(),on:true,livre:true}]);
+ persistProposta(p);render()}
+function propDelBenef(id){const p=propAtual();if(!p)return;
+ p.beneficios=(p.beneficios||[]).filter(b=>b.id!==id);persistProposta(p);render()}
+function propAddEscopo(){const p=propAtual();if(!p)return;
+ const t=prompt('Nome da frente de trabalho:');if(!t)return;
+ const d=prompt('O que essa frente inclui?')||'';
+ p.escopo=(p.escopo||[]).concat([{id:'x'+Date.now().toString(36),t:t.trim(),d:d.trim(),on:true,livre:true}]);
+ persistProposta(p);render()}
+function propDelEscopo(id){const p=propAtual();if(!p)return;
+ p.escopo=(p.escopo||[]).filter(e=>e.id!==id);persistProposta(p);render()}
+function propLive(){const p=propAtual();if(!p)return;
+ const set=(id,txt)=>{const e=gEl(id);if(e)e.textContent=txt};
+ set('propLiveMens',brl(p.mensalidade));set('propLiveImpl',p.implantacao>0?brl(p.implantacao):'isenta');
+ set('propLiveAno',brl(p.mensalidade*12+ (+p.implantacao||0)))}
+function propVincLead(id){const p=propAtual();if(!p)return;p.leadId=id;persistProposta(p);
+ const l=id?crmLeadById(id):null;
+ if(l&&p.prediagId&&!l.prediagId){l.prediagId=p.prediagId;persistCrmLead(l)}
+ render()}
+
+/* marca a proposta como enviada: liga a régua 2 e atualiza o lead */
+function propMarcarEnviada(){const p=propAtual();if(!p)return;
+ p.status='enviada';persistProposta(p);
+ const l=p.leadId?crmLeadById(p.leadId):null;
+ if(l){l.statusContrato='Enviado';l.propostaData=todayKey();l.ticket=+p.mensalidade||l.ticket;
+  if(!l.cadenciaProp||!l.cadenciaProp.length)l.cadenciaProp=[];
+  persistCrmLead(l)}
+ render();toast(l?'Proposta marcada como enviada · follow-up começou hoje':'Proposta marcada como enviada')}
+
+/* ===== Vínculo CRM <-> Pré-Diagnóstico ===== */
+function pdCampoLead(){const c=pdAtual();if(!c)return '';
+ const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
+ return `<div class="field"><label>Lead do CRM vinculado</label>
+  <select onchange="pdVincLead(this.value)">
+   <option value="">— sem vínculo —</option>
+   ${leads.map(l=>`<option value="${l.id}" ${c.leadId===l.id?'selected':''}>${esc(l.empresa)}${l.contato?' · '+esc(l.contato):''}</option>`).join('')}
+  </select>
+  <div style="font-size:10.5px;color:var(--mut);margin-top:4px">Vincular faz a ligação, a proposta e o funil apontarem para o mesmo cliente.</div></div>`}
+function pdVincLead(id){const c=pdAtual();if(!c)return;
+ const antigo=c.leadId?crmLeadById(c.leadId):null;
+ if(antigo&&antigo.prediagId===c.id){antigo.prediagId='';persistCrmLead(antigo)}
+ c.leadId=id;savePd();
+ const l=id?crmLeadById(id):null;
+ if(l){l.prediagId=c.id;
+  if(!c.empresa)c.empresa=l.empresa;
+  if(!c.contato)c.contato=l.contato;
+  if(!c.segmento&&l.segmento)c.segmento=l.segmento;
+  if(l.prediagStatus==='pendente')l.prediagStatus='feita';
+  if(!l.prediagData)l.prediagData=c.data||todayKey();
+  persistCrmLead(l);savePd()}
+ render();toast(l?'Ligação vinculada ao lead '+l.empresa:'Vínculo removido')}
+
+function renderLeadVinc(l){const el=gEl('l_vinc');if(!el)return;
+ if(!l){el.innerHTML='<span class="muted" style="font-size:12px">Salve o lead para criar o pré-diagnóstico e a proposta.</span>';return}
+ const c=l.prediagId?DB.pdClientes.find(x=>x.id===l.prediagId&&!x.deletedAt):null;
+ const props=alive(DB.crmPropostas).filter(p=>p.leadId===l.id);
+ el.innerHTML=`<button type="button" class="btn btn-sm" onclick="leadAbrirPd('${l.id}')">${c?'Abrir pré-diagnóstico':'Criar pré-diagnóstico'}</button>
+  <button type="button" class="btn btn-sm" onclick="leadGerarProposta('${l.id}')">${props.length?'Ver proposta':'Gerar proposta'}</button>
+  <span class="muted" style="font-size:11.5px">${c?'Ligação: '+esc(c.empresa||'sem nome')+(pdDiag(c).completo?' · diagnóstico completo':' · diagnóstico '+pdDiag(c).respondidas+'/'+pdDiag(c).total):'Sem ligação registrada'}${props.length?' · '+props.length+' proposta(s)':''}</span>`}
+
+function leadAbrirPd(id){const l=crmLeadById(id);if(!l)return;
+ let c=l.prediagId?DB.pdClientes.find(x=>x.id===l.prediagId&&!x.deletedAt):null;
+ if(!c){c=pdNovoRegistro();
+  c.empresa=l.empresa||'';c.contato=l.contato||'';c.segmento=l.segmento||c.segmento;
+  c.responsavel=crmVendedorNome(l);c.leadId=l.id;
+  if(l.obs)c.dorFrase=l.prediagObs||l.obs;
+  DB.pdClientes.push(c);DB.pdAtualId=c.id;
+  l.prediagId=c.id;if(l.prediagStatus==='pendente')l.prediagStatus='feita';if(!l.prediagData)l.prediagData=todayKey();
+  persistCrmLead(l);savePd();toast('Pré-diagnóstico criado para '+(l.empresa||'o lead'))}
+ DB.pdAtualId=c.id;pdTab='ligacao';pdStep=1;closeModal('ovLead');go('prediag')}
+
+function leadGerarProposta(id){const l=crmLeadById(id);if(!l)return;
+ const ja=alive(DB.crmPropostas).filter(p=>p.leadId===l.id);
+ if(ja.length){propSelId=ja[ja.length-1].id;propTab='editor';closeModal('ovLead');go('prop');return}
+ const c=l.prediagId?DB.pdClientes.find(x=>x.id===l.prediagId&&!x.deletedAt):null;
+ const p=propNova(c,l);propSelId=p.id;propTab='editor';closeModal('ovLead');go('prop');
+ toast(c?'Proposta '+p.numero+' criada com os números do pré-diagnóstico':'Proposta '+p.numero+' criada · sem pré-diagnóstico, preencha o valor na mão')}
+
+/* ===== Propostas: telas ===== */
+function propTabCount(id){
+ if(id==='lista')return alive(DB.crmPropostas).length||null;
+ if(id==='excluidos')return DB.crmPropostas.filter(p=>p.deletedAt).length||null;
+ return null}
+function viewProp(){
+ const tabs=[['lista','Propostas'],['editor','Editor'],['doc','Documento'],['excluidos','Excluídos']];
+ const tabsHTML=`<div class="tabs">${tabs.map(x=>{const c=propTabCount(x[0]);
+   return `<button class="tab ${propTab===x[0]?'active':''}" onclick="setPropTab('${x[0]}')">${x[1]}${c?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`;
+ const body=({lista:viewPropLista,editor:viewPropEditor,doc:viewPropDoc,excluidos:viewPropLixo}[propTab]||viewPropLista)();
+ return tabsHTML+body}
+
+function viewPropLista(){
+ const ps=alive(DB.crmPropostas).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
+ const total=ps.filter(p=>p.status!=='recusada').reduce((s,p)=>s+(+p.mensalidade||0),0);
+ const aceitas=ps.filter(p=>p.status==='aceita');
+ const stats=`<div class="stats">
+  <div class="stat"><div class="k">Propostas</div><div class="v">${ps.length}</div><div class="sub">${ps.filter(p=>p.status==='rascunho').length} em rascunho</div></div>
+  <div class="stat"><div class="k">Enviadas</div><div class="v">${ps.filter(p=>p.status==='enviada').length}</div><div class="sub">aguardando resposta</div></div>
+  <div class="stat"><div class="k">Aceitas</div><div class="v">${aceitas.length}</div><div class="sub">${brl(aceitas.reduce((s,p)=>s+(+p.mensalidade||0),0))} de MRR</div></div>
+  <div class="stat"><div class="k">Em jogo</div><div class="v">${brl(total)}</div><div class="sub">soma das mensalidades vivas</div></div>
+ </div>`;
+ const linhas=ps.map(p=>{const l=p.leadId?crmLeadById(p.leadId):null;
+  const c=p.prediagId?DB.pdClientes.find(x=>x.id===p.prediagId):null;
+  return `<tr>
+   <td><b>${esc(p.numero||'—')}</b><div class="muted" style="font-size:11px">${fmtBR(p.data)}</div></td>
+   <td><b>${esc(p.empresa||'(sem empresa)')}</b>${p.contato?`<div class="muted" style="font-size:11px">${esc(p.contato)}</div>`:''}</td>
+   <td>${propPlanoLabel(p.plano)}</td>
+   <td class="num">${brl(p.mensalidade)}<div class="muted" style="font-size:11px">${p.implantacao>0?'impl. '+brl(p.implantacao):'impl. isenta'}</div></td>
+   <td><span class="pill ${p.status==='aceita'?'g':p.status==='recusada'?'r':''}">${propStatusLabel(p.status)}</span></td>
+   <td class="muted" style="font-size:11.5px">${l?esc(l.empresa):'sem lead'}${c?' · pré-diag.':''}</td>
+   <td style="text-align:right;white-space:nowrap">
+    <button class="btn btn-sm" onclick="propAbrir('${p.id}')">Abrir</button>
+    <button class="btn btn-sm" onclick="propDuplicar('${p.id}')">Duplicar</button>
+    <button class="btn btn-sm btn-ghost" onclick="propExcluir('${p.id}')">Excluir</button></td></tr>`}).join('');
+ return stats+`<div class="panel"><div class="panel-head"><h2>Propostas<small>a proposta nasce do pré-diagnóstico; aqui você ajusta e gera o documento</small></h2>
+  <button class="btn btn-sm btn-gold" onclick="propNovaAvulsa()">+ Proposta em branco</button></div>
+  ${ps.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Número</th><th>Empresa</th><th>Plano</th><th>Mensalidade</th><th>Status</th><th>Vínculo</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`
+   :`<div class="empty">Nenhuma proposta ainda.<br>Abra uma ligação no Pré-Diagnóstico e clique em <b>Gerar proposta</b>, ou crie uma em branco aqui.</div>`}</div>`}
+
+function propCampo(campo,label,tipo,ph){const p=propAtual();const v=p[campo]==null?'':p[campo];
+ return `<div class="field"><label>${label}</label><input type="${tipo||'text'}" value="${esc(String(v))}" placeholder="${ph||''}" oninput="propSet('${campo}',this.value)"></div>`}
+function propTxa(campo,label,ph,rows){const p=propAtual();
+ return `<div class="field"><label>${label}</label><textarea rows="${rows||4}" placeholder="${ph||''}" oninput="propSet('${campo}',this.value)">${esc(p[campo]||'')}</textarea></div>`}
+
+function viewPropEditor(){const p=propAtual();
+ if(!p)return `<div class="panel"><div class="empty">Nenhuma proposta selecionada.<br><br><button class="btn btn-sm" onclick="setPropTab('lista')">Ver a lista</button></div></div>`;
+ const pl=(p.numeros&&p.numeros.planos)||null;
+ const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
+ const cab=`<div class="panel"><div class="panel-head"><h2>Proposta ${esc(p.numero)}<small>${esc(p.empresa||'sem empresa')}</small></h2>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-sm" onclick="propMarcarEnviada()">Marcar como enviada</button>
+    <button class="btn btn-sm btn-gold" onclick="setPropTab('doc')">Ver o documento →</button></div></div>
+  <div class="stats">
+   <div class="stat"><div class="k">Mensalidade</div><div class="v" id="propLiveMens">${brl(p.mensalidade)}</div></div>
+   <div class="stat"><div class="k">Implantação</div><div class="v" id="propLiveImpl">${p.implantacao>0?brl(p.implantacao):'isenta'}</div></div>
+   <div class="stat"><div class="k">Primeiro ano</div><div class="v" id="propLiveAno">${brl(p.mensalidade*12+(+p.implantacao||0))}</div></div>
+   <div class="stat"><div class="k">Implantação</div><div class="v" style="font-size:17px">${PROP_PERFIS[p.perfilImpl].dias} dias</div><div class="sub">${PROP_PERFIS[p.perfilImpl].nome}</div></div>
+  </div>
+  <div class="fgrid">${propCampo('numero','Número da proposta')}${propCampo('data','Data','date')}${propCampo('validadeDias','Validade (dias)','number')}
+   <div class="field"><label>Status</label><select onchange="propSet('status',this.value)">${PROP_STATUS.map(x=>`<option value="${x[0]}" ${p.status===x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div></div>
+  <div class="fgrid">${propCampo('empresa','Empresa')}${propCampo('cnpj','CNPJ')}${propCampo('contato','Contato')}${propCampo('cargo','Cargo')}</div>
+  <div class="fgrid">${propCampo('email','E-mail')}${propCampo('telefone','Telefone')}${propCampo('segmento','Segmento')}
+   <div class="field"><label>Lead do CRM</label><select onchange="propVincLead(this.value)"><option value="">— sem vínculo —</option>${leads.map(l=>`<option value="${l.id}" ${p.leadId===l.id?'selected':''}>${esc(l.empresa)}</option>`).join('')}</select></div></div>
+ </div>`;
+ const planos=`<div class="panel"><div class="panel-head"><h2>Investimento<small>${pl?'os três planos vêm do cálculo do pré-diagnóstico':'sem pré-diagnóstico vinculado — digite os valores na mão'}</small></h2></div>
+  ${pl?`<div class="perf">${PROP_PLANOS.map(x=>`<div class="pf ${p.plano===x[0]?'on':''}" style="cursor:pointer" onclick="propSetPlano('${x[0]}')">
+    <div class="pn">${x[1]}</div><div class="pi" style="font-size:16px;font-weight:800;color:var(--acc)">${brl(pl[x[0]]||0)}</div></div>`).join('')}</div>`:''}
+  <div class="fgrid">${propCampo('mensalidade','Mensalidade (R$/mês)','number')}${propCampo('implantacao','Implantação (R$, parcela única)','number')}
+   <div class="field"><label>Perfil de implantação</label><select onchange="propSet('perfilImpl',this.value);render()">
+    ${Object.keys(PROP_PERFIS).map(k=>`<option value="${k}" ${p.perfilImpl===k?'selected':''}>${PROP_PERFIS[k].nome} · ${PROP_PERFIS[k].dias} dias · ${PROP_PERFIS[k].desc}</option>`).join('')}</select></div></div>
+ </div>`;
+ const item=(lista,x)=>`<label class="chk" style="display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)">
+   <input type="checkbox" ${x.on?'checked':''} onchange="propTogItem('${lista}','${x.id}')" style="margin-top:3px">
+   <span style="flex:1"><b style="font-size:13px">${esc(x.t)}</b><div class="muted" style="font-size:11.5px;line-height:1.5">${esc(x.d)}</div></span>
+   ${x.livre?`<button class="btn btn-sm btn-ghost" onclick="event.preventDefault();${lista==='escopo'?'propDelEscopo':'propDelBenef'}('${x.id}')">×</button>`:''}</label>`;
+ const escopo=`<div class="panel"><div class="panel-head"><h2>Escopo do serviço<small>marque o que a Lidere assume nesta proposta</small></h2>
+   <button class="btn btn-sm" onclick="propAddEscopo()">+ Frente</button></div>
+   ${(p.escopo||[]).map(x=>item('escopo',x)).join('')}</div>`;
+ const benef=`<div class="panel"><div class="panel-head"><h2>Benefícios desta proposta<small>as condições especiais que você está concedendo</small></h2>
+   <button class="btn btn-sm" onclick="propAddBenef()">+ Benefício</button></div>
+   ${(p.beneficios||[]).map(x=>item('beneficios',x)).join('')}</div>`;
+ const cond=p.condicoes||{};
+ const texto=`<div class="panel"><div class="panel-head"><h2>Texto e condições</h2></div>
+  ${propTxa('necessidade','Entendimento da necessidade','O contexto do cliente, a dor e o que ele espera',6)}
+  <div class="fgrid">
+   <div class="field"><label>Forma de pagamento</label><input value="${esc(cond.pagamento||'')}" oninput="propSetCond('pagamento',this.value)"></div>
+   <div class="field"><label>Reajuste</label><input value="${esc(cond.reajuste||'')}" oninput="propSetCond('reajuste',this.value)"></div>
+   <div class="field"><label>Vigência</label><input value="${esc(cond.vigencia||'')}" oninput="propSetCond('vigencia',this.value)"></div>
+   <div class="field"><label>Encerramento antecipado</label><input value="${esc(cond.multa||'')}" oninput="propSetCond('multa',this.value)"></div></div>
+  <div class="tip">Reajuste, vigência e multa vêm do contrato de prestação de serviços. Se a proposta divergir do contrato, o contrato prevalece e o cliente assinou entendendo outra coisa.</div>
+  ${propTxa('obs','Observações internas (não vão para o documento)','',3)}</div>`;
+ return cab+planos+escopo+benef+texto}
+
+function viewPropDoc(){const p=propAtual();
+ if(!p)return `<div class="panel"><div class="empty">Nenhuma proposta selecionada.</div></div>`;
+ return `<div class="panel"><div class="panel-head"><h2>Documento da proposta<small>${esc(p.numero)} · ${esc(p.empresa||'')}</small></h2>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+   <button class="btn btn-sm" onclick="setPropTab('editor')">← Editar</button>
+   <button class="btn btn-sm" onclick="propImprimir()">🖨 Imprimir / salvar em PDF</button>
+   <button class="btn btn-sm btn-gold" onclick="propBaixar()">Baixar HTML</button></div></div>
+  <iframe style="width:100%;height:72vh;border:1px solid var(--line);border-radius:10px;background:#fff" srcdoc="${esc(propDocHTML(p))}"></iframe></div>`}
+
+function viewPropLixo(){const ps=DB.crmPropostas.filter(p=>p.deletedAt);
+ if(!ps.length)return '<div class="panel"><div class="empty">Nada excluído por aqui.</div></div>';
+ return `<div class="panel"><div class="panel-head"><h2>Propostas excluídas</h2></div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Número</th><th>Empresa</th><th>Mensalidade</th><th></th></tr></thead><tbody>
+  ${ps.map(p=>`<tr><td>${esc(p.numero)}</td><td>${esc(p.empresa||'—')}</td><td class="num">${brl(p.mensalidade)}</td>
+   <td style="text-align:right"><button class="btn btn-sm" onclick="propRestaurar('${p.id}')">Restaurar</button></td></tr>`).join('')}
+  </tbody></table></div></div>`}
+
+function propImprimir(){const w=window.open('','_blank');if(!w)return toast('Libere os pop-ups para imprimir');
+ w.document.write(propDocHTML(propAtual()));w.document.close();setTimeout(()=>{w.focus();w.print()},420)}
+function propBaixar(){const p=propAtual();const b=new Blob([propDocHTML(p)],{type:'text/html;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);
+ a.download=(p.data||todayKey())+'_'+String(p.empresa||'proposta').replace(/[^\w]+/g,'-')+'_Proposta-Lidere.html';
+ a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
+
+/* ===== Propostas: o documento ===== */
+function propDocHTML(p){
+ const nums=p.numeros||{}, areas=nums.areas||[], perfil=nums.perfil||null;
+ const esc0=v=>esc(String(v==null?'':v));
+ const venc=p.data?addDias(p.data,+p.validadeDias||30):'';
+ const escopoOn=(p.escopo||[]).filter(x=>x.on);
+ const benefOn=(p.beneficios||[]).filter(x=>x.on);
+ const perf=PROP_PERFIS[p.perfilImpl]||PROP_PERFIS.B;
+ const etapas=PROP_ETAPAS.map((e,i)=>({t:e.t,d:e.d,ate:Math.round(perf.dias*e.p),de:i===0?1:Math.round(perf.dias*PROP_ETAPAS[i-1].p)+1}));
+ return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Proposta Comercial ${esc0(p.numero)} — ${esc0(p.empresa)}</title>
+ <style>
+ *{box-sizing:border-box}body{margin:0;background:#fbf9f4;color:#2a3142;font-family:"Segoe UI",Roboto,Arial,sans-serif}
+ .wrap{max-width:820px;margin:0 auto;padding:34px 28px 60px}
+ .hd{display:flex;align-items:center;gap:18px;border-bottom:1px solid rgba(169,118,29,.3);padding-bottom:18px;margin-bottom:22px;flex-wrap:wrap}
+ .hd svg{width:190px;height:auto;display:block}
+ .hd h1{margin:0;font-size:19px;letter-spacing:2px;color:#8a5f14;text-transform:uppercase}
+ .hd .meta{font-size:12px;color:#6b7280;margin-top:4px;line-height:1.6}
+ h2{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#8a5f14;margin:26px 0 10px;border-bottom:1px solid rgba(0,0,0,.08);padding-bottom:6px}
+ p{font-size:13.5px;line-height:1.7;color:#3a4152}
+ .quote{border-left:3px solid #a9761d;background:rgba(169,118,29,.06);padding:12px 16px;border-radius:0 10px 10px 0;font-style:italic;font-size:14px;line-height:1.6;margin:0 0 18px;color:#3a4152}
+ table{width:100%;border-collapse:collapse;font-size:12.5px}
+ td,th{padding:8px 6px;border-bottom:1px solid rgba(0,0,0,.08);text-align:left;color:#3a4152;vertical-align:top}
+ th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#8a5f14}
+ td.n{text-align:right;color:#6b4f14;font-weight:600;white-space:nowrap}
+ .price{display:flex;justify-content:space-between;align-items:center;gap:20px;border:1px solid rgba(169,118,29,.4);background:rgba(169,118,29,.06);border-radius:14px;padding:20px 22px;flex-wrap:wrap}
+ .price .lbl{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#8a5f14;font-weight:800}
+ .price .desc{font-size:12.5px;color:#3a4152;margin-top:6px;max-width:430px;line-height:1.6}
+ .price .big{font-size:34px;font-weight:800;color:#8a5f14;line-height:1.1;text-align:right}
+ .price .sub{font-size:11.5px;color:#6b7280;text-align:right;margin-top:4px}
+ ul.ben{list-style:none;padding:0;margin:0;font-size:13px;line-height:1.7;color:#3a4152}
+ ul.ben li{padding:8px 0 8px 22px;position:relative;border-bottom:1px solid rgba(0,0,0,.06)}
+ ul.ben li::before{content:"✓";position:absolute;left:2px;color:#1c7d4b;font-weight:800}
+ .radarw{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+ .ar{margin-bottom:10px}.ar .t{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;margin-bottom:4px;color:#2a3142}
+ .ar .b{height:6px;border-radius:4px;background:rgba(0,0,0,.08);overflow:hidden}.ar .b i{display:block;height:100%;border-radius:4px}
+ .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+ .kpi{border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:11px 15px;flex:1;min-width:130px;background:#fff}
+ .kpi .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:#8b93a3}
+ .kpi .v{font-size:19px;font-weight:800;color:#8a5f14;margin-top:3px}
+ .terms{font-size:12.5px;line-height:1.8;color:#3a4152}
+ .terms b{color:#8a5f14}
+ .valid{border:1px dashed rgba(169,118,29,.5);border-radius:10px;padding:12px 15px;font-size:13px;color:#3a4152;margin-top:14px}
+ .accept{margin-top:30px;border-top:1px solid rgba(0,0,0,.1);padding-top:20px}
+ .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:38px}
+ .sign-line{border-top:1px solid #2a3142;padding-top:7px;font-size:11.5px;color:#3a4152;text-align:center}
+ .ft{margin-top:34px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08);font-size:11px;color:#8b93a3;text-align:center;line-height:1.7}
+ @media(max-width:640px){.sign-grid{grid-template-columns:1fr}}
+ @media print{body{background:#fff}.wrap{padding:12px 6px}h2{page-break-after:avoid}}
+ </style></head><body><div class="wrap">
+ <div class="hd">${LOGO_SVG}<div><h1>Proposta Comercial</h1><div class="meta">
+   Nº ${esc0(p.numero)} · ${fmtBR(p.data)}<br>
+   ${esc0(p.empresa)}${p.cnpj?' · '+esc0(p.cnpj):''}<br>
+   ${p.contato?'A/C '+esc0(p.contato)+(p.cargo?' · '+esc0(p.cargo):''):''}</div></div></div>
+
+ ${nums.dor?`<div class="quote">"${esc0(nums.dor)}"</div>`:''}
+ <h2>1. Entendimento da necessidade</h2>
+ <p>${esc0(p.necessidade)}</p>
+
+ ${(areas.length||nums.docs)?`<h2>2. O que o pré-diagnóstico mostrou</h2>
+ <div class="kpis">
+  ${nums.docs?`<div class="kpi"><div class="k">Documentos por mês</div><div class="v">${nums.docs}</div></div>`:''}
+  ${nums.horas?`<div class="kpi"><div class="k">Horas de rotina</div><div class="v">${pdH1(nums.horas)} h</div></div>`:''}
+  ${nums.complexPct!=null?`<div class="kpi"><div class="k">Complexidade</div><div class="v">${nums.complexPct}%</div></div>`:''}
+  ${perfil?`<div class="kpi"><div class="k">Perfil financeiro</div><div class="v" style="font-size:15px">${esc0(perfil.nome)}</div></div>`:''}
+ </div>
+ ${areas.length?`<div class="radarw">${pdRadarSVG(areas,{r:64,grade:'rgba(0,0,0,.12)',txt:'#5a6478',cor:'#a9761d'})}
+  <div style="flex:1;min-width:240px">${areas.map(a=>`<div class="ar"><div class="t"><span>${esc0(a.nome)}</span><span style="color:${a.cor}">${esc0(a.rot)} · ${a.pct}%</span></div>
+   <div class="b"><i style="width:${a.pct}%;background:${a.cor}"></i></div></div>`).join('')}</div></div>`:''}
+ ${perfil&&perfil.risco?`<p style="margin-top:12px"><b>Risco principal deste perfil:</b> ${esc0(perfil.risco)}</p>`:''}`:''}
+
+ <h2>${(areas.length||nums.docs)?'3':'2'}. Escopo do serviço</h2>
+ <table><thead><tr><th style="width:32%">Frente</th><th>O que a Lidere executa</th></tr></thead><tbody>
+ ${escopoOn.map(x=>`<tr><td><b>${esc0(x.t)}</b></td><td>${esc0(x.d)}</td></tr>`).join('')||'<tr><td colspan="2">Escopo a definir.</td></tr>'}
+ </tbody></table>
+
+ <h2>${(areas.length||nums.docs)?'4':'3'}. Investimento</h2>
+ <div class="price">
+  <div><div class="lbl">Mensalidade Lidere BPO · plano ${esc0(propPlanoLabel(p.plano))}</div>
+   <div class="desc">Execução da rotina financeira conforme o escopo acima, com equipe dedicada, processo padronizado e segregação de funções.</div></div>
+  <div><div class="big">${brl(p.mensalidade)}</div><div class="sub">por mês</div></div>
+ </div>
+ <p style="margin-top:12px">${p.implantacao>0
+   ?`<b>Implantação:</b> ${brl(p.implantacao)} em parcela única, cobrada no início do projeto.`
+   :`<b>Implantação:</b> isenta nesta proposta.`}
+ </p>
+
+ ${benefOn.length?`<h2>${(areas.length||nums.docs)?'5':'4'}. Benefícios desta proposta</h2>
+ <ul class="ben">${benefOn.map(b=>`<li><b>${esc0(b.t)}</b>${b.d?' — '+esc0(b.d):''}</li>`).join('')}</ul>`:''}
+
+ <h2>${(areas.length||nums.docs)?(benefOn.length?'6':'5'):(benefOn.length?'5':'4')}. Implantação</h2>
+ <p><b>${esc0(perf.nome)}</b> (${esc0(perf.desc)}): cerca de <b>${perf.dias} dias</b> do aceite até o primeiro fechamento entregue. O cronograma começa a contar da assinatura e da liberação dos acessos.</p>
+ <table><thead><tr><th style="width:22%">Etapa</th><th>O que acontece</th><th style="width:16%">Prazo</th></tr></thead><tbody>
+ ${etapas.map(e=>`<tr><td><b>${esc0(e.t)}</b></td><td>${esc0(e.d)}</td><td class="n">até o dia ${e.ate}</td></tr>`).join('')}
+ </tbody></table>
+
+ <h2>${(areas.length||nums.docs)?(benefOn.length?'7':'6'):(benefOn.length?'6':'5')}. Condições comerciais</h2>
+ <div class="terms">
+  <b>Pagamento:</b> ${esc0((p.condicoes||{}).pagamento||'')}<br>
+  <b>Reajuste:</b> ${esc0((p.condicoes||{}).reajuste||'')}<br>
+  <b>Vigência:</b> ${esc0((p.condicoes||{}).vigencia||'')}<br>
+  <b>Encerramento antecipado:</b> ${esc0((p.condicoes||{}).multa||'')}
+ </div>
+ <div class="valid">Esta proposta é válida por <b>${+p.validadeDias||30} dias</b>${venc?`, até <b>${fmtBR(venc)}</b>`:''}. Após essa data, os valores podem ser revistos.</div>
+
+ <div class="accept">
+  <h2 style="border:0;margin-bottom:6px">Aceite da proposta</h2>
+  <p style="font-size:12.5px">Ao assinar, as partes concordam com o escopo, o investimento e as condições acima, que serão formalizados no Contrato de Prestação de Serviços de BPO Financeiro.</p>
+  <div class="sign-grid">
+   <div><div class="sign-line">Lidere BPO Financeiro</div></div>
+   <div><div class="sign-line">${esc0(p.empresa||'Empresa')} &nbsp;·&nbsp; Data ___/___/______</div></div>
+  </div>
+ </div>
+ <div class="ft">Lidere BPO Financeiro · Proposta Comercial nº ${esc0(p.numero)}<br>Documento gerado a partir do pré-diagnóstico financeiro.</div>
+ </div></body></html>`}
+
 
 /* ===== Excluídos ===== */
 function viewLixo(){
