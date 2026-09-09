@@ -383,6 +383,15 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .chk{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line-f);background:transparent;flex:0 0 22px;
   display:inline-flex;align-items:center;justify-content:center;padding:0;transition:.15s;color:transparent;font-size:12px;font-weight:900}
 .chk:hover{border-color:var(--acc)}
+.pcard{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);
+  border-left:3px solid var(--mut);border-radius:10px;padding:9px 11px;cursor:pointer;color:var(--txt);transition:.12s}
+.pcard:hover{border-color:var(--line-f);transform:translateY(-1px)}
+.pcard .ph{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pcard .pl{font-size:9px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;padding:2px 6px;border-radius:5px}
+.pcard .pf{font-size:9.5px;color:var(--mut);font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.pcard .pt{font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .pm{font-size:10.5px;color:var(--mut);margin-top:3px}
+.pgridc{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
 .prop-it{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
 .prop-it:last-child{border-bottom:0}
 .prop-it:hover{background:var(--panel2)}
@@ -1263,14 +1272,24 @@ function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECA
 
 /* ===== Painel (visão geral) ===== */
 function viewHome(){
-  const todayK=todayKey();
+  const todayK=todayKey(),hoje=new Date();
   const pendOpenAll=alive(DB.avulsas).filter(a=>a.status!=='feito');
   const pendLate=pendOpenAll.filter(a=>a.prazo&&a.prazo<todayK);
   const pendHoje=pendOpenAll.filter(a=>a.prazo===todayK);
-  const cpList=cpContasDoMes(new Date());
+  const pendFeitasHoje=alive(DB.avulsas).filter(a=>a.status==='feito'&&a.concluidoEm&&iso(new Date(a.concluidoEm))===todayK);
+
+  /* rotinas que caem hoje, em qualquer uma das três frequências */
+  const rot=homeRotinasHoje();
+
+  /* contas: só o que vence hoje, o que já venceu e o que vem na semana */
+  const cpList=cpContasDoMes(hoje);
   const cpVencido=cpList.filter(x=>x.st==='vencido');
   const cpHoje=cpList.filter(x=>x.st!=='pago'&&iso(x.eff)===todayK);
-  const cpTotalMes=cpList.reduce((s,x)=>s+x.c.valor,0);
+  const cpTotalHoje=cpHoje.reduce((s,x)=>s+x.c.valor,0);
+  const cpTotalVencido=cpVencido.reduce((s,x)=>s+x.c.valor,0);
+  const cp7=homeContasAte(addDias(todayK,7)).filter(x=>iso(x.eff)>todayK);
+  const cpTotal7=cp7.reduce((s,x)=>s+x.c.valor,0);
+
   const onbAtrasados=alive(DB.onbClientes).filter(c=>onbStatusPrazo(c)==='atrasado');
   const onbAndamento=alive(DB.onbClientes).filter(c=>onbStatusPrazo(c)!=='concluido');
   const crmG=crmGanhoIds(),crmP=crmPerdidoIds();
@@ -1282,39 +1301,63 @@ function viewHome(){
   const pnDone=pnAll.filter(pnIsDone).length;
   const pnPct=pnAll.length?Math.round(pnDone/pnAll.length*100):0;
 
+  const tile=(k,v,sub,cor,onclick)=>`<div class="stat"${onclick?` onclick="${onclick}" style="cursor:pointer"`:''}>
+    <div class="k">${k}</div><div class="v"${cor?` style="color:${cor}"`:''}>${v}</div><div class="sub">${sub}</div></div>`;
   const stats=`<div class="stats">
-    <div class="stat"><div class="k">Pendências</div><div class="v">${pendOpenAll.length}</div><div class="sub" style="${pendLate.length?'color:var(--neg)':''}">${pendLate.length} atrasada(s)</div></div>
-    <div class="stat"><div class="k">Contas a pagar</div><div class="v" style="${cpVencido.length?'color:var(--neg)':''}">${brl(cpTotalMes)}</div><div class="sub">${cpVencido.length} vencida(s) este mês</div></div>
-    <div class="stat"><div class="k">Implantação</div><div class="v">${onbAndamento.length}</div><div class="sub" style="${onbAtrasados.length?'color:var(--neg)':''}">${onbAtrasados.length} atrasada(s)</div></div>
-    <div class="stat"><div class="k">CRM em aberto</div><div class="v">${crmAbertos.length}</div><div class="sub">${brl(crmMRR)} em MRR ganho</div></div>
+    ${tile('Pendências',pendOpenAll.length,`${pendLate.length} atrasada(s) · ${pendFeitasHoje.length} concluída(s) hoje`,pendLate.length?'var(--neg)':'',"go('pend')")}
+    ${tile('Rotinas de hoje',rot.feitas+'/'+rot.total,rot.total?(rot.faltam?rot.faltam+' para fechar o dia':'dia fechado'):'nenhuma rotina hoje',rot.faltam?'var(--warn)':'var(--pos)',"go('rotinas')")}
+    ${tile('A pagar hoje',brl(cpTotalHoje),`${cpHoje.length} conta(s) · ${brl(cpTotal7)} nos próximos 7 dias`,cpHoje.length?'var(--warn)':'',"go('contas')")}
+    ${tile('Vencido',brl(cpTotalVencido),`${cpVencido.length} conta(s) não paga(s)`,cpVencido.length?'var(--neg)':'var(--pos)',"go('contas')")}
+    ${tile('Implantação',onbAndamento.length,`${onbAtrasados.length} atrasada(s)`,onbAtrasados.length?'var(--neg)':'',"go('onb')")}
+    ${tile('Comercial',crmAbertos.length,`${brl(crmMRR)} em mensalidades fechadas`,'var(--acc)',"go('comPainel')")}
   </div>`;
 
+  /* ---------- Prioridades: o que está atrasado e o que vence hoje ---------- */
   const feed=[];
-  pendLate.forEach(a=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:a.titulo,meta:fmtBR(a.prazo)+(a.hora?' '+a.hora:''),onclick:"go('pend')"}));
-  cpVencido.forEach(x=>feed.push({u:2,cor:'var(--neg)',lbl:'Vencida',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
-  onbAtrasados.forEach(c=>feed.push({u:2,cor:'var(--neg)',lbl:'Atrasada',txt:c.nome,meta:'Implantação',onclick:"go('onb')"}));
-  crmAtrasoLeads.forEach(l=>feed.push({u:2,cor:'var(--neg)',lbl:'Contato atrasado',txt:l.empresa,meta:fmtBR(l.proximoContato),onclick:"go('crm')"}));
-  pendHoje.forEach(a=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:a.titulo,meta:a.hora?(a.hora+' · Pendência'):'Pendência',onclick:"go('pend')"}));
-  cpHoje.forEach(x=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:x.c.fornecedor,meta:brl(x.c.valor),onclick:"go('contas')"}));
-  crmHojeLeads.forEach(l=>feed.push({u:1,cor:'var(--warn)',lbl:'Hoje',txt:l.empresa,meta:'Contato',onclick:"go('crm')"}));
+  const add=(u,cor,lbl,fonte,txt,meta,onclick)=>feed.push({u,cor,lbl,fonte,txt,meta,onclick});
+  pendLate.forEach(a=>add(3,'var(--neg)','Atrasada','Pendência',a.titulo,fmtBR(a.prazo)+(a.hora?' · '+a.hora:''),"go('pend')"));
+  cpVencido.forEach(x=>add(3,'var(--neg)','Vencida','Contas a pagar',x.c.fornecedor,brl(x.c.valor)+' · '+fmtBR(iso(x.eff)),"go('contas')"));
+  onbAtrasados.forEach(c=>add(3,'var(--neg)','Atrasada','Implantação',c.nome,'prazo estourado',"go('onb')"));
+  crmAtrasoLeads.forEach(l=>add(3,'var(--neg)','Atrasado','Comercial',l.empresa,'contato era '+fmtBR(l.proximoContato),`comAbrir('${l.id}')`));
+  pendHoje.forEach(a=>add(2,'var(--warn)','Hoje','Pendência',a.titulo,a.hora||'sem horário',"go('pend')"));
+  cpHoje.forEach(x=>add(2,'var(--warn)','Vence hoje','Contas a pagar',x.c.fornecedor,brl(x.c.valor),"go('contas')"));
+  crmHojeLeads.forEach(l=>add(2,'var(--warn)','Hoje','Comercial',l.empresa,'contato agendado',`comAbrir('${l.id}')`));
+  rot.pendentes.forEach(r=>add(1,'var(--meta)','Hoje',r.tipo,r.descricao,'rotina '+r.tipo.toLowerCase(),"go('rotinas')"));
   feed.sort((a,b)=>b.u-a.u);
-  const shown=feed.slice(0,8);
-  const extra=feed.length-shown.length;
-  const feedHTML=shown.length?shown.map(i=>`<div class="row" style="padding:8px 11px;cursor:pointer" onclick="${i.onclick}">
-      <span class="pchip" style="background:color-mix(in srgb,${i.cor} 16%,transparent);color:${i.cor};flex:0 0 auto">${i.lbl}</span>
-      <div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(i.txt)}</div></div>
-      ${i.meta?`<span class="chip chip-n">${esc(i.meta)}</span>`:''}</div>`).join('')+(extra>0?`<div style="text-align:center;padding:6px;font-size:11.5px;color:var(--mut)">+ ${extra} outra(s)</div>`:'')
-    :'<div class="empty">Tudo em dia — nada urgente agora. 🎉</div>';
 
-  const byG={};cpList.forEach(x=>{const g=x.c.grupoId;(byG[g]=byG[g]||{prev:0,pago:0});byG[g].prev+=x.c.valor;if(x.st==='pago')byG[g].pago+=(x.valorPago||x.c.valor)});
-  const gKeys=Object.keys(byG).sort((a,b)=>byG[b].prev-byG[a].prev).slice(0,3);
+  const LIM=12;
+  const mostra=homeVerTudo?feed:feed.slice(0,LIM);
+  const resto=feed.length-mostra.length;
+  const cards=mostra.map(i=>`<button class="pcard" style="border-left-color:${i.cor}" onclick="${i.onclick}">
+     <div class="ph"><span class="pl" style="background:color-mix(in srgb,${i.cor} 18%,transparent);color:${i.cor}">${esc(i.lbl)}</span>
+      <span class="pf">${esc(i.fonte)}</span></div>
+     <div class="pt">${esc(i.txt)}</div>
+     ${i.meta?`<div class="pm">${esc(i.meta)}</div>`:''}</button>`).join('');
+  const verMais=resto>0
+    ? `<div style="text-align:center;margin-top:10px"><button class="btn btn-sm" onclick="homeVerTudo=true;render()">Ver as outras ${resto}</button></div>`
+    : (homeVerTudo&&feed.length>LIM?`<div style="text-align:center;margin-top:10px"><button class="btn btn-sm btn-ghost" onclick="homeVerTudo=false;render()">Mostrar menos</button></div>`:'');
+  const porUrg=u=>feed.filter(x=>x.u===u).length;
+  const prioridades=`<div class="panel"><div class="panel-head">
+    <h2>Prioridades<small>${feed.length?`${porUrg(3)} atrasado(s) · ${porUrg(2)+porUrg(1)} para hoje`:'atrasos e o que vence hoje, tudo num lugar só'}</small></h2></div>
+    ${feed.length?`<div class="pgridc">${cards}</div>${verMais}`:'<div class="empty">Tudo em dia — nada urgente agora. 🎉</div>'}</div>`;
+
+  /* ---------- Resumo por área ---------- */
+  const byG={};
+  alive(DB.grupos).forEach(g=>{byG[g.id]={prev:0,pago:0,hoje:0}});
+  cpList.forEach(x=>{const g=x.c.grupoId;byG[g]=byG[g]||{prev:0,pago:0,hoje:0};
+    byG[g].prev+=x.c.valor;
+    if(x.st==='pago')byG[g].pago+=(x.valorPago||x.c.valor); else if(iso(x.eff)===todayK)byG[g].hoje+=x.c.valor});
+  const gKeys=Object.keys(byG).sort((a,b)=>byG[b].prev-byG[a].prev);
   const finMini=gKeys.length?gKeys.map(gid=>{const d=byG[gid],pct=d.prev?Math.round(d.pago/d.prev*100):0,cor=cpGrupoCor(gid);
-    return `<div class="hbar"><div class="hl"><span class="nm">${esc(cpGrupoNome(gid))}</span><span class="muted">${pct}%</span></div><div class="ht"><i style="width:${pct}%;background:${cor}"></i></div></div>`}).join('')
-    :'<div class="empty" style="padding:12px;font-size:11.5px">Sem contas neste mês.</div>';
+    return `<div class="hbar"><div class="hl"><span class="nm">${esc(cpGrupoNome(gid))}</span>
+      <span class="muted">${brl(d.prev)} · <b style="color:${pct>=100?'var(--pos)':'var(--dim)'}">${pct}%</b></span></div>
+      <div class="ht"><i style="width:${pct}%;background:${cor}"></i></div>
+      ${d.hoje?`<div style="font-size:10px;color:var(--warn);margin-top:2px">${brl(d.hoje)} vence hoje</div>`:''}</div>`}).join('')
+    :'<div class="empty" style="padding:12px;font-size:11.5px">Nenhuma empresa cadastrada em Contas a Pagar.</div>';
 
   const estAll=crmEstagios();
   const maxLead=Math.max(1,...estAll.map(e=>crmLeadsAtivos().filter(l=>l.estagioId===e.id).length));
-  const comMini=estAll.length?estAll.slice(0,4).map(e=>{const n=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
+  const comMini=estAll.length?estAll.map(e=>{const n=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
     return `<div class="hbar"><div class="hl"><span class="nm">${esc(e.nome)}</span><span class="muted">${n}</span></div><div class="ht"><i style="width:${Math.max(n?6:0,Math.round(n/maxLead*100))}%;background:${e.cor}"></i></div></div>`}).join('')
     :'<div class="empty" style="padding:12px;font-size:11.5px">Nenhuma etapa cadastrada.</div>';
 
@@ -1322,18 +1365,39 @@ function viewHome(){
     <div class="progress mini" style="margin:8px 0"><i class="pbar-static" style="width:${pnPct}%"></i></div>
     <div style="font-size:11px;color:var(--mut)">${pnDone} de ${pnAll.length} tarefas concluídas</div>`;
 
-  const miniHead=(t,onclick)=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <span style="font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:800">${t}</span>
+  const miniHead=(t,sub,onclick)=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px">
+    <span><span style="font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:800">${t}</span>
+     ${sub?`<div style="font-size:10px;color:var(--mut);margin-top:2px">${sub}</div>`:''}</span>
     <button class="btn btn-sm" onclick="${onclick}">Abrir</button></div>`;
 
-  return stats+
-    `<div class="panel"><div class="panel-head"><h2>Prioridades<small>atrasos e o que vence hoje, tudo num lugar só</small></h2></div>${feedHTML}</div>
-    <div class="panel"><div class="panel-head"><h2>Resumo por área</h2></div>
-     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px">
-       <div>${miniHead('Financeiro',"go('contas')")}${finMini}</div>
-       <div>${miniHead('Comercial',"go('crm')")}${comMini}</div>
-       <div>${miniHead('Plano de Negócio',"go('plano')")}${pnMini}</div>
+  return stats+prioridades+
+    `<div class="panel"><div class="panel-head"><h2>Resumo por área</h2></div>
+     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px">
+       <div>${miniHead('Contas a pagar','% pago no mês, por empresa',"go('contas')")}${finMini}</div>
+       <div>${miniHead('Comercial','clientes por etapa do funil',"go('comFunil')")}${comMini}</div>
+       <div>${miniHead('Plano de Negócio','',"go('plano')")}${pnMini}</div>
      </div></div>`}
+
+let homeVerTudo=false;
+/* rotinas que caem hoje: mensais, semanais e diárias, com o que já foi feito */
+function homeRotinasHoje(){
+  const dt=new Date(),dk=iso(dt);
+  const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[dk]||{};
+  const itens=[];
+  mensaisOnDate(dt).forEach(m=>itens.push({tipo:'Mensal',descricao:m.descricao,feito:!!(mex[m.id]&&mex[m.id].feito)}));
+  semanaisOnDate(dt).forEach(m=>itens.push({tipo:'Semanal',descricao:m.descricao,feito:!!(wex[m.id]&&wex[m.id].feito)}));
+  diariasOnDate(dt).forEach(m=>itens.push({tipo:'Diária',descricao:m.descricao,feito:!!(dex[m.id]&&dex[m.id].feito)}));
+  const feitas=itens.filter(x=>x.feito).length;
+  return {total:itens.length,feitas,faltam:itens.length-feitas,pendentes:itens.filter(x=>!x.feito)}}
+/* contas a pagar de hoje até uma data, atravessando a virada do mês */
+function homeContasAte(limite){
+  const hoje=new Date(),out=[],vistos={};
+  [0,1].forEach(off=>{const d=new Date(hoje.getFullYear(),hoje.getMonth()+off,1);
+    cpContasDoMes(d).forEach(x=>{const k=x.c.id+'|'+iso(x.eff);
+      if(vistos[k]||x.st==='pago')return;
+      const dk=iso(x.eff);
+      if(dk>=iso(hoje)&&dk<=limite){vistos[k]=1;out.push(x)}})});
+  return out.sort((a,b)=>iso(a.eff).localeCompare(iso(b.eff)))}
 
 /* ===== Pendências — Kanban ===== */
 function viewPend(){
@@ -2133,7 +2197,7 @@ const CRM_METRICAS={
   perdidos:{label:'Leads em etapa de perda',fn:()=>{const p=crmPerdidoIds();return crmLeadsAtivos().filter(l=>p.includes(l.estagioId)).length}},
   contratosAssinados:{label:'Contratos assinados',fn:()=>crmLeadsAtivos().filter(l=>l.statusContrato==='Assinado').length},
   ticketMedio:{label:'Ticket médio (R$)',fn:()=>{const a=crmLeadsAtivos();if(!a.length)return 0;return Math.round(a.reduce((s,l)=>s+(+l.ticket||0),0)/a.length)}},
-  mrrGanho:{label:'MRR em etapa de ganho (R$)',fn:()=>{const g=crmGanhoIds();return crmLeadsAtivos().filter(l=>g.includes(l.estagioId)).reduce((s,l)=>s+(+l.ticket||0),0)}},
+  mrrGanho:{label:'Mensalidades fechadas (R$/mês)',fn:()=>{const g=crmGanhoIds();return crmLeadsAtivos().filter(l=>g.includes(l.estagioId)).reduce((s,l)=>s+(+l.ticket||0),0)}},
   valorAberto:{label:'Valor em aberto (R$)',fn:()=>{const g=crmGanhoIds(),p=crmPerdidoIds();return crmLeadsAtivos().filter(l=>!g.includes(l.estagioId)&&!p.includes(l.estagioId)).reduce((s,l)=>s+(+l.ticket||0),0)}},
   altaPrioridade:{label:'Leads de alta prioridade',fn:()=>crmLeadsAtivos().filter(l=>l.prioridade==='alta').length},
   callsRealizadas:{label:'Calls/ligações realizadas',fn:()=>alive(DB.crmAtividades).filter(a=>/liga|call|reuni/i.test(a.tipo)).length},
