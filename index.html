@@ -1160,8 +1160,65 @@ function buildUserSlot(){const el=gEl('userSlot');if(!el||!ME)return;
   el.innerHTML=`<span class="uchip">${ME.is_admin?'👑 ':''}${esc(ME.email)}</span>`}
 
 /* ===== administração (só master/admin) ===== */
-function viewAdmin(){return `<div class="panel"><div class="panel-head"><h2>Administração de usuários<small>aprove cadastros e gerencie acessos — vale para o app todo</small></h2></div>
+let admTab='equipe';
+function setAdmTab(t){admTab=t;render()}
+function viewAdmin(){
+ const abas=[['equipe','Equipe'],['funil','Funil e listas'],['mensagens','Mensagens'],
+   ['preco','Tabela de preço'],['excluidos','Excluídos',admLixoQtd()]];
+ if(ME&&ME.is_admin)abas.push(['usuarios','Usuários']);
+ if(admTab==='usuarios'&&!(ME&&ME.is_admin))admTab='equipe';
+ const body=({equipe:admEquipe,funil:admFunil,mensagens:comAjMsgs,preco:viewPdConfig,
+   excluidos:admLixo,usuarios:admUsuarios}[admTab]||admEquipe)();
+ return comTabs(abas,admTab,'setAdmTab')+body}
+
+function admUsuarios(){return `<div class="panel"><div class="panel-head"><h2>Usuários<small>aprove cadastros e gerencie acessos — vale para o app todo</small></h2></div>
   <div id="adminList"><div class="empty">Carregando...</div></div></div>`}
+
+/* Equipe: quem executa a operação e quem toca o comercial, no mesmo lugar */
+function admEquipe(){
+ const respRows=alive(DB.crmResponsaveis).map(r=>{const cnt=crmLeadsAtivos().filter(l=>l.responsavelId===r.id).length;
+  return `<div class="row"><span class="avatar" style="background:${r.cor}">${esc(initials(r.nome))}</span>
+   <div class="row-body"><div class="row-title">${esc(r.nome)}</div><div class="row-meta">${cnt} cliente(s) no funil</div></div>
+   <div class="row-actions"><button class="iconbtn" onclick="openRespCrm('${r.id}')">✎</button><button class="iconbtn del" onclick="delRespCrm('${r.id}')">🗑</button></div></div>`}).join('')
+  ||'<div class="empty">Nenhum responsável comercial.</div>';
+ return viewResp()+`<div class="panel"><div class="panel-head"><h2>Responsáveis comerciais<small>quem aparece como dono do cliente no funil</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="openRespCrm()">+ Novo</button></div>${respRows}</div>`}
+
+/* Funil e as listas que alimentam o cadastro do cliente */
+function admFunil(){
+ const chips=(arr,kind)=>arr.map((x,i)=>`<span class="pill">${esc(x)} <span style="cursor:pointer;font-weight:900" onclick="delSimpleCrm('${kind}',${i})">×</span></span>`).join(' ')||'<span class="muted">vazio</span>';
+ const lista=(titulo,arr,kind,inputId,ph)=>`<div class="panel"><div class="panel-head"><h2>${titulo}</h2></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(arr,kind)}</div>
+   <div class="filters"><input id="${inputId}" placeholder="${ph}" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('${kind}','${inputId}')"><button class="btn btn-sm" onclick="addSimpleCrm('${kind}','${inputId}')">Adicionar</button></div></div>`;
+ return comAjFunil()+lista('Origens de lead',DB.crmOrigens,'crmOrigens','add_origem','Nova origem')
+   +lista('Serviços de interesse',DB.crmServicos,'crmServicos','add_servico','Novo serviço')}
+
+/* Excluídos de todas as áreas num lugar só */
+function admLixoItens(){
+ const out=[];
+ DB.avulsas.filter(a=>a.deletedAt).forEach(a=>out.push({area:'Pendências',titulo:a.titulo,meta:'tarefa avulsa',
+   acoes:`<button class="btn btn-sm" onclick="restoreTask('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeTask('${a.id}')">🗑</button>`}));
+ const lab={mensais:'mensal',semanais:'semanal',diarias:'diária'};
+ ['mensais','semanais','diarias'].forEach(t=>DB[t].modelos.filter(m=>m.deletedAt).forEach(m=>out.push({area:'Rotinas',titulo:m.descricao,meta:'rotina '+lab[t],
+   acoes:`<button class="btn btn-sm" onclick="restoreModelo('${t}','${m.id}')">Restaurar</button>`})));
+ DB.crmLeads.filter(x=>x.deletedAt).forEach(l=>out.push({area:'Comercial',titulo:l.empresa,meta:'cliente · '+brl(l.ticket),
+   acoes:`<button class="btn btn-sm" onclick="restoreLead('${l.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeLead('${l.id}')">🗑</button>`}));
+ DB.crmAtividades.filter(x=>x.deletedAt).forEach(a=>out.push({area:'Comercial',titulo:a.tipo,meta:'atividade · '+fmtBR(a.data),
+   acoes:`<button class="btn btn-sm" onclick="restoreAtiv('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeAtiv('${a.id}')">🗑</button>`}));
+ DB.pdClientes.filter(x=>x.deletedAt).forEach(c=>out.push({area:'Comercial',titulo:c.empresa||'(sem nome)',meta:'pré-diagnóstico · '+fmtBR(c.data),
+   acoes:`<button class="btn btn-sm" onclick="pdRestaurar('${c.id}')">Restaurar</button><button class="iconbtn del" onclick="pdPurgar('${c.id}')">🗑</button>`}));
+ DB.crmPropostas.filter(x=>x.deletedAt).forEach(p=>out.push({area:'Comercial',titulo:p.numero||'proposta',meta:'proposta · '+brl(p.mensalidade),
+   acoes:`<button class="btn btn-sm" onclick="propRestaurar('${p.id}')">Restaurar</button>`}));
+ return out}
+function admLixoQtd(){return admLixoItens().length||null}
+function admLixo(){
+ const itens=admLixoItens();
+ const areas=['Pendências','Rotinas','Comercial'];
+ const blocos=areas.map(a=>{const seg=itens.filter(x=>x.area===a);if(!seg.length)return '';
+   return `<div class="panel"><div class="panel-head"><h2>${a}<small>${seg.length} item(ns)</small></h2></div>
+    ${seg.map(x=>`<div class="row"><div class="row-body"><div class="row-title">${esc(x.titulo)}</div><div class="row-meta">${esc(x.meta)}</div></div>
+      <div class="row-actions">${x.acoes}</div></div>`).join('')}</div>`}).join('');
+ return blocos||`<div class="panel"><div class="panel-head"><h2>Excluídos<small>nada some de imediato</small></h2></div><div class="empty">Lixeira vazia.</div></div>`}
 async function loadAdmin(){const el=gEl('adminList');if(!el)return;
   const {data,error}=await sb.from('profiles').select('*').order('created_at');
   if(error){el.innerHTML='<div class="empty">Sem permissão para listar usuários.</div>';return}
@@ -1209,31 +1266,26 @@ function NAV(){const base=[
   {g:'Visão geral',its:[['home','Painel']]},
   {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário']]},
   {g:'Operação',its:[['rotinas','Rotinas'],['onb','Implantação']]},
-  {g:'Comercial',its:[['comPainel','Painel'],['comCli','Clientes'],['comFunil','Funil'],['comCad','Cadência'],['comMetas','Metas'],['comAjustes','Ajustes']]},
+  {g:'Comercial',its:[['comPainel','Painel'],['comCli','Clientes'],['comFunil','Funil']]},
   {g:'Financeiro',its:[['contas','Contas a Pagar']]},
   {g:'Planejamento',its:[['plano','Plano de Negócio']]},
-  {g:'Ajustes',its:[['resp','Responsáveis'],['lixeira','Excluídos']]}
+  {g:'Sistema',its:[['admin','Administração']]}
 ];
- if(ME&&ME.is_admin)base[base.length-1].its.push(['admin','Administração']);
  return base}
 const SECAO={
   home:['Painel','Visão geral do que importa hoje, em todas as áreas'],
   pend:['Pendências','Kanban da equipe — arraste entre as colunas'],
   cal:['Calendário','Avulsas, rotinas, feriados e contas a pagar — tudo o que tem em cada dia'],
   rotinas:['Rotinas','Mensais, semanais e diárias — o que se repete'],
-  resp:['Responsáveis','Quem executa e a carga de cada um'],
+
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
   comPainel:['Comercial','O que precisa de ação hoje, funil, conversão e metas'],
   comFunil:['Funil','Arraste o cliente entre as etapas; a etapa decide a régua de mensagens'],
-  comCad:['Cadência','A agenda de toques das duas réguas, por dia'],
   comCli:['Clientes','Um cadastro por cliente: dados, pré-diagnóstico, proposta e histórico'],
-  comMetas:['Metas comerciais','O que você prometeu entregar neste período'],
-  comAjustes:['Ajustes do comercial','Etapas, mensagens, tabela de preço, listas e excluídos'],
   comFicha:['Cliente','Ficha completa'],
   contas:['Contas a Pagar','Vencimentos, pagamentos e fluxo por empresa'],
   plano:['Plano de Negócio','Roteiro de 100 tarefas em 6 áreas, equipe e portfólio'],
-  lixeira:['Excluídos','Nada some de imediato'],
-  admin:['Administração','Aprove cadastros e gerencie acessos']
+  admin:['Administração','Equipe, funil, mensagens, tabela de preço, excluídos e acessos']
 };
 function tabCount(id){
   if(id==='pend')return alive(DB.avulsas).filter(a=>a.status!=='feito').length||null;
@@ -1242,10 +1294,7 @@ function tabCount(id){
   if(id==='crm')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
   if(id==='comFunil')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
-  if(id==='comCad')return cadAgenda().filter(x=>x.atrasado||x.hoje).length||null;
   if(id==='comCli')return crmLeadsAtivos().length||null;
-  if(id==='lixeira'){const dm=t=>DB[t].modelos.filter(m=>m.deletedAt).length;
-    return (DB.avulsas.filter(a=>a.deletedAt).length+dm('mensais')+dm('semanais')+dm('diarias'))||null}
   return null}
 function renderNav(){
   gEl('nav').innerHTML=NAV().map(g=>`<div class="nav-g"><b>${g.g}</b>${
@@ -1264,9 +1313,9 @@ function render(){
     if(_l){gEl('pgTitle').childNodes[0].nodeValue=_l.empresa||'Cliente';gEl('pgSub').textContent=comFichaSub(_l)}}
   gEl('pgActs').innerHTML=pgActsHTML();
   renderNav();renderTemas();
-  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,resp:viewResp,contas:viewContas,onb:viewOnb,plano:viewPn,lixeira:viewLixo,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCad:viewComCad,comCli:viewComCli,comMetas:viewComMetas,comAjustes:viewComAjustes,comFicha:viewComFicha};
+  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
-  if(activeTab==='admin')setTimeout(loadAdmin,0)}
+  if(activeTab==='admin'&&admTab==='usuarios')setTimeout(loadAdmin,0)}
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
   <p>Essa seção ainda não foi trazida pra dentro do app único. Por enquanto continua no app separado — se quiser, me avisa que eu abro pra você.</p></div>`}
 
@@ -2527,15 +2576,6 @@ function viewCrmHistorico(){
       ${at.obs?`<div class="row-meta">${esc(at.obs)}</div>`:''}</div>
       <div class="row-actions"><button class="iconbtn" onclick="openAtiv('${at.id}')">✎</button><button class="iconbtn del" onclick="delAtiv('${at.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhuma atividade registrada.</div>';
   return `<div class="panel"><div class="panel-head"><h2>Histórico de atividades</h2><button class="btn btn-sm btn-gold" onclick="openAtiv()">+ Registrar atividade</button></div>${rows}</div>`}
-function viewCrmMetas(){
-  const rows=alive(DB.crmMetas).map(m=>{const real=crmMetricValue(m);const meta=+m.meta||0;const pct=meta?Math.min(999,Math.round(real/meta*100)):0;
-    const fmt=v=>m.moeda?brl(v):v;let cor=pct>=100?'var(--pos)':pct>=70?'var(--meta)':'var(--neg)';
-    return `<div class="row"><div class="row-body"><div class="row-title">${esc(m.indicador)} <span class="muted">· ${(CRM_METRICAS[m.metrica]||CRM_METRICAS.manual).label}</span></div>
-      <div class="row-meta"><span class="muted">${fmt(real)} de ${fmt(meta)}</span><span style="color:${cor};font-weight:700">${pct}%</span></div>
-      <div class="progress mini"><i class="pbar-static" style="width:${Math.min(100,pct)}%;background:${cor}"></i></div></div>
-      <div class="row-actions"><button class="iconbtn" onclick="openMeta('${m.id}')">✎</button><button class="iconbtn del" onclick="delMeta('${m.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhuma meta. Clique em "+ Nova meta".</div>';
-  return `<div class="panel"><div class="panel-head"><h2><small>o que você prometeu entregar neste período</small></h2><button class="btn btn-sm btn-gold" onclick="openMeta()">+ Nova meta</button></div>${rows}</div>`}
-/* ===== mutações: mensagens da cadência ===== */
 function crmMsgSalvar(r,n){const el=gEl('cadmsg_'+r+'_'+n);if(!el)return;const v=el.value;
   const cur=crmMsgs(r)[n];const id=(cur&&cur.id)||(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
   DB.crmMsgs=DB.crmMsgs||{};DB.crmMsgs[r]=DB.crmMsgs[r]||{};DB.crmMsgs[r][n]={id,valor:v};
@@ -3693,7 +3733,7 @@ function propDocHTML(p){
    O cliente (lead) é a fonte única do cadastro; a ligação e a proposta
    leem dele e não guardam cópia própria enquanto estiverem vinculadas.
    =================================================================== */
-let comFichaId='', comFichaTab='dados', comCliTab='clientes', comAjTab='funil', comPdTab='ligacao', comPropTab='editor';
+let comFichaId='', comFichaTab='dados', comCliTab='clientes', comPdTab='ligacao', comPropTab='editor';
 
 /* --- fonte única do cadastro ------------------------------------- */
 const comLeadDe=o=>(o&&o.leadId)?crmLeadById(o.leadId):null;
@@ -3736,7 +3776,6 @@ function propSetStatus(v){const p=propAtual();if(!p)return;
 function comTabs(itens,atual,fn){return `<div class="tabs">${itens.map(x=>{
   const c=x[2];return `<button class="tab ${atual===x[0]?'active':''}" onclick="${fn}('${x[0]}')">${x[1]}${c?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`}
 function setComCliTab(t){comCliTab=t;render()}
-function setComAjTab(t){comAjTab=t;render()}
 function setComFichaTab(t){comFichaTab=t;render()}
 function setComPdTab(t){comPdTab=t;render()}
 function setComPropTab(t){comPropTab=t;render()}
@@ -3804,7 +3843,7 @@ function viewComPainel(){
   <div class="stat" onclick="go('comCli')" style="cursor:pointer"><div class="k">Clientes ativos</div><div class="v">${a.length}</div><div class="sub">${a.filter(l=>comPdDoLead(l)).length} com pré-diagnóstico</div></div>
   <div class="stat"><div class="k">Em negociação</div><div class="v" style="color:var(--meta)">${brl(valAberto)}</div><div class="sub">valor ainda em jogo</div></div>
   <div class="stat"><div class="k">Fechado</div><div class="v" style="color:var(--pos)">${brl(mrr)}</div><div class="sub">${ganhos} cliente(s) ganho(s)</div></div>
-  <div class="stat" onclick="go('comCad')" style="cursor:pointer"><div class="k">Cadência</div><div class="v" style="color:${cadAtr?'var(--neg)':cadHj?'var(--warn)':'var(--pos)'}">${cadAtr+cadHj}</div><div class="sub">toques de hoje e atrasados</div></div>
+  <div class="stat" onclick="comCliTab='cadencia';go('comCli')" style="cursor:pointer"><div class="k">Cadência</div><div class="v" style="color:${cadAtr?'var(--neg)':cadHj?'var(--warn)':'var(--pos)'}">${cadAtr+cadHj}</div><div class="sub">toques de hoje e atrasados</div></div>
   <div class="stat"><div class="k">Propostas</div><div class="v" style="color:var(--acc)">${props.filter(p=>p.status==='enviada').length}</div><div class="sub">enviadas aguardando resposta</div></div>
  </div>`;
  const linhas=acoes.slice(0,25).map(x=>{const cor=x.urg===0?'var(--neg)':'var(--warn)';
@@ -3840,22 +3879,25 @@ function viewComPainel(){
  const metasHTML=metas.length?metas.map(m=>{const real=crmMetricValue(m),meta=+m.meta||0;
    const pct=meta?Math.min(999,Math.round(real/meta*100)):0;const fmt=v=>m.moeda?brl(v):v;
    const cor=pct>=100?'var(--pos)':pct>=70?'var(--meta)':'var(--neg)';
-   return `<div class="hbar"><div class="hl"><span class="nm">${esc(m.indicador)}</span><span class="muted">${fmt(real)} de ${fmt(meta)} · <b style="color:${cor}">${pct}%</b></span></div>
+   return `<div class="hbar"><div class="hl"><span class="nm">${esc(m.indicador)}
+     <button class="iconbtn" style="margin-left:4px" title="Editar" onclick="openMeta('${m.id}')">✎</button>
+     <button class="iconbtn del" title="Excluir" onclick="delMeta('${m.id}')">🗑</button></span>
+    <span class="muted">${fmt(real)} de ${fmt(meta)} · <b style="color:${cor}">${pct}%</b></span></div>
     <div class="ht"><i style="width:${Math.min(100,pct)}%;background:${cor}"></i></div></div>`}).join('')
-  :'<div class="empty">Nenhuma meta definida.</div>';
- const metasPanel=`<div class="panel"><div class="panel-head"><h2>Metas do período</h2><button class="btn btn-sm" onclick="go('comMetas')">Editar metas</button></div>${metasHTML}</div>`;
+  :'<div class="empty">Nenhuma meta definida. Clique em "+ Nova meta".</div>';
+ const metasPanel=`<div class="panel"><div class="panel-head"><h2>Metas do período<small>edite aqui mesmo</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="openMeta()">+ Nova meta</button></div>${metasHTML}</div>`;
 
  return stats+acaoPanel+`<div class="grid2">${funilPanel}${convPanel}</div>`+metasPanel}
 
 /* ===== Comercial · Funil, Cadência e Metas (reaproveitam o que já existia) */
 function viewComFunil(){return viewCrmKanban()}
-function viewComCad(){return viewCrmCadencia()}
-function viewComMetas(){return viewCrmMetas()}
-
 /* ===== Comercial · Clientes ====================================== */
 function viewComCli(){
- const abas=[['clientes','Clientes',crmLeadsAtivos().length],['cadastrar','Cadastrar'],['atividades','Atividades',alive(DB.crmAtividades).length]];
- const body=({clientes:viewComCliLista,cadastrar:viewComCadastro,atividades:viewCrmHistorico}[comCliTab]||viewComCliLista)();
+ const cadPend=cadAgenda().filter(x=>x.atrasado||x.hoje).length;
+ const abas=[['clientes','Clientes',crmLeadsAtivos().length],['cadastrar','Cadastrar'],
+   ['cadencia','Cadência',cadPend],['atividades','Atividades',alive(DB.crmAtividades).length]];
+ const body=({clientes:viewComCliLista,cadastrar:viewComCadastro,cadencia:viewCrmCadencia,atividades:viewCrmHistorico}[comCliTab]||viewComCliLista)();
  return comTabs(abas,comCliTab,'setComCliTab')+body}
 
 function viewComCliLista(){
@@ -3994,13 +4036,6 @@ function comFichaHist(l){
  return `<div class="panel"><div class="panel-head"><h2>Atividades deste cliente</h2>
    <button class="btn btn-sm btn-gold" onclick="openAtiv()">+ Registrar atividade</button></div>${rows}</div>`+reguas}
 
-/* ===== Comercial · Ajustes ======================================= */
-function viewComAjustes(){
- const abas=[['funil','Etapas do funil'],['mensagens','Mensagens'],['preco','Tabela de preço'],['listas','Listas e responsáveis'],['excluidos','Excluídos',comLixoQtd()]];
- const body=({funil:comAjFunil,mensagens:comAjMsgs,preco:viewPdConfig,listas:comAjListas,excluidos:comAjLixo}[comAjTab]||comAjFunil)();
- return comTabs(abas,comAjTab,'setComAjTab')+body}
-function comLixoQtd(){return DB.crmLeads.filter(x=>x.deletedAt).length+DB.crmAtividades.filter(x=>x.deletedAt).length
- +DB.pdClientes.filter(x=>x.deletedAt).length+DB.crmPropostas.filter(x=>x.deletedAt).length}
 function comAjFunil(){const est=crmEstagios();
  const rows=est.map((e,i)=>{const cnt=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
   return `<div class="row"><span class="avatar" style="background:${e.cor};width:22px;height:22px;border-radius:6px"></span>
@@ -4025,29 +4060,6 @@ function comAjMsgs(){
   return `<div class="panel"><div class="panel-head"><h2>${esc(R.nome)}<small>${fonte} · roda na fase “${esc(FASE_LABEL[R.fase])}”</small></h2></div>
     <div class="muted" style="font-size:11.5px;margin-bottom:12px">Marcadores preenchidos automaticamente: [NOME] · [SEU NOME] · [segmento] · [servico] · [valor] · [dor] · [LINK]</div>${rows}</div>`};
  return msgPanel('prospeccao')+msgPanel('proposta')}
-function comAjListas(){
- const respRows=alive(DB.crmResponsaveis).map(r=>{const cnt=crmLeadsAtivos().filter(l=>l.responsavelId===r.id).length;
-  return `<div class="row"><span class="avatar" style="background:${r.cor}">${esc(initials(r.nome))}</span>
-   <div class="row-body"><div class="row-title">${esc(r.nome)}</div><div class="row-meta">${cnt} cliente(s)</div></div>
-   <div class="row-actions"><button class="iconbtn" onclick="openRespCrm('${r.id}')">✎</button><button class="iconbtn del" onclick="delRespCrm('${r.id}')">🗑</button></div></div>`}).join('')
-  ||'<div class="empty">Nenhum responsável.</div>';
- const chips=(arr,kind)=>arr.map((x,i)=>`<span class="pill">${esc(x)} <span style="cursor:pointer;font-weight:900" onclick="delSimpleCrm('${kind}',${i})">×</span></span>`).join(' ')||'<span class="muted">vazio</span>';
- return `<div class="panel"><div class="panel-head"><h2>Responsáveis comerciais</h2><button class="btn btn-sm btn-gold" onclick="openRespCrm()">+ Novo responsável</button></div>${respRows}</div>
-  <div class="panel"><div class="panel-head"><h2>Origens de lead</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(DB.crmOrigens,'crmOrigens')}</div>
-   <div class="filters"><input id="add_origem" placeholder="Nova origem" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('crmOrigens','add_origem')"><button class="btn btn-sm" onclick="addSimpleCrm('crmOrigens','add_origem')">Adicionar</button></div></div>
-  <div class="panel"><div class="panel-head"><h2>Serviços de interesse</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(DB.crmServicos,'crmServicos')}</div>
-   <div class="filters"><input id="add_servico" placeholder="Novo serviço" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('crmServicos','add_servico')"><button class="btn btn-sm" onclick="addSimpleCrm('crmServicos','add_servico')">Adicionar</button></div></div>`}
-function comAjLixo(){
- const dl=DB.crmLeads.filter(x=>x.deletedAt),da=DB.crmAtividades.filter(x=>x.deletedAt);
- const dp=DB.pdClientes.filter(x=>x.deletedAt),dr=DB.crmPropostas.filter(x=>x.deletedAt);
- const row=(titulo,meta,acoes)=>`<div class="row"><div class="row-body"><div class="row-title">${titulo}</div><div class="row-meta">${meta}</div></div><div class="row-actions">${acoes}</div></div>`;
- const html=dl.map(l=>row(esc(l.empresa),'Cliente · '+brl(l.ticket),`<button class="btn btn-sm" onclick="restoreLead('${l.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeLead('${l.id}')">🗑</button>`)).join('')
-  +da.map(a=>row(esc(a.tipo),'Atividade · '+fmtBR(a.data),`<button class="btn btn-sm" onclick="restoreAtiv('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeAtiv('${a.id}')">🗑</button>`)).join('')
-  +dp.map(c=>row(esc(c.empresa||'(sem nome)'),'Pré-diagnóstico · '+fmtBR(c.data),`<button class="btn btn-sm" onclick="pdRestaurar('${c.id}')">Restaurar</button><button class="iconbtn del" onclick="pdPurgar('${c.id}')">🗑</button>`)).join('')
-  +dr.map(p=>row(esc(p.numero||'proposta'),'Proposta · '+esc(p.empresa||'')+' · '+brl(p.mensalidade),`<button class="btn btn-sm" onclick="propRestaurar('${p.id}')">Restaurar</button>`)).join('');
- return `<div class="panel"><div class="panel-head"><h2>Excluídos do comercial<small>clientes, atividades, pré-diagnósticos e propostas</small></h2></div>${html||'<div class="empty">Lixeira vazia.</div>'}</div>`}
-
-/* ===== identificação lida do cliente (pré-diagnóstico e proposta) == */
 function pdCampoIdent(){const c=pdAtual();if(!c)return '';
  const l=comLeadDe(c);
  const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
@@ -4077,20 +4089,22 @@ function propBlocoIdent(p,leads){
    <button class="btn btn-sm" onclick="openLead('${l.id}')">Editar cadastro</button></div>`}
 
 /* as abas antigas continuam funcionando e caem no lugar novo */
-function setCrmTab(id){const M={dashboard:'comPainel',kanban:'comFunil',cadencia:'comCad',leads:'comCli',metas:'comMetas'};
+function setCrmTab(id){const M={dashboard:'comPainel',kanban:'comFunil',leads:'comCli'};
  if(id==='historico'){comCliTab='atividades';return go('comCli')}
- if(id==='config'){comAjTab='funil';return go('comAjustes')}
- if(id==='excluidos'){comAjTab='excluidos';return go('comAjustes')}
+ if(id==='config'){admTab='funil';return go('admin')}
+ if(id==='excluidos'){admTab='excluidos';return go('admin')}
+ if(id==='cadencia'){comCliTab='cadencia';return go('comCli')}
+ if(id==='metas')return go('comPainel');
  crmTab=id;go(M[id]||'comPainel')}
 function setPdTab(id){
- if(id==='config'){comAjTab='preco';return go('comAjustes')}
- if(id==='excluidos'){comAjTab='excluidos';return go('comAjustes')}
+ if(id==='config'){admTab='preco';return go('admin')}
+ if(id==='excluidos'){admTab='excluidos';return go('admin')}
  if(id==='clientes')return go('comCli');
  pdTab=id;comPdTab=id;
  const c=pdAtual(),l=c?comLeadDe(c):null;
  if(l)comAbrir(l.id,'prediag');else render()}
 function setPropTab(id){
- if(id==='excluidos'){comAjTab='excluidos';return go('comAjustes')}
+ if(id==='excluidos'){admTab='excluidos';return go('admin')}
  if(id==='lista')return go('comCli');
  propTab=id;comPropTab=id;
  const p=propAtual(),l=p?comLeadDe(p):null;
@@ -4364,19 +4378,6 @@ function propBlocoIA(p){
   <div class="tip">O que ele preenche: entendimento da necessidade, escopo, benefícios e condições. Valor, plano e prazo continuam sendo seus, definidos acima.</div></div>`}
 
 /* ===== Excluídos ===== */
-function viewLixo(){
-  const delAv=DB.avulsas.filter(a=>a.deletedAt);
-  const delMod=tipo=>DB[tipo].modelos.filter(m=>m.deletedAt).map(m=>({...m,_tipo:tipo}));
-  const delRot=[...delMod('mensais'),...delMod('semanais'),...delMod('diarias')];
-  const rowAv=a=>`<div class="row"><div class="row-body"><div class="row-title">${esc(a.titulo)}</div><div class="row-meta">Pendências · avulsa</div></div>
-    <div class="row-actions"><button class="btn btn-sm" onclick="restoreTask('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeTask('${a.id}')">🗑</button></div></div>`;
-  const lab={mensais:'mensal',semanais:'semanal',diarias:'diária'};
-  const rowMod=m=>`<div class="row"><div class="row-body"><div class="row-title">${esc(m.descricao)}</div><div class="row-meta">Rotina ${lab[m._tipo]}</div></div>
-    <div class="row-actions"><button class="btn btn-sm" onclick="restoreModelo('${m._tipo}','${m.id}')">Restaurar</button></div></div>`;
-  const nothing=!delAv.length&&!delRot.length;
-  return `<div class="panel"><div class="panel-head"><h2>Excluídos<small>nada some de imediato — dá pra restaurar</small></h2></div>
-    ${delAv.map(rowAv).join('')}${delRot.map(rowMod).join('')}${nothing?'<div class="empty">Lixeira vazia.</div>':''}</div>`}
-
 /* ===== Backup ===== */
 function exportData(){
   const b=new Blob([JSON.stringify(DB,null,1)],{type:'application/json'});
