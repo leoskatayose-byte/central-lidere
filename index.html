@@ -1090,7 +1090,7 @@ async function loadAll(){
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
     crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',deletedAt:fromISO(l.deleted_at)})),
-    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
+    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
     crmOrigens:(CX.data||[]).filter(x=>x.tipo==='origem').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
@@ -1186,7 +1186,6 @@ const IC={
  contas:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.3 0 012.5-1.6c1.4 0 2.5.8 2.5 1.9s-1 1.4-2.5 1.9-2.5 1-2.5 1.9 1.1 1.9 2.5 1.9a2.5 2.3 0 002.5-1.6M12 5.8V7M12 17v1.2"/>',
  plano:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
  lixeira:'<path d="M3.5 6h17M8.5 6V3.6h7V6M6.4 6v14.4h11.2V6"/>',
- prop:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
  comPainel:'<rect x="3" y="3" width="7.5" height="8.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.6"/><rect x="3" y="14" width="7.5" height="7" rx="1.6"/><rect x="13.5" y="10.5" width="7.5" height="10.5" rx="1.6"/>',
  comFunil:'<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
  comCad:'<path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/><path d="M12 7.5V12l3 1.8"/>',
@@ -1201,7 +1200,7 @@ function NAV(){const base=[
   {g:'Visão geral',its:[['home','Painel']]},
   {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário']]},
   {g:'Operação',its:[['rotinas','Rotinas'],['onb','Implantação']]},
-  {g:'Comercial',its:[['comPainel','Painel'],['comFunil','Funil'],['comCad','Cadência'],['comCli','Clientes'],['comMetas','Metas'],['comAjustes','Ajustes']]},
+  {g:'Comercial',its:[['comPainel','Painel'],['comCli','Clientes'],['comFunil','Funil'],['comCad','Cadência'],['comMetas','Metas'],['comAjustes','Ajustes']]},
   {g:'Financeiro',its:[['contas','Contas a Pagar']]},
   {g:'Planejamento',its:[['plano','Plano de Negócio']]},
   {g:'Ajustes',its:[['resp','Responsáveis'],['lixeira','Excluídos']]}
@@ -1215,9 +1214,6 @@ const SECAO={
   rotinas:['Rotinas','Mensais, semanais e diárias — o que se repete'],
   resp:['Responsáveis','Quem executa e a carga de cada um'],
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
-  crm:['CRM Comercial','Funil, leads, atividades e metas comerciais'],
-  prediag:['Pré-Diagnóstico','Ligação de qualificação, diagnóstico de perfil e relatório do cliente'],
-  prop:['Propostas','Do pré-diagnóstico à proposta assinada — valores, benefícios e documento'],
   comPainel:['Comercial','O que precisa de ação hoje, funil, conversão e metas'],
   comFunil:['Funil','Arraste o cliente entre as etapas; a etapa decide a régua de mensagens'],
   comCad:['Cadência','A agenda de toques das duas réguas, por dia'],
@@ -1236,8 +1232,6 @@ function tabCount(id){
   if(id==='onb')return alive(DB.onbClientes).filter(c=>onbStatusPrazo(c)==='atrasado').length||null;
   if(id==='crm')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
-  if(id==='prediag')return alive(DB.pdClientes).filter(c=>!pdDiag(c).completo).length||null;
-  if(id==='prop')return alive(DB.crmPropostas).filter(p=>p.status==='rascunho').length||null;
   if(id==='comFunil')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='comCad')return cadAgenda().filter(x=>x.atrasado||x.hoje).length||null;
   if(id==='comCli')return crmLeadsAtivos().length||null;
@@ -1261,7 +1255,7 @@ function render(){
     if(_l){gEl('pgTitle').childNodes[0].nodeValue=_l.empresa||'Cliente';gEl('pgSub').textContent=comFichaSub(_l)}}
   gEl('pgActs').innerHTML=pgActsHTML();
   renderNav();renderTemas();
-  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,resp:viewResp,contas:viewContas,onb:viewOnb,crm:viewCrm,prediag:viewPd,prop:viewProp,plano:viewPn,lixeira:viewLixo,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCad:viewComCad,comCli:viewComCli,comMetas:viewComMetas,comAjustes:viewComAjustes,comFicha:viewComFicha};
+  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,resp:viewResp,contas:viewContas,onb:viewOnb,plano:viewPn,lixeira:viewLixo,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCad:viewComCad,comCli:viewComCli,comMetas:viewComMetas,comAjustes:viewComAjustes,comFicha:viewComFicha};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
   if(activeTab==='admin')setTimeout(loadAdmin,0)}
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
@@ -1898,9 +1892,6 @@ function moverEtapa(cid,eid,dir){const c=DB.onbClientes.find(x=>x.id===cid);cons
   if(j<0||j>=arr.length||arr[j].fase!==e.fase)return;
   const o=e.ordem;e.ordem=arr[j].ordem;arr[j].ordem=o;onbRenumerar(c);pOnbEtAll(c);render()}
 /* ===== abas ===== */
-function tabCountOnb(id){const cs=alive(DB.onbClientes);
-  if(id==='onb')return cs.filter(c=>onbStatusPrazo(c)==='atrasado').length||null;
-  return null}
 function setOnbTab(id){onbTab=id;onbCliente=null;render()}
 function abrirCliente(id){onbCliente=id;render()}
 function viewOnb(){
@@ -2383,49 +2374,6 @@ function cadChip(l){const f=crmFase(l);if(f==='fechado')return'';
   return `<span class="chip ${res.atrasada?'chip-vencido':'chip-n'}">${esc(R.curto)} ${res.feitos}/${res.total}${res.atrasada?' · atrasada':''}</span>`}
 
 /* ===== abas ===== */
-function viewCrm(){
-  const tabs=[['dashboard','Dashboard'],['kanban','Kanban'],['cadencia','Cadência'],['leads','Leads'],['historico','Histórico'],['metas','Metas'],['config','Configurações'],['excluidos','Excluídos']];
-  const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>{const c=id==='leads'?crmLeadsAtivos().length:id==='historico'?alive(DB.crmAtividades).length:id==='cadencia'?cadAgenda().filter(x=>x.atrasado||x.hoje).length:0;
-    return `<button class="tab ${crmTab===id?'active':''}" onclick="setCrmTab('${id}')">${lbl}${c?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`;
-  const body=({dashboard:viewCrmDashboard,kanban:viewCrmKanban,cadencia:viewCrmCadencia,leads:viewCrmLeads,historico:viewCrmHistorico,metas:viewCrmMetas,config:viewCrmConfig,excluidos:viewCrmExcluidos}[crmTab]||viewCrmDashboard)();
-  return tabsHTML+body}
-function viewCrmDashboard(){
-  const a=crmLeadsAtivos();const total=a.length;
-  const ganhos=CRM_METRICAS.ganhos.fn();const taxa=total?Math.round(ganhos/total*100):0;
-  const perdidos=CRM_METRICAS.perdidos.fn();
-  const ticket=CRM_METRICAS.ticketMedio.fn();const mrr=CRM_METRICAS.mrrGanho.fn();const valAberto=CRM_METRICAS.valorAberto.fn();
-  const alta=CRM_METRICAS.altaPrioridade.fn();const atraso=a.filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length;
-  const ag=cadAgenda();const cadAtr=ag.filter(x=>x.atrasado).length,cadHj=ag.filter(x=>x.hoje).length,comp=cadCompliance();
-  const pdPend=pdPendentes().length;
-  const stats=`<div class="stats">
-    <div class="stat"><div class="k">Vendas ganhas</div><div class="v" style="color:var(--pos)">${ganhos}</div><div class="sub">${brl(mrr)} em MRR</div></div>
-    <div class="stat"><div class="k">Oportunidades perdidas</div><div class="v" style="color:var(--neg)">${perdidos}</div><div class="sub">de ${total} leads</div></div>
-    <div class="stat"><div class="k">Em aberto</div><div class="v" style="color:var(--meta)">${brl(valAberto)}</div><div class="sub">valor em negociação</div></div>
-    <div class="stat"><div class="k">Ticket médio</div><div class="v" style="color:var(--acc)">${brl(ticket)}</div><div class="sub">por lead</div></div>
-    <div class="stat"><div class="k">Taxa de conversão</div><div class="v">${taxa}%</div><div class="sub">${ganhos} de ${total}</div></div>
-    <div class="stat"><div class="k">Em atraso</div><div class="v" style="color:${atraso?'var(--neg)':'var(--txt)'}">${atraso}</div><div class="sub">próximo contato vencido</div></div>
-    <div class="stat" onclick="setCrmTab('cadencia')" style="cursor:pointer"><div class="k">Cadência hoje</div><div class="v" style="color:${cadHj+cadAtr?'var(--warn)':'var(--txt)'}">${cadHj+cadAtr}</div><div class="sub">${cadAtr} atrasado(s) · ${comp}% de compliance</div></div>
-    <div class="stat" onclick="setCrmTab('cadencia')" style="cursor:pointer"><div class="k">Pré-diagnóstico</div><div class="v" style="color:${pdPend?'var(--meta)':'var(--pos)'}">${pdPend}</div><div class="sub">ligação pendente antes da reunião</div></div>
-  </div>`;
-  const est=crmEstagios();
-  const funil=est.length?est.map(e=>{const leads=a.filter(l=>l.estagioId===e.id);const val=leads.reduce((s,l)=>s+(+l.ticket||0),0);
-    const max=Math.max(1,...est.map(x=>a.filter(l=>l.estagioId===x.id).length));
-    return `<div class="hbar"><div class="hl"><span class="nm"><span style="width:8px;height:8px;border-radius:50%;background:${e.cor};display:inline-block"></span>${esc(e.nome)}</span><span class="muted">${leads.length} · ${brl(val)}</span></div><div class="ht"><i style="width:${Math.max(leads.length?6:0,Math.round(leads.length/max*100))}%;background:${e.cor}"></i></div></div>`}).join('')
-    :'<div class="empty">Nenhuma etapa. Crie em Configurações.</div>';
-  const byResp={};a.forEach(l=>{if(!crmGanhoIds().includes(l.estagioId))return;const r=l.responsavelId||'_';(byResp[r]=byResp[r]||0);byResp[r]+=(+l.ticket||0)});
-  const respKeys=Object.keys(byResp).filter(k=>k!=='_').sort((x,y)=>byResp[y]-byResp[x]);
-  const ranking=respKeys.length?respKeys.map(rid=>{const r=crmRespById(rid);if(!r)return'';const max=Math.max(...respKeys.map(k=>byResp[k]),1);
-    return `<div class="hbar"><div class="hl"><span class="nm"><span style="width:8px;height:8px;border-radius:50%;background:${r.cor};display:inline-block"></span>${esc(r.nome)}</span><span class="muted">${brl(byResp[rid])}</span></div><div class="ht"><i style="width:${Math.round(byResp[rid]/max*100)}%;background:${r.cor}"></i></div></div>`}).join('')
-    :'<div class="empty">Nenhuma venda fechada ainda.</div>';
-  const byOrig={};a.forEach(l=>{const o=l.origem||'—';byOrig[o]=(byOrig[o]||0)+1});
-  const origKeys=Object.keys(byOrig).sort((x,y)=>byOrig[y]-byOrig[x]);
-  const origem=origKeys.length?origKeys.map(o=>{const max=Math.max(...origKeys.map(k=>byOrig[k]),1);
-    return `<div class="hbar"><div class="hl"><span class="nm">${esc(o)}</span><span class="muted">${byOrig[o]} lead(s)</span></div><div class="ht"><i style="width:${Math.round(byOrig[o]/max*100)}%;background:#8a7cf2"></i></div></div>`}).join('')
-    :'<div class="empty">Sem leads.</div>';
-  return stats+
-    `<div class="panel"><div class="panel-head"><h2>Funil de vendas<small>quantidade e valor por etapa</small></h2></div>${funil}</div>
-    <div class="grid2"><div class="panel"><div class="panel-head"><h2>Ranking de vendedores<small>por valor ganho</small></h2></div>${ranking}</div>
-    <div class="panel"><div class="panel-head"><h2>Origem dos leads</h2></div>${origem}</div></div>`}
 function viewCrmKanban(){
   const est=crmEstagios();
   if(!est.length)return `<div class="panel"><div class="empty">Nenhuma etapa cadastrada. Vá em Configurações para criar as etapas do seu funil.</div></div>`;
@@ -2507,27 +2455,6 @@ function viewCrmCadencia(){
     bloco('Próximos 7 dias','o que vem pela frente',prox)+
     `<div class="panel"><div class="panel-head"><h2>Ligação de pré-diagnóstico<small>reunião marcada e a ligação ainda não foi feita</small></h2></div>${pdRows}</div>
      <div class="panel"><div class="panel-head"><h2>Fora da régua<small>leads ativos sem toque programado${sem.length>12?` · mostrando 12 de ${sem.length}`:''}</small></h2></div>${semRows}</div>`+trilho}
-function viewCrmLeads(){
-  let a=crmLeadsAtivos();const q=crmLeadFilter.q.toLowerCase();
-  if(q)a=a.filter(l=>[l.empresa,l.contato,l.email,l.servico].some(x=>(x||'').toLowerCase().includes(q)));
-  if(crmLeadFilter.estagio)a=a.filter(l=>l.estagioId===crmLeadFilter.estagio);
-  if(crmLeadFilter.resp)a=a.filter(l=>l.responsavelId===crmLeadFilter.resp);
-  const optEst='<option value="">Todas as etapas</option>'+crmEstagios().map(e=>`<option value="${e.id}" ${crmLeadFilter.estagio===e.id?'selected':''}>${esc(e.nome)}</option>`).join('');
-  const optResp='<option value="">Todos responsáveis</option>'+alive(DB.crmResponsaveis).map(r=>`<option value="${r.id}" ${crmLeadFilter.resp===r.id?'selected':''}>${esc(r.nome)}</option>`).join('');
-  const rows=a.map(l=>{const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);const late=l.proximoContato&&l.proximoContato<todayKey();
-    return `<tr onclick="openLead('${l.id}')"><td>${esc(l.empresa)}<div class="muted">${esc(l.servico||'')}</div></td>
-      <td>${esc(l.contato||'—')}</td><td>${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:'—'}</td>
-      <td>${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:'—'}</td>
-      <td class="num" style="color:var(--acc)">${brl(l.ticket)}</td><td><span class="pchip ${l.prioridade}">${l.prioridade}</span></td>
-      <td>${esc(l.origem||'—')}</td><td>${late?`<span class="chip chip-vencido">${fmtBR(l.proximoContato)}</span>`:fmtBR(l.proximoContato)}</td>
-      <td style="white-space:nowrap">${cadChip(l)} ${pdChip(l)}</td>
-      <td class="num">${waIcon(l.telefone,'','WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button><button class="iconbtn" onclick="event.stopPropagation();openLead('${l.id}')">✎</button><button class="iconbtn del" onclick="event.stopPropagation();delLead('${l.id}')">🗑</button></td></tr>`}).join('')
-    ||`<tr><td colspan="10"><div class="empty">Nenhum lead encontrado.</div></td></tr>`;
-  return `<div class="panel"><div class="panel-head"><h2>Leads<small>${a.length} de ${crmLeadsAtivos().length}</small></h2><button class="btn btn-sm btn-gold" onclick="openLead()">+ Novo lead</button></div>
-    <div class="filters"><input placeholder="Buscar empresa, contato, e-mail, serviço..." value="${esc(crmLeadFilter.q)}" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px;min-width:220px" oninput="crmLeadFilter.q=this.value;render()">
-      <select onchange="crmLeadFilter.estagio=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">${optEst}</select>
-      <select onchange="crmLeadFilter.resp=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">${optResp}</select></div>
-    <div class="tbl-scroll"><table><thead><tr><th>Empresa/Serviço</th><th>Contato</th><th>Etapa</th><th>Resp.</th><th>Ticket</th><th>Prior.</th><th>Origem</th><th>Próx. contato</th><th>Processo</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
 function viewCrmHistorico(){
   const ats=alive(DB.crmAtividades).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const rows=ats.map(at=>{const l=crmLeadById(at.leadId);
@@ -2543,42 +2470,7 @@ function viewCrmMetas(){
       <div class="row-meta"><span class="muted">${fmt(real)} de ${fmt(meta)}</span><span style="color:${cor};font-weight:700">${pct}%</span></div>
       <div class="progress mini"><i class="pbar-static" style="width:${Math.min(100,pct)}%;background:${cor}"></i></div></div>
       <div class="row-actions"><button class="iconbtn" onclick="openMeta('${m.id}')">✎</button><button class="iconbtn del" onclick="delMeta('${m.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhuma meta. Clique em "+ Nova meta".</div>';
-  return `<div class="panel"><div class="panel-head"><h2>Metas comerciais</h2><button class="btn btn-sm btn-gold" onclick="openMeta()">+ Nova meta</button></div>${rows}</div>`}
-function viewCrmConfig(){
-  const est=crmEstagios();
-  const etRows=est.map((e,i)=>{const cnt=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
-    return `<div class="row"><span class="avatar" style="background:${e.cor};width:22px;height:22px;border-radius:6px"></span>
-      <div class="row-body"><div class="row-title">${esc(e.nome)}${e.tipo!=='normal'?` <span class="pill ${e.tipo==='ganho'?'g':'r'}">${e.tipo}</span>`:''}</div>
-      <div class="row-meta"><span class="chip chip-n">${esc(FASE_LABEL[e.tipo==='normal'?(e.fase||'prospeccao'):'fechado'])}</span><span class="muted">${cnt} lead(s)</span></div></div>
-      <div class="row-actions"><button class="iconbtn" onclick="moveEtapaCrm('${e.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="iconbtn" onclick="moveEtapaCrm('${e.id}',1)" ${i===est.length-1?'disabled':''}>↓</button>
-      <button class="iconbtn" onclick="openEtapaCrm('${e.id}')">✎</button><button class="iconbtn del" onclick="delEtapaCrm('${e.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhuma etapa.</div>';
-  const respRows=alive(DB.crmResponsaveis).map(r=>{const cnt=crmLeadsAtivos().filter(l=>l.responsavelId===r.id).length;
-    return `<div class="row"><span class="avatar" style="background:${r.cor}">${esc(initials(r.nome))}</span>
-      <div class="row-body"><div class="row-title">${esc(r.nome)}</div><div class="row-meta">${cnt} lead(s)</div></div>
-      <div class="row-actions"><button class="iconbtn" onclick="openRespCrm('${r.id}')">✎</button><button class="iconbtn del" onclick="delRespCrm('${r.id}')">🗑</button></div></div>`}).join('')||'<div class="empty">Nenhum responsável.</div>';
-  const chips=(arr,kind)=>arr.map((x,i)=>`<span class="pill">${esc(x)} <span style="cursor:pointer;font-weight:900" onclick="delSimpleCrm('${kind}',${i})">×</span></span>`).join(' ')||'<span class="muted">vazio</span>';
-  const msgPanel=r=>{const R=REG(r);
-    const rows=R.toques.map(t=>`<div class="field">
-      <label>Toque ${t.n} · D+${t.dia} · ${esc(t.canal)} ${crmMsgCustom(r,t.n)?'<span class="pill g">editada</span>':'<span class="pill">texto padrão</span>'}</label>
-      <textarea id="cadmsg_${r}_${t.n}" rows="6">${esc(crmMsgTexto(r,t.n))}</textarea>
-      <div class="cad-acts" style="margin:6px 0 4px"><button class="btn btn-sm" onclick="crmMsgSalvar('${r}',${t.n})">Salvar</button>
-        ${crmMsgCustom(r,t.n)?`<button class="btn btn-sm btn-ghost" onclick="crmMsgReset('${r}',${t.n})">Voltar ao padrão</button>`:''}
-        <span class="muted" style="font-size:11px">${esc(t.obj)} · enviar de ${esc(t.hora.toLowerCase())}</span></div></div>`).join('');
-    const fonte=r==='prospeccao'?'os 7 toques da seção 4 do Playbook Comercial':'5 toques montados a partir das regras do playbook (follow-up em 48h, quebra de objeção e script de fechamento)';
-    return `<div class="panel"><div class="panel-head"><h2>${esc(R.nome)}<small>${fonte} · roda na fase “${esc(FASE_LABEL[R.fase])}”</small></h2></div>
-      <div class="muted" style="font-size:11.5px;margin-bottom:12px">Marcadores preenchidos automaticamente: [NOME] · [SEU NOME] · [segmento] · [servico] · [valor] · [dor] · [LINK]</div>${rows}</div>`};
-  return msgPanel('prospeccao')+msgPanel('proposta')+`
-    <div class="panel"><div class="panel-head"><h2>Etapas do funil<small>a fase de cada etapa decide qual régua de mensagens roda</small></h2><button class="btn btn-sm btn-gold" onclick="openEtapaCrm()">+ Nova etapa</button></div>${etRows}</div>
-    <div class="panel"><div class="panel-head"><h2>Responsáveis (BPO)</h2><button class="btn btn-sm btn-gold" onclick="openRespCrm()">+ Novo responsável</button></div>${respRows}</div>
-    <div class="panel"><div class="panel-head"><h2>Origens de lead</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(DB.crmOrigens,'crmOrigens')}</div>
-      <div class="filters"><input id="add_origem" placeholder="Nova origem" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('crmOrigens','add_origem')"><button class="btn btn-sm" onclick="addSimpleCrm('crmOrigens','add_origem')">Adicionar</button></div></div>
-    <div class="panel"><div class="panel-head"><h2>Serviços de interesse</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips(DB.crmServicos,'crmServicos')}</div>
-      <div class="filters"><input id="add_servico" placeholder="Novo serviço" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px" onkeydown="if(event.key==='Enter')addSimpleCrm('crmServicos','add_servico')"><button class="btn btn-sm" onclick="addSimpleCrm('crmServicos','add_servico')">Adicionar</button></div></div>`}
-function viewCrmExcluidos(){
-  const dl=DB.crmLeads.filter(x=>x.deletedAt),da=DB.crmAtividades.filter(x=>x.deletedAt);
-  const lrows=dl.map(l=>`<div class="row"><div class="row-body"><div class="row-title">${esc(l.empresa)}</div><div class="row-meta">Lead · ${brl(l.ticket)}</div></div><div class="row-actions"><button class="btn btn-sm" onclick="restoreLead('${l.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeLead('${l.id}')">🗑</button></div></div>`).join('');
-  const arows=da.map(a=>`<div class="row"><div class="row-body"><div class="row-title">${esc(a.tipo)}</div><div class="row-meta">Atividade · ${fmtBR(a.data)}</div></div><div class="row-actions"><button class="btn btn-sm" onclick="restoreAtiv('${a.id}')">Restaurar</button><button class="iconbtn del" onclick="purgeAtiv('${a.id}')">🗑</button></div></div>`).join('');
-  return `<div class="panel"><div class="panel-head"><h2>Excluídos</h2></div>${(lrows+arows)||'<div class="empty">Lixeira vazia.</div>'}</div>`}
+  return `<div class="panel"><div class="panel-head"><h2><small>o que você prometeu entregar neste período</small></h2><button class="btn btn-sm btn-gold" onclick="openMeta()">+ Nova meta</button></div>${rows}</div>`}
 /* ===== mutações: mensagens da cadência ===== */
 function crmMsgSalvar(r,n){const el=gEl('cadmsg_'+r+'_'+n);if(!el)return;const v=el.value;
   const cur=crmMsgs(r)[n];const id=(cur&&cur.id)||(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
@@ -3073,7 +2965,7 @@ function pdNovoRegistro(){return{id:(crypto.randomUUID?crypto.randomUUID():Date.
  contasCorrentes:1,contasAplicacao:0,adquirentes:0,vendeSite:'Não',cartaoEmpresarial:'Não',erp:'',emprestimo:'Não',
  certificado:'Não tem',nfServico:'Não',nfProduto:'Não',emiteBoletos:'Não',mediaNF:'0',gestaoFin:'Não Faz',
  centroCusto:'Não',departamento:'Não',hRelatorios:1,hConsultivas:0,hImplantacao:0,
- respostas:{},reuniao:'',anotacoes:'',leadId:'',deletedAt:null}}
+ respostas:{},reuniao:'',anotacoes:'',leadId:'',honorario:'',implantacaoValor:'',condicoesTexto:'',deletedAt:null}}
 function pdSetF(campo,v){const c=pdAtual();c[campo]=v;savePd();pdUpdateLive()}
 function pdSetT(campo,v){pdSetF(campo,v);document.querySelectorAll(`[data-tg="${campo}"] .o`).forEach(b=>b.classList.toggle('sel',b.dataset.v===v))}
 function pdUpdateLive(){const c=pdAtual();if(!c)return;const k=pdCalc(c),d=pdDiag(c);
@@ -3187,7 +3079,7 @@ function pdSFechamento(){const c=pdAtual(),k=pdCalc(c),d=pdDiag(c);
  return `<div class="panel">
   <div class="say"><div class="lbl">Script sugerido</div><p>"Pra eu te trazer um raio-x completo e uma proposta sob medida, bora marcar uma call rápida essa semana?"</p></div>
   ${warnBlock}
-  <div class="pgrid g2">${pdInp('reuniao','Reunião/apresentação agendada','datetime-local')}</div>
+  ${pdBlocoCall()}
   ${pdTxa('anotacoes','Anotações da ligação')}
   <div class="stats">
    <div class="stat"><div class="k">Tempo estimado</div><div class="v">${pdH1(k.tTotal)} h</div></div>
@@ -3245,7 +3137,7 @@ function viewPdResultado(){const c=pdAtual();if(!c)return '<div class="empty">Ne
    <tr class="tot"><td>Total</td><td class="n">${pdH1(k.tTotal)}</td></tr>
   </tbody></table>
   ${k.excedentes?`<div style="margin-top:10px"><span class="pill">Excedentes: ${brl(k.excedentes)}</span></div>`:''}</div>`;
- return stats+perfilPanel+areasPanel+plansPanel+brk}
+ return stats+perfilPanel+areasPanel+pdBlocoInvest()+plansPanel+brk}
 
 /* ===== Pré-Diagnóstico: Relatório do cliente (documento imprimível, sem preços) ===== */
 function pdRelatorioHTML(c){
@@ -3303,15 +3195,16 @@ function pdRelatorioHTML(c){
   <div><h2>Dimensão da operação</h2><table>${linhas.map(x=>`<tr><td>${esc(x[0])}</td><td class="n">${esc(x[1])}</td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>'}</table></div>
   <div><h2>Plano de evolução</h2><ol class="pl">${(p?p.passos:[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>
  </div>
+ ${pdInvestimentoHTML(c)}
  <h2>Recomendação</h2>
- <div class="rec">Com base neste diagnóstico, a Lidere recomenda <b>${p?esc(p.servico):''}</b>.${c.reuniao?` A proposta e os valores serão apresentados na reunião do dia ${fmtBR(c.reuniao.slice(0,10))}.`:' Os valores serão apresentados na próxima conversa.'}</div>
+ <div class="rec">Com base neste diagnóstico, a Lidere recomenda <b>${p?esc(p.servico):''}</b>.${c.reuniao?` Apresentado na reunião do dia ${fmtBR(c.reuniao.slice(0,10))}.`:''}</div>
  <div class="ft">Lidere BPO Financeiro · Pré-Diagnóstico Financeiro</div>
  </div></body></html>`}
 function viewPdRelatorio(){const c=pdAtual();if(!c)return '<div class="empty">Nenhuma ligação selecionada.</div>';
  const d=pdDiag(c);
  if(!d.completo)return `<div class="panel"><div class="empty">O diagnóstico ainda não está completo.<br>Volte ao passo 4 (Diagnóstico) na aba Ligação para concluir as 10 perguntas.<br><br><button class="btn btn-sm" onclick="setPdTab('ligacao');pdGoStep(4)">Ir para o Diagnóstico</button></div></div>`;
  if(!c.empresa)return `<div class="panel"><div class="empty">Falta o nome da empresa — preencha no passo 1 (Abertura).<br><br><button class="btn btn-sm" onclick="setPdTab('ligacao');pdGoStep(1)">Ir para Abertura</button></div></div>`;
- return `<div class="panel"><div class="panel-head"><h2>Relatório do cliente<small>documento sem preços — o valor você fala na reunião</small></h2>
+ return `<div class="panel"><div class="panel-head"><h2>Relatório do cliente<small>é o que você apresenta na reunião comercial</small></h2>
   <button class="btn btn-sm" onclick="propDoPd()">Gerar proposta</button>
   <button class="btn btn-sm" onclick="pdImprimir()">🖨 Imprimir / salvar em PDF</button><button class="btn btn-sm" onclick="pdBaixarRelatorio()">⬇ Baixar HTML</button></div>
   <iframe id="pdRepFrame" style="width:100%;height:70vh;border:1px solid var(--line);border-radius:10px;background:#fff" srcdoc="${esc(pdRelatorioHTML(c))}"></iframe></div>`}
@@ -3323,25 +3216,6 @@ function pdSlug(t){return (t||'cliente').toLowerCase().normalize('NFD').replace(
 function pdBaixarRelatorio(){const c=pdAtual();const b=new Blob([pdRelatorioHTML(c)],{type:'text/html;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pre-diagnostico-'+pdSlug(c.empresa)+'.html';a.click();toast('Arquivo baixado')}
 /* ===== Pré-Diagnóstico: Clientes (CRUD) ===== */
-function viewPdClientes(){const list=alive(DB.pdClientes).slice().sort((a,b)=>b.criadoEm-a.criadoEm);
- const rows=list.map(c=>{const k=pdCalc(c),d=pdDiag(c);
-  return `<div class="row"><div class="row-body">
-   <div class="row-title">${esc(c.empresa||'(sem nome)')}${c.id===DB.pdAtualId?' <span class="pill g">em edição</span>':''}</div>
-   <div class="row-meta"><span class="chip chip-n">${fmtBR(c.data)}</span>${c.responsavel?`<span class="chip chip-n">${esc(c.responsavel)}</span>`:''}
-    <span class="chip chip-n">${d.completo?d.perfil.icone+' '+d.perfil.nome:d.respondidas+'/'+d.total}</span>
-    <span class="chip chip-n">${k.docs} docs · ${pdH1(k.tTotal)}h</span><span class="chip chip-n" style="color:var(--acc)">${brl(k.inter)}</span>
-    ${c.reuniao?`<span class="chip chip-n">📅 ${fmtBR(c.reuniao.slice(0,10))}</span>`:''}</div></div>
-   <div class="row-actions"><button class="btn btn-sm" onclick="pdAbrirCliente('${c.id}')">Abrir</button><button class="btn btn-sm btn-ghost" onclick="pdDuplicar('${c.id}')">Duplicar</button><button class="iconbtn del" onclick="pdExcluir('${c.id}')">🗑</button></div></div>`}).join('')
-  ||'<div class="empty">Nenhuma ligação registrada.<br>Clique em "+ Nova ligação".</div>';
- return `<div class="panel"><div class="panel-head"><h2>Ligações registradas</h2><button class="btn btn-sm btn-gold" onclick="pdNovoCliente()">+ Nova ligação</button></div>${rows}</div>`}
-function pdAbrirCliente(id){DB.pdAtualId=id;pdStep=1;savePd();setPdTab('ligacao');toast('Ligação aberta')}
-function pdNovoCliente(){const r=pdNovoRegistro();DB.pdClientes.push(r);DB.pdAtualId=r.id;pdStep=1;savePd();setPdTab('ligacao');toast('Nova ligação criada')}
-function pdDuplicar(id){const o=DB.pdClientes.find(c=>c.id===id);if(!o)return;
- const n=JSON.parse(JSON.stringify(o));n.id=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));n.criadoEm=Date.now();n.empresa=(o.empresa||'')+' (cópia)';n.deletedAt=null;
- DB.pdClientes.push(n);DB.pdAtualId=n.id;savePd();render();toast('Duplicado')}
-function pdExcluir(id){const c=DB.pdClientes.find(x=>x.id===id);if(!c)return;c.deletedAt=Date.now();
- if(DB.pdAtualId===id){const o=alive(DB.pdClientes)[0];DB.pdAtualId=o?o.id:null}
- savePd();render();toast('Movido para Excluídos')}
 function pdRestaurar(id){const c=DB.pdClientes.find(x=>x.id===id);if(c){c.deletedAt=null;savePd();render();toast('Restaurado')}}
 function pdPurgar(id){if(!confirm('Excluir definitivamente? Não dá para desfazer.'))return;
  DB.pdClientes=DB.pdClientes.filter(x=>x.id!==id);
@@ -3365,26 +3239,6 @@ function viewPdConfig(){const c=pdAtual();const k=c?pdCalc(c):null;
    <span class="o ${!DB.pdConfig.cobrarImplantacao?'sel':''}" onclick="pdSetCB('cobrarImplantacao',false)">Não cobrar</span>
    <span class="o ${DB.pdConfig.cobrarImplantacao?'sel':''}" onclick="pdSetCB('cobrarImplantacao',true)">Cobrar</span></div></div></div>
  <button class="btn btn-sm" onclick="if(confirm('Restaurar os valores padrão da planilha?')){DB.pdConfig={...PD_CFG_PADRAO};savePd();render();toast('Restaurado')}">Restaurar valores da planilha</button>`}
-function viewPdExcluidos(){const dl=DB.pdClientes.filter(x=>x.deletedAt);
- const rows=dl.map(c=>`<div class="row"><div class="row-body"><div class="row-title">${esc(c.empresa||'(sem nome)')}</div><div class="row-meta">Ligação · ${fmtBR(c.data)}</div></div>
-   <div class="row-actions"><button class="btn btn-sm" onclick="pdRestaurar('${c.id}')">Restaurar</button><button class="iconbtn del" onclick="pdPurgar('${c.id}')">🗑</button></div></div>`).join('');
- return `<div class="panel"><div class="panel-head"><h2>Excluídos</h2></div>${rows||'<div class="empty">Lixeira vazia.</div>'}</div>`}
-/* ===== Pré-Diagnóstico: dispatcher de abas ===== */
-function pdTabCount(id){const c=pdAtual();if(!c)return null;
- if(id==='ligacao')return pdDiag(c).respondidas+'/'+pdDiag(c).total;
- if(id==='clientes')return alive(DB.pdClientes).length||null;
- if(id==='excluidos')return DB.pdClientes.filter(x=>x.deletedAt).length||null;
- return null}
-function viewPd(){
-  if(!DB.pdClientes.length){DB.pdClientes.push(pdNovoRegistro());DB.pdAtualId=DB.pdClientes[0].id}
-  if(!pdAtual())DB.pdAtualId=DB.pdClientes[0].id;
-  const tabs=[['ligacao','Ligação'],['resultado','Resultado'],['relatorio','Relatório'],['clientes','Clientes'],['config','Configurações'],['excluidos','Excluídos']];
-  const tabsHTML=`<div class="tabs">${tabs.map(x=>{const id=x[0],lbl=x[1];const c=pdTabCount(id);
-    return `<button class="tab ${pdTab===id?'active':''}" onclick="setPdTab('${id}')">${lbl}${c!==null&&c!==undefined?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`;
-  const body=({ligacao:viewPdLigacao,resultado:viewPdResultado,relatorio:viewPdRelatorio,clientes:viewPdClientes,config:viewPdConfig,excluidos:viewPdExcluidos}[pdTab]||viewPdLigacao)();
-  return tabsHTML+body}
-
-
 /* ===== Propostas comerciais (do pré-diagnóstico ao documento assinado) ===== */
 const PROP_ESCOPO_PADRAO=[
  {id:'pagar',t:'Contas a pagar',d:'Recebimento, conferência e agendamento dos títulos dentro da régua de aprovação da empresa. Quem lança não é quem paga.'},
@@ -3433,7 +3287,7 @@ function persistProposta(p){up('crm_propostas',{id:p.id,lead_id:p.leadId||null,p
  validade_dias:p.validadeDias||30,empresa:p.empresa||null,contato:p.contato||null,cargo:p.cargo||null,email:p.email||null,telefone:p.telefone||null,
  cnpj:p.cnpj||null,segmento:p.segmento||null,necessidade:p.necessidade||null,plano:p.plano||'inter',mensalidade:+p.mensalidade||0,
  implantacao:+p.implantacao||0,perfil_impl:p.perfilImpl||'B',escopo:p.escopo||[],beneficios:p.beneficios||[],condicoes:p.condicoes||{},
- numeros:p.numeros||{},status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
+ numeros:p.numeros||{},transcricao:p.transcricao||null,status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
 
 /* perfil de implantação sugerido pelo tamanho e pela complexidade da operação */
 function propPerfilSugerido(c,k){if(!c)return 'B';
@@ -3490,8 +3344,6 @@ function propDoPd(){const c=pdAtual();if(!c)return toast('Nenhuma ligação sele
  if(lead)comAbrir(lead.id,'proposta');else render();
  toast('Proposta '+p.numero+' criada a partir do pré-diagnóstico')}
 
-function propNovaAvulsa(){const p=propNova(null,null);propSelId=p.id;propTab='editor';render();toast('Proposta '+p.numero+' criada em branco')}
-
 function propDuplicar(id){const o=propById(id);if(!o)return;
  const p=JSON.parse(JSON.stringify(o));
  p.id=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));p.numero=propNumero();p.data=todayKey();p.status='rascunho';p.deletedAt=null;
@@ -3500,7 +3352,6 @@ function propExcluir(id){const p=propById(id);if(!p)return;
  if(!confirm('Mandar a proposta '+p.numero+' para os excluídos?'))return;
  p.deletedAt=Date.now();persistProposta(p);if(propSelId===id){propSelId=null;propTab='lista'}render();toast('Proposta excluída')}
 function propRestaurar(id){const p=propById(id);if(!p)return;p.deletedAt=null;persistProposta(p);render();toast('Proposta restaurada')}
-function propAbrir(id){propSelId=id;propTab='editor';render()}
 let _propTimer=null;
 function propSalvaLento(){clearTimeout(_propTimer);const p=propAtual();if(!p)return;_propTimer=setTimeout(()=>persistProposta(p),600)}
 function propSet(campo,v){const p=propAtual();if(!p)return;
@@ -3546,14 +3397,6 @@ function propMarcarEnviada(){const p=propAtual();if(!p)return;
  render();toast(l?'Proposta enviada · follow-up começou e o cliente foi para a etapa de negociação':'Proposta marcada como enviada')}
 
 /* ===== Vínculo CRM <-> Pré-Diagnóstico ===== */
-function pdCampoLead(){const c=pdAtual();if(!c)return '';
- const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
- return `<div class="field"><label>Lead do CRM vinculado</label>
-  <select onchange="pdVincLead(this.value)">
-   <option value="">— sem vínculo —</option>
-   ${leads.map(l=>`<option value="${l.id}" ${c.leadId===l.id?'selected':''}>${esc(l.empresa)}${l.contato?' · '+esc(l.contato):''}</option>`).join('')}
-  </select>
-  <div style="font-size:10.5px;color:var(--mut);margin-top:4px">Vincular faz a ligação, a proposta e o funil apontarem para o mesmo cliente.</div></div>`}
 function pdVincLead(id){const c=pdAtual();if(!c)return;
  const antigo=c.leadId?crmLeadById(c.leadId):null;
  if(antigo&&antigo.prediagId===c.id){antigo.prediagId='';persistCrmLead(antigo)}
@@ -3596,45 +3439,6 @@ function leadGerarProposta(id){const l=crmLeadById(id);if(!l)return;
  toast(c?'Proposta '+p.numero+' criada com os números do pré-diagnóstico':'Proposta '+p.numero+' criada · sem pré-diagnóstico, preencha o valor na mão')}
 
 /* ===== Propostas: telas ===== */
-function propTabCount(id){
- if(id==='lista')return alive(DB.crmPropostas).length||null;
- if(id==='excluidos')return DB.crmPropostas.filter(p=>p.deletedAt).length||null;
- return null}
-function viewProp(){
- const tabs=[['lista','Propostas'],['editor','Editor'],['doc','Documento'],['excluidos','Excluídos']];
- const tabsHTML=`<div class="tabs">${tabs.map(x=>{const c=propTabCount(x[0]);
-   return `<button class="tab ${propTab===x[0]?'active':''}" onclick="setPropTab('${x[0]}')">${x[1]}${c?`<span class="cnt">${c}</span>`:''}</button>`}).join('')}</div>`;
- const body=({lista:viewPropLista,editor:viewPropEditor,doc:viewPropDoc,excluidos:viewPropLixo}[propTab]||viewPropLista)();
- return tabsHTML+body}
-
-function viewPropLista(){
- const ps=alive(DB.crmPropostas).slice().sort((a,b)=>String(b.data).localeCompare(String(a.data)));
- const total=ps.filter(p=>p.status!=='recusada').reduce((s,p)=>s+(+p.mensalidade||0),0);
- const aceitas=ps.filter(p=>p.status==='aceita');
- const stats=`<div class="stats">
-  <div class="stat"><div class="k">Propostas</div><div class="v">${ps.length}</div><div class="sub">${ps.filter(p=>p.status==='rascunho').length} em rascunho</div></div>
-  <div class="stat"><div class="k">Enviadas</div><div class="v">${ps.filter(p=>p.status==='enviada').length}</div><div class="sub">aguardando resposta</div></div>
-  <div class="stat"><div class="k">Aceitas</div><div class="v">${aceitas.length}</div><div class="sub">${brl(aceitas.reduce((s,p)=>s+(+p.mensalidade||0),0))} de MRR</div></div>
-  <div class="stat"><div class="k">Em jogo</div><div class="v">${brl(total)}</div><div class="sub">soma das mensalidades vivas</div></div>
- </div>`;
- const linhas=ps.map(p=>{const l=p.leadId?crmLeadById(p.leadId):null;
-  const c=p.prediagId?DB.pdClientes.find(x=>x.id===p.prediagId):null;
-  return `<tr>
-   <td><b>${esc(p.numero||'—')}</b><div class="muted" style="font-size:11px">${fmtBR(p.data)}</div></td>
-   <td><b>${esc(p.empresa||'(sem empresa)')}</b>${p.contato?`<div class="muted" style="font-size:11px">${esc(p.contato)}</div>`:''}</td>
-   <td>${propPlanoLabel(p.plano)}</td>
-   <td class="num">${brl(p.mensalidade)}<div class="muted" style="font-size:11px">${p.implantacao>0?'impl. '+brl(p.implantacao):'impl. isenta'}</div></td>
-   <td><span class="pill ${p.status==='aceita'?'g':p.status==='recusada'?'r':''}">${propStatusLabel(p.status)}</span></td>
-   <td class="muted" style="font-size:11.5px">${l?esc(l.empresa):'sem lead'}${c?' · pré-diag.':''}</td>
-   <td style="text-align:right;white-space:nowrap">
-    <button class="btn btn-sm" onclick="propAbrir('${p.id}')">Abrir</button>
-    <button class="btn btn-sm" onclick="propDuplicar('${p.id}')">Duplicar</button>
-    <button class="btn btn-sm btn-ghost" onclick="propExcluir('${p.id}')">Excluir</button></td></tr>`}).join('');
- return stats+`<div class="panel"><div class="panel-head"><h2>Propostas<small>a proposta nasce do pré-diagnóstico; aqui você ajusta e gera o documento</small></h2>
-  <button class="btn btn-sm btn-gold" onclick="propNovaAvulsa()">+ Proposta em branco</button></div>
-  ${ps.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Número</th><th>Empresa</th><th>Plano</th><th>Mensalidade</th><th>Status</th><th>Vínculo</th><th></th></tr></thead><tbody>${linhas}</tbody></table></div>`
-   :`<div class="empty">Nenhuma proposta ainda.<br>Abra uma ligação no Pré-Diagnóstico e clique em <b>Gerar proposta</b>, ou crie uma em branco aqui.</div>`}</div>`}
-
 function propCampo(campo,label,tipo,ph){const p=propAtual();const v=p[campo]==null?'':p[campo];
  return `<div class="field"><label>${label}</label><input type="${tipo||'text'}" value="${esc(String(v))}" placeholder="${ph||''}" oninput="propSet('${campo}',this.value)"></div>`}
 function propTxa(campo,label,ph,rows){const p=propAtual();
@@ -3644,7 +3448,7 @@ function viewPropEditor(){const p=propAtual();
  if(!p)return `<div class="panel"><div class="empty">Nenhuma proposta selecionada.<br><br><button class="btn btn-sm" onclick="setPropTab('lista')">Ver a lista</button></div></div>`;
  const pl=(p.numeros&&p.numeros.planos)||null;
  const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
- const cab=`<div class="panel"><div class="panel-head"><h2>Proposta ${esc(p.numero)}<small>${esc(p.empresa||'sem empresa')}</small></h2>
+ const cab=`<div class="panel"><div class="panel-head"><h2>Proposta ${esc(p.numero)}<small>${esc(propStatusLabel(p.status))}</small></h2>
    <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-sm" onclick="propMarcarEnviada()">Marcar como enviada</button>
     <button class="btn btn-sm btn-gold" onclick="setPropTab('doc')">Ver o documento →</button></div></div>
@@ -3685,7 +3489,7 @@ function viewPropEditor(){const p=propAtual();
    <div class="field"><label>Encerramento antecipado</label><input value="${esc(cond.multa||'')}" oninput="propSetCond('multa',this.value)"></div></div>
   <div class="tip">Reajuste, vigência e multa vêm do contrato de prestação de serviços. Se a proposta divergir do contrato, o contrato prevalece e o cliente assinou entendendo outra coisa.</div>
   ${propTxa('obs','Observações internas (não vão para o documento)','',3)}</div>`;
- return cab+planos+escopo+benef+texto}
+ return cab+planos+propBlocoIA(p)+escopo+benef+texto}
 
 function viewPropDoc(){const p=propAtual();
  if(!p)return `<div class="panel"><div class="empty">Nenhuma proposta selecionada.</div></div>`;
@@ -3695,14 +3499,6 @@ function viewPropDoc(){const p=propAtual();
    <button class="btn btn-sm" onclick="propImprimir()">🖨 Imprimir / salvar em PDF</button>
    <button class="btn btn-sm btn-gold" onclick="propBaixar()">Baixar HTML</button></div></div>
   <iframe style="width:100%;height:72vh;border:1px solid var(--line);border-radius:10px;background:#fff" srcdoc="${esc(propDocHTML(p))}"></iframe></div>`}
-
-function viewPropLixo(){const ps=DB.crmPropostas.filter(p=>p.deletedAt);
- if(!ps.length)return '<div class="panel"><div class="empty">Nada excluído por aqui.</div></div>';
- return `<div class="panel"><div class="panel-head"><h2>Propostas excluídas</h2></div>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Número</th><th>Empresa</th><th>Mensalidade</th><th></th></tr></thead><tbody>
-  ${ps.map(p=>`<tr><td>${esc(p.numero)}</td><td>${esc(p.empresa||'—')}</td><td class="num">${brl(p.mensalidade)}</td>
-   <td style="text-align:right"><button class="btn btn-sm" onclick="propRestaurar('${p.id}')">Restaurar</button></td></tr>`).join('')}
-  </tbody></table></div></div>`}
 
 function propImprimir(){const w=window.open('','_blank');if(!w)return toast('Libere os pop-ups para imprimir');
  w.document.write(propDocHTML(propAtual()));w.document.close();setTimeout(()=>{w.focus();w.print()},420)}
@@ -3887,7 +3683,7 @@ function comAbrir(id,tab){const l=crmLeadById(id);if(!l)return;
  activeTab='comFicha';toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
 function pgActsHTML(){
  if(activeTab==='pend')return '<button class="btn btn-gold" onclick="openTask()">+ Nova tarefa</button>';
- if(activeTab==='comCli')return '<button class="btn btn-gold" onclick="openLead()">+ Novo cliente</button>';
+ if(activeTab==='comCli')return '<button class="btn btn-gold" onclick="comCliTab=\'cadastrar\';render()">+ Novo cliente</button>';
  if(activeTab==='comFicha')return '<button class="btn" onclick="go(\'comCli\')">← Todos os clientes</button>';
  return ''}
 function comFichaSub(l){const e=crmEstById(l.estagioId),c=comPdDoLead(l),p=comPropAtiva(l);
@@ -3944,9 +3740,8 @@ function viewComPainel(){
   <div class="stat" onclick="go('comCli')" style="cursor:pointer"><div class="k">Clientes ativos</div><div class="v">${a.length}</div><div class="sub">${a.filter(l=>comPdDoLead(l)).length} com pré-diagnóstico</div></div>
   <div class="stat"><div class="k">Em negociação</div><div class="v" style="color:var(--meta)">${brl(valAberto)}</div><div class="sub">valor ainda em jogo</div></div>
   <div class="stat"><div class="k">Fechado</div><div class="v" style="color:var(--pos)">${brl(mrr)}</div><div class="sub">${ganhos} cliente(s) ganho(s)</div></div>
-  <div class="stat" onclick="go('comCad')" style="cursor:pointer"><div class="k">Cadência</div><div class="v" style="color:${cadAtr?'var(--neg)':cadHj?'var(--warn)':'var(--pos)'}">${cadAtr+cadHj}</div><div class="sub">${cadAtr} atrasado(s) · ${cadCompliance()}% de compliance</div></div>
+  <div class="stat" onclick="go('comCad')" style="cursor:pointer"><div class="k">Cadência</div><div class="v" style="color:${cadAtr?'var(--neg)':cadHj?'var(--warn)':'var(--pos)'}">${cadAtr+cadHj}</div><div class="sub">toques de hoje e atrasados</div></div>
   <div class="stat"><div class="k">Propostas</div><div class="v" style="color:var(--acc)">${props.filter(p=>p.status==='enviada').length}</div><div class="sub">enviadas aguardando resposta</div></div>
-  <div class="stat"><div class="k">Precisa de ação</div><div class="v" style="color:${acoes.length?'var(--warn)':'var(--pos)'}">${acoes.length}</div><div class="sub">itens na lista abaixo</div></div>
  </div>`;
  const linhas=acoes.slice(0,25).map(x=>{const cor=x.urg===0?'var(--neg)':'var(--warn)';
   return `<div class="row"><div class="row-body">
@@ -3995,8 +3790,9 @@ function viewComMetas(){return viewCrmMetas()}
 
 /* ===== Comercial · Clientes ====================================== */
 function viewComCli(){
- const abas=[['clientes','Clientes',crmLeadsAtivos().length],['atividades','Atividades',alive(DB.crmAtividades).length]];
- return comTabs(abas,comCliTab,'setComCliTab')+(comCliTab==='atividades'?viewCrmHistorico():viewComCliLista())}
+ const abas=[['clientes','Clientes',crmLeadsAtivos().length],['cadastrar','Cadastrar'],['atividades','Atividades',alive(DB.crmAtividades).length]];
+ const body=({clientes:viewComCliLista,cadastrar:viewComCadastro,atividades:viewCrmHistorico}[comCliTab]||viewComCliLista)();
+ return comTabs(abas,comCliTab,'setComCliTab')+body}
 
 function viewComCliLista(){
  let a=crmLeadsAtivos();const q=crmLeadFilter.q.toLowerCase();
@@ -4020,8 +3816,7 @@ function viewComCliLista(){
     <button class="iconbtn del" onclick="event.stopPropagation();delLead('${l.id}')">🗑</button></td></tr>`}).join('')
   ||`<tr><td colspan="8"><div class="empty">Nenhum cliente encontrado.</div></td></tr>`;
  const soltos=comSoltos();
- return `<div class="panel"><div class="panel-head"><h2>Clientes<small>${a.length} de ${crmLeadsAtivos().length} · clique para abrir a ficha completa</small></h2>
-   </div>
+ return `<div class="panel"><div class="panel-head"><h2>${a.length} de ${crmLeadsAtivos().length}<small>clique na linha para abrir a ficha completa</small></h2></div>
   <div class="filters"><input placeholder="Buscar empresa, contato, e-mail, telefone..." value="${esc(crmLeadFilter.q)}" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px;min-width:220px" oninput="crmLeadFilter.q=this.value;render()">
    <select onchange="crmLeadFilter.estagio=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">${optEst}</select>
    <select onchange="crmLeadFilter.resp=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">${optResp}</select></div>
@@ -4054,10 +3849,11 @@ function comVincProp(propId,leadId){if(!leadId)return;const p=propById(propId),l
 function viewComFicha(){const l=crmLeadById(comFichaId);
  if(!l)return `<div class="panel"><div class="empty">Cliente não encontrado.<br><br><button class="btn btn-sm" onclick="go('comCli')">Voltar para a lista</button></div></div>`;
  const c=comPdDoLead(l),p=comPropAtiva(l);
- const abas=[['dados','Dados'],['prediag','Pré-diagnóstico'],['proposta','Proposta'],
+ const P=comPassos(l,c,p);
+ const abas=[['dados','1 · Cadastro'],['contato','2 · Contato'],['prediag','3 · Pré-diagnóstico'],['proposta','4 · Proposta'],
    ['historico','Histórico',alive(DB.crmAtividades).filter(a=>a.leadId===l.id).length]];
- const body=({dados:comFichaDados,prediag:comFichaPd,proposta:comFichaProp,historico:comFichaHist}[comFichaTab]||comFichaDados)(l,c,p);
- return comTabs(abas,comFichaTab,'setComFichaTab')+body}
+ const body=({dados:comFichaDados,contato:comFichaContato,prediag:comFichaPd,proposta:comFichaProp,historico:comFichaHist}[comFichaTab]||comFichaDados)(l,c,p);
+ return comTrilho(P)+comTabs(abas,comFichaTab,'setComFichaTab')+body}
 
 function comFichaDados(l){
  const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);
@@ -4107,7 +3903,8 @@ function comFichaProp(l,c,p){
  const seletor=ps.length>1?`<select onchange="propSelId=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:9px;font-size:12.5px">
    ${ps.map(x=>`<option value="${x.id}" ${propSelId===x.id?'selected':''}>${esc(x.numero)} · ${brl(x.mensalidade)} · ${esc(propStatusLabel(x.status))}</option>`).join('')}</select>`:'';
  const barra=`<div class="filters" style="margin-bottom:10px">${seletor}
-   <button class="btn btn-sm" onclick="leadGerarProposta2('${l.id}')">+ Nova versão</button></div>`;
+   <button class="btn btn-sm" onclick="leadGerarProposta2('${l.id}')">+ Nova versão</button>
+   <button class="btn btn-sm btn-ghost" onclick="propExcluir(propSelId)">Excluir esta proposta</button></div>`;
  const abas=[['editor','Editor'],['doc','Documento']];
  const body=(comPropTab==='doc'?viewPropDoc:viewPropEditor)();
  return comTabs(abas,comPropTab,'setComPropTab')+barra+body}
@@ -4234,6 +4031,273 @@ function setPropTab(id){
  propTab=id;comPropTab=id;
  const p=propAtual(),l=p?comLeadDe(p):null;
  if(l)comAbrir(l.id,'proposta');else render()}
+
+
+/* ===== Trilho de passos da ficha (a ordem em que o trabalho acontece) ===== */
+function comPassos(l,c,p){
+ const diag=c?pdDiag(c):null;
+ const reuniao=!!(c&&c.reuniao);
+ const respondeu=(()=>{const res=cadResumo(l,'prospeccao');return res.feitos>0||res.pulados>0||(l.prediagStatus||'pendente')!=='pendente'})();
+ return [
+  {n:1,nome:'Cadastro',aba:'dados',ok:!!l.empresa,falta:'preencha empresa e contato'},
+  {n:2,nome:'Contato',aba:'contato',ok:respondeu,falta:'rode a cadência até falar com o cliente'},
+  {n:3,nome:'Pré-diagnóstico',aba:'prediag',ok:!!(diag&&diag.completo),falta:c?`faltam ${diag.total-diag.respondidas} das 10 perguntas`:'ainda não iniciado'},
+  {n:4,nome:'Reunião',aba:'prediag',ok:reuniao,falta:'marque a call no fim do pré-diagnóstico'},
+  {n:5,nome:'Proposta',aba:'proposta',ok:!!(p&&p.status!=='rascunho'),falta:p?'ainda em rascunho':'ainda não gerada'},
+  {n:6,nome:'Fechamento',aba:'proposta',ok:!!(p&&p.status==='aceita'),falta:'aguardando resposta do cliente'}]}
+function comTrilho(P){
+ const atual=P.find(x=>!x.ok)||P[P.length-1];
+ return `<div class="panel" style="padding:14px 16px;margin-bottom:12px">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch">
+  ${P.map((x,i)=>{const on=x.ok,aqui=x.n===atual.n;
+   const cor=on?'var(--pos)':aqui?'var(--acc)':'var(--line-f)';
+   return `<button onclick="setComFichaTab('${x.aba}')" style="flex:1;min-width:110px;text-align:left;background:${aqui?'var(--panel2)':'transparent'};
+     border:1px solid ${aqui?'var(--acc)':'var(--line)'};border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--txt)">
+    <div style="display:flex;align-items:center;gap:6px">
+     <span style="width:17px;height:17px;border-radius:50%;background:${on?'var(--pos)':'transparent'};border:1.5px solid ${cor};
+       color:var(--acc-ink);font-size:10px;font-weight:900;display:inline-flex;align-items:center;justify-content:center">${on?'✓':''}</span>
+     <b style="font-size:11.5px;letter-spacing:.3px">${esc(x.nome)}</b></div>
+    <div class="muted" style="font-size:10.5px;margin-top:3px;line-height:1.35">${on?'concluído':esc(x.falta)}</div></button>`}).join('')}
+  </div></div>`}
+
+/* ===== Clientes · aba Cadastrar (entra direto na primeira etapa do funil) ===== */
+function viewComCadastro(){
+ const primeira=crmEstagios()[0];
+ const inp=(id,lbl,ph,tipo)=>`<div class="field"><label>${lbl}</label><input id="${id}" type="${tipo||'text'}" placeholder="${ph||''}"></div>`;
+ return `<div class="panel"><div class="panel-head"><h2>Cadastrar cliente<small>ao salvar, ele entra em <b>${esc(primeira?primeira.nome:'—')}</b> e a ficha abre no passo 2</small></h2></div>
+  <div class="fgrid">${inp('nc_empresa','Empresa *','razão social ou nome fantasia')}${inp('nc_cnpj','CNPJ','00.000.000/0001-00')}
+   ${inp('nc_contato','Contato','quem decide')}${inp('nc_cargo','Cargo','sócio, diretor, gerente')}</div>
+  <div class="fgrid">${inp('nc_tel','Telefone / WhatsApp','(43) 99999-9999')}${inp('nc_email','E-mail','','email')}
+   ${inp('nc_segmento','Segmento','o que a empresa faz')}${inp('nc_ticket','Ticket estimado (R$/mês)','','number')}</div>
+  <div class="fgrid">
+   <div class="field"><label>Origem</label><select id="nc_origem"><option value="">—</option>${DB.crmOrigens.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>
+   <div class="field"><label>Serviço de interesse</label><select id="nc_servico"><option value="">—</option>${DB.crmServicos.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>
+   <div class="field"><label>Responsável</label><select id="nc_resp"><option value="">—</option>${alive(DB.crmResponsaveis).map(r=>`<option value="${r.id}">${esc(r.nome)}</option>`).join('')}</select></div>
+   <div class="field"><label>Prioridade</label><select id="nc_pri"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div></div>
+  <div class="field"><label>O que você já sabe dele</label><textarea id="nc_obs" rows="3" placeholder="de onde veio, o que falou, qual a dor aparente"></textarea></div>
+  <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap">
+   <button class="btn btn-gold" onclick="comSalvarCadastro()">Cadastrar e abrir a ficha</button>
+   <button class="btn" onclick="comCliTab='clientes';render()">Cancelar</button></div></div>`}
+function comSalvarCadastro(){
+ const g=id=>{const e=gEl(id);return e?e.value.trim():''};
+ const empresa=g('nc_empresa');if(!empresa)return toast('Informe o nome da empresa');
+ const primeira=crmEstagios()[0];
+ const l={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+  empresa,cnpj:g('nc_cnpj'),contato:g('nc_contato'),cargo:g('nc_cargo'),telefone:g('nc_tel'),email:g('nc_email'),
+  segmento:g('nc_segmento'),ticket:+g('nc_ticket')||0,origem:g('nc_origem'),servico:g('nc_servico'),
+  responsavelId:g('nc_resp'),prioridade:g('nc_pri')||'media',obs:g('nc_obs'),
+  estagioId:primeira?primeira.id:'',dataEntrada:todayKey(),proximoContato:'',ultimoContato:'',
+  statusContrato:'Aguardando',linkProposta:'',cadencia:[],cadenciaInicio:'',cadenciaProp:[],propostaData:'',
+  prediagStatus:'pendente',prediagData:'',prediagObs:'',prediagId:'',motivoPerda:'',deletedAt:null};
+ DB.crmLeads.push(l);persistCrmLead(l);
+ comLog(l,'Cadastro','cliente cadastrado em '+(primeira?primeira.nome:'—'));
+ comCliTab='clientes';comAbrir(l.id,'contato');
+ toast(empresa+' cadastrado em '+(primeira?primeira.nome:'—'))}
+
+/* ===== Ficha · passo 2: Contato ===== */
+function comFichaContato(l,c){
+ const r='prospeccao',R=REG(r),res=cadResumo(l,r),ini=cadInicio(l,r),hoje=todayKey();
+ const fase=crmFase(l);
+ const jaPassou=fase!=='prospeccao';
+ const destaque=`<div class="panel" style="border-color:var(--acc)">
+   <div class="panel-head"><h2>Conseguiu falar com o cliente?<small>o objetivo da ligação é preencher o pré-diagnóstico e agendar a reunião</small></h2></div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-gold" onclick="comLigacaoOk('${l.id}')">Ligação atendida · ir para o pré-diagnóstico</button>
+    ${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}
+    <span class="muted" style="font-size:11.5px">Encerra a cadência de mensagens e abre a ligação de pré-diagnóstico.</span></div></div>`;
+ if(jaPassou&&res.feitos+res.pulados===R.toques.length)
+   return destaque+`<div class="panel"><div class="empty">Cadência encerrada. O cliente já passou desta etapa.</div></div>`;
+ const linhas=R.toques.map(t=>{const e=cadEstado(l,r,t.n),prev=cadPrev(l,r,t.n);
+  const atrasado=prev&&prev<hoje&&e.st==='pendente';
+  const cor=e.st==='feito'?'var(--pos)':e.st==='pulado'?'var(--mut)':atrasado?'var(--neg)':'var(--dim)';
+  const rot=e.st==='feito'?'enviado '+fmtBR(e.data):e.st==='pulado'?'pulado':prev?(atrasado?'atrasado desde '+fmtBR(prev):fmtBR(prev)):'sem data';
+  const msg=crmMsgRender(r,t.n,l);
+  return `<div class="row"><div class="row-body">
+    <div class="row-title" style="font-size:12.5px">Toque ${t.n} · D+${t.dia} · ${esc(t.canal)}</div>
+    <div class="row-meta"><span class="chip chip-n" style="color:${cor}">${esc(rot)}</span><span class="muted">${esc(t.obj)}</span></div></div>
+   <div class="row-actions" style="white-space:nowrap">
+    ${t.audio?'':waIcon(l.telefone,msg,'Enviar pelo WhatsApp')}
+    <button class="iconbtn" title="Copiar mensagem" onclick="cadCopiar('${l.id}','${r}',${t.n})">⧉</button>
+    ${e.st==='feito'?`<button class="btn btn-sm btn-ghost" onclick="cadMarcar('${l.id}','${r}',${t.n},'pendente')">Desmarcar</button>`
+      :`<button class="btn btn-sm" onclick="cadMarcar('${l.id}','${r}',${t.n},'feito')">Enviei</button>`}</div></div>`}).join('');
+ const cabecalho=`<div class="panel"><div class="panel-head"><h2>${esc(R.nome)}<small>${res.iniciada?res.feitos+' de '+res.total+' enviados':'ainda não iniciada'} · ${esc(R.dica)}</small></h2>
+   <div class="field" style="max-width:180px;margin:0"><label>${esc(R.rotuloInicio)}</label>
+    <input type="date" value="${ini}" onchange="cadSetInicio('${l.id}','${r}',this.value)"></div></div>${linhas}
+   <div class="tip">${esc(R.fim)} Os textos das 7 mensagens ficam em <b>Ajustes → Mensagens</b>.</div></div>`;
+ return destaque+cabecalho}
+
+function comLigacaoOk(id){const l=crmLeadById(id);if(!l)return;
+ REG('prospeccao').toques.forEach(t=>{if(cadEstado(l,'prospeccao',t.n).st==='pendente')cadSet(l,'prospeccao',t.n,'pulado')});
+ l.ultimoContato=todayKey();
+ if(l.prediagStatus==='pendente'){l.prediagStatus='feita';l.prediagData=todayKey()}
+ persistCrmLead(l);
+ comLog(l,'Ligação atendida','cadência de prospecção encerrada; seguiu para o pré-diagnóstico');
+ const est=crmEstById(l.estagioId);
+ if(est&&(est.ordem||0)<1)comMover(l,crmEstagios()[1],'cliente atendeu a ligação');
+ let c=comPdDoLead(l);
+ if(!c)leadAbrirPd(id);else{DB.pdAtualId=c.id;comFichaTab='prediag';comPdTab='ligacao';render()}
+ toast('Cadência encerrada · siga para o pré-diagnóstico')}
+
+/* ===== Pré-diagnóstico · investimento estimado e call agendada ===== */
+function pdBlocoInvest(){const c=pdAtual();if(!c)return '';
+ const k=pdCalc(c);
+ const val=(campo,padrao)=>{const v=c[campo];return (v===''||v==null)?padrao:v};
+ return `<div class="panel"><div class="panel-head"><h2>Investimento que você vai apresentar<small>entra no relatório do cliente; o cálculo sugere, você decide</small></h2></div>
+  <div class="fgrid">
+   <div class="field"><label>Honorário mensal (R$)</label>
+    <input type="number" step="0.01" value="${esc(String(val('honorario','')))}" placeholder="${pdH1(k.inter)}" oninput="pdSetF('honorario',this.value)">
+    <div style="font-size:10.5px;color:var(--mut);margin-top:4px">cálculo: básico ${brl(k.basico)} · intermediário ${brl(k.inter)} · avançado ${brl(k.avancado)}
+     <button class="btn btn-sm" style="margin-left:6px" onclick="pdUsarSugestao()">Usar o sugerido</button></div></div>
+   <div class="field"><label>Implantação (R$, parcela única)</label>
+    <input type="number" step="0.01" value="${esc(String(val('implantacaoValor','')))}" placeholder="${pdH1(k.implantacao)}" oninput="pdSetF('implantacaoValor',this.value)">
+    <div style="font-size:10.5px;color:var(--mut);margin-top:4px">deixe 0 para apresentar como isenta</div></div></div>
+  ${pdTxa('condicoesTexto','Condições','vigência, forma de pagamento, reajuste, o que está incluso')}</div>`}
+function pdUsarSugestao(){const c=pdAtual();if(!c)return;const k=pdCalc(c);
+ c.honorario=k.inter;c.implantacaoValor=k.implantacao;
+ if(!c.condicoesTexto)c.condicoesTexto=PROP_COND_PADRAO.pagamento+' '+PROP_COND_PADRAO.reajuste+' '+PROP_COND_PADRAO.vigencia;
+ savePd();render();toast('Valores do cálculo aplicados')}
+function pdInvestimentoHTML(c){
+ const hon=+c.honorario||0, imp=+c.implantacaoValor||0, cond=(c.condicoesTexto||'').trim();
+ if(!hon&&!imp&&!cond)return '';
+ return `<h2>Investimento</h2>
+  ${hon?`<div class="rec" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+    <div><b>Honorário mensal</b><div style="font-size:12.5px">Execução da rotina financeira conforme este diagnóstico.</div></div>
+    <div style="font-size:26px;font-weight:800;color:#8a5f14">${brl(hon)}</div></div>`:''}
+  <p>${imp?`<b>Implantação:</b> ${brl(imp)} em parcela única.`:'<b>Implantação:</b> isenta.'}</p>
+  ${cond?`<p><b>Condições:</b> ${esc(cond)}</p>`:''}`}
+
+function pdBlocoCall(){const c=pdAtual();if(!c)return '';
+ const l=comLeadDe(c);
+ const dt=(c.reuniao||'');const data=dt.slice(0,10),hora=dt.slice(11,16);
+ const marcada=!!data;
+ return `<div class="panel" style="border-color:${marcada?'var(--pos)':'var(--acc)'};margin-top:0">
+  <div class="panel-head"><h2>${marcada?'Reunião agendada':'Conseguiu agendar a reunião?'}<small>${marcada?'já está na sua lista de pendências':'ao marcar, o cliente vai para a etapa de reunião e a data entra em Pendências'}</small></h2></div>
+  <div class="fgrid">
+   <div class="field"><label>Data</label><input type="date" id="pd_call_data" value="${esc(data)}"></div>
+   <div class="field"><label>Horário</label><input type="time" id="pd_call_hora" value="${esc(hora||'09:00')}"></div></div>
+  <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+   <button class="btn btn-gold" onclick="pdMarcarCall()">${marcada?'Atualizar a reunião':'Call agendada'}</button>
+   ${marcada?`<button class="btn btn-ghost" onclick="pdDesmarcarCall()">Desmarcar</button>`:''}
+   ${!l?'<span class="muted" style="font-size:11.5px">Vincule um cliente no passo 1 para criar a pendência.</span>':''}</div></div>`}
+function pdMarcarCall(){const c=pdAtual();if(!c)return;
+ const data=gEl('pd_call_data').value, hora=gEl('pd_call_hora').value||'09:00';
+ if(!data)return toast('Escolha a data da reunião');
+ c.reuniao=data+'T'+hora;savePd();
+ const l=comLeadDe(c);
+ if(l){l.proximoContato=data;persistCrmLead(l);
+  comMoverFase(l,'reuniao','reunião agendada para '+fmtBR(data)+' '+hora);
+  comPendenciaReuniao(l,data,hora);
+  comLog(l,'Reunião agendada',fmtBR(data)+' às '+hora)}
+ render();toast(l?'Reunião marcada · pendência criada para '+fmtBR(data):'Reunião marcada')}
+function pdDesmarcarCall(){const c=pdAtual();if(!c)return;
+ if(!confirm('Desmarcar a reunião? A pendência criada não é apagada automaticamente.'))return;
+ c.reuniao='';savePd();render();toast('Reunião desmarcada')}
+function comPendenciaReuniao(l,data,hora){
+ const titulo='Reunião comercial · '+l.empresa;
+ const ja=alive(DB.avulsas).find(a=>a.titulo===titulo&&a.status!=='feito');
+ if(ja){ja.prazo=data;ja.hora=hora;persistAvulsa(ja);return}
+ const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,
+  prioridade:'alta',prazo:data,hora,ordem:-1,responsavelId:null,status:'afazer',valor:0,
+  obs:'Apresentar o relatório de pré-diagnóstico.'+(l.telefone?' Contato: '+l.telefone+'.':''),
+  empresa:'Lidere',concluidoEm:null,deletedAt:null};
+ DB.avulsas.push(a);persistAvulsa(a)}
+
+/* ===== Proposta a partir da transcrição da reunião ===== */
+function propPromptIA(p){
+ const c=p.prediagId?DB.pdClientes.find(x=>x.id===p.prediagId):null;
+ const nums=p.numeros||{};
+ const linhas=[];
+ linhas.push('Você é o consultor comercial da Lidere BPO Financeiro. Escreva o conteúdo de uma proposta de BPO financeiro a partir do diagnóstico e da transcrição da reunião abaixo.');
+ linhas.push('');
+ linhas.push('CLIENTE');
+ linhas.push('Empresa: '+(comF(p,'empresa')||'—'));
+ linhas.push('Contato: '+(comF(p,'contato')||'—')+(comF(p,'cargo')?' ('+comF(p,'cargo')+')':''));
+ linhas.push('Segmento: '+(comF(p,'segmento')||'—'));
+ if(c){
+  if(c.oQueFaz)linhas.push('O que faz: '+c.oQueFaz+(c.tempoMercado?' · '+c.tempoMercado+' de mercado':''));
+  if(c.dorFrase)linhas.push('Dor na fala do cliente: "'+c.dorFrase+'"');
+  if(c.anotacoes)linhas.push('Anotações da ligação: '+c.anotacoes);
+ }
+ linhas.push('');
+ linhas.push('DIAGNÓSTICO');
+ if(nums.docs)linhas.push('Documentos financeiros por mês: '+nums.docs);
+ if(nums.horas)linhas.push('Horas de rotina por mês: '+pdH1(nums.horas));
+ if(nums.complexPct!=null)linhas.push('Complexidade fiscal: '+nums.complexPct+'%');
+ if(nums.perfil)linhas.push('Perfil financeiro: '+nums.perfil.nome+' — '+nums.perfil.resumo);
+ (nums.areas||[]).forEach(a=>linhas.push('Área '+a.nome+': '+a.pct+'% ('+a.rot+')'));
+ linhas.push('');
+ linhas.push('COMERCIAL');
+ linhas.push('Mensalidade combinada: '+brl(p.mensalidade));
+ linhas.push('Implantação: '+(+p.implantacao?brl(p.implantacao):'isenta'));
+ linhas.push('Prazo de implantação: '+(PROP_PERFIS[p.perfilImpl]||PROP_PERFIS.B).dias+' dias, por etapas.');
+ linhas.push('');
+ linhas.push('TRANSCRIÇÃO DA REUNIÃO');
+ linhas.push((p.transcricao||'(sem transcrição — use apenas o diagnóstico)').trim());
+ linhas.push('');
+ linhas.push('TAREFA');
+ linhas.push('Responda SOMENTE com um bloco JSON válido, sem texto antes ou depois, neste formato:');
+ linhas.push('{');
+ linhas.push('  "necessidade": "2 a 4 parágrafos em português do Brasil: o contexto da empresa, o problema real que apareceu na reunião (use as palavras do cliente quando couber) e o que esta proposta resolve. Sem travessões.",');
+ linhas.push('  "escopo": [{"t":"nome da frente","d":"uma frase do que a Lidere executa nela"}],');
+ linhas.push('  "beneficios": [{"t":"nome do benefício","d":"uma frase do que ele dá ao cliente"}],');
+ linhas.push('  "condicoes": {"pagamento":"","reajuste":"","vigencia":"","multa":""}');
+ linhas.push('}');
+ linhas.push('');
+ linhas.push('Regras: escopo só com o que foi combinado na reunião ou que o diagnóstico justifica; benefícios só se o cliente pediu ou se foram concedidos na conversa (array vazio se não houve); em condicoes, repita exatamente os textos abaixo, sem inventar condição comercial nova.');
+ linhas.push('pagamento: '+((p.condicoes||{}).pagamento||PROP_COND_PADRAO.pagamento));
+ linhas.push('reajuste: '+((p.condicoes||{}).reajuste||PROP_COND_PADRAO.reajuste));
+ linhas.push('vigencia: '+((p.condicoes||{}).vigencia||PROP_COND_PADRAO.vigencia));
+ linhas.push('multa: '+((p.condicoes||{}).multa||PROP_COND_PADRAO.multa));
+ return linhas.join('\n')}
+
+function propCopiarPrompt(abrirClaude){const p=propAtual();if(!p)return;
+ const txt=propPromptIA(p);
+ const done=()=>{toast('Prompt copiado'+(abrirClaude?' · abrindo o Claude':''));
+   if(abrirClaude)window.open('https://claude.ai/new','_blank','noopener')};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,()=>propFallbackCopia(txt));
+ else propFallbackCopia(txt)}
+function propFallbackCopia(txt){const ta=document.createElement('textarea');ta.value=txt;
+ document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Prompt copiado')}catch(e){toast('Copie o texto do campo')}
+ document.body.removeChild(ta)}
+function propAplicarIA(){const p=propAtual();if(!p)return;
+ const el=gEl('prop_ia');const bruto=el?el.value.trim():'';
+ if(!bruto)return toast('Cole a resposta do Claude primeiro');
+ const i=bruto.indexOf('{'),j=bruto.lastIndexOf('}');
+ if(i<0||j<i)return toast('Não achei o bloco JSON na resposta');
+ let o;try{o=JSON.parse(bruto.slice(i,j+1))}catch(e){return toast('O JSON veio quebrado — copie a resposta inteira do Claude')}
+ let mudou=[];
+ if(o.necessidade){p.necessidade=String(o.necessidade);mudou.push('entendimento da necessidade')}
+ if(Array.isArray(o.escopo)&&o.escopo.length){
+  p.escopo=o.escopo.filter(x=>x&&x.t).map((x,n)=>({id:'ia'+n,t:String(x.t),d:String(x.d||''),on:true,livre:true}));
+  mudou.push(p.escopo.length+' frentes de escopo')}
+ if(Array.isArray(o.beneficios)){
+  const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const base=propBeneficiosDe();let n=0;
+  o.beneficios.filter(x=>x&&x.t).forEach(x=>{
+   const ja=base.find(y=>norm(y.t)===norm(x.t));
+   if(ja){ja.on=true}else{base.push({id:'iab'+base.length,t:String(x.t),d:String(x.d||''),on:true,livre:true})}
+   n++});
+  if(n){p.beneficios=base;mudou.push(n+' benefício(s)')}}
+ if(o.condicoes&&typeof o.condicoes==='object'){
+  p.condicoes=Object.assign({},p.condicoes||PROP_COND_PADRAO);
+  ['pagamento','reajuste','vigencia','multa'].forEach(k=>{if(o.condicoes[k])p.condicoes[k]=String(o.condicoes[k])});
+  mudou.push('condições')}
+ if(!mudou.length)return toast('O JSON não trouxe nenhum campo conhecido');
+ persistProposta(p);if(el)el.value='';render();toast('Aplicado: '+mudou.join(', '))}
+
+function propBlocoIA(p){
+ const c=p.prediagId?DB.pdClientes.find(x=>x.id===p.prediagId):null;
+ return `<div class="panel"><div class="panel-head"><h2>Escrever a proposta com o Claude<small>ele junta o diagnóstico com o que foi dito na reunião</small></h2></div>
+  <div class="field"><label>Transcrição da reunião</label>
+   <textarea rows="6" placeholder="Cole aqui a transcrição ou as anotações da reunião comercial." oninput="propSet('transcricao',this.value)">${esc(p.transcricao||'')}</textarea>
+   <div style="font-size:10.5px;color:var(--mut);margin-top:4px">${c?'O diagnóstico deste cliente já entra no prompt junto.':'Sem pré-diagnóstico vinculado, o prompt vai só com a transcrição e os valores.'}</div></div>
+  <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+   <button class="btn btn-gold" onclick="propCopiarPrompt(true)">Copiar prompt e abrir o Claude</button>
+   <button class="btn" onclick="propCopiarPrompt(false)">Só copiar o prompt</button></div>
+  <div class="field"><label>Resposta do Claude</label>
+   <textarea id="prop_ia" rows="5" placeholder="Cole aqui a resposta que o Claude devolveu (o bloco JSON)."></textarea></div>
+  <button class="btn" onclick="propAplicarIA()">Aplicar na proposta</button>
+  <div class="tip">O que ele preenche: entendimento da necessidade, escopo, benefícios e condições. Valor, plano e prazo continuam sendo seus, definidos acima.</div></div>`}
 
 /* ===== Excluídos ===== */
 function viewLixo(){
