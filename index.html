@@ -392,6 +392,9 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .pcard .pt{font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcard .pm{font-size:10.5px;color:var(--mut);margin-top:3px}
 .pgridc{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
+.rot-cat{width:132px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+  padding:6px 8px;border-radius:8px;font-size:11.5px}
+.rot-cat:focus{outline:none;border-color:var(--acc)}
 .rot-val{width:104px;background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);
   padding:6px 9px;border-radius:8px;font-size:12.5px;text-align:right}
 .rot-val:focus{outline:none;border-color:var(--acc)}
@@ -604,6 +607,8 @@ tbody tr:hover{background:var(--panel2)}
       <div class="o sel" data-v="posterga" onclick="pickAj('posterga')">Posterga</div>
       <div class="o" data-v="fixo" onclick="pickAj('fixo')">Fixo</div></div></div>
     <div class="field" id="m_valWrap"><label>Valor (opcional)</label><input id="m_valor" type="number" step="0.01" placeholder="0,00"></div>
+    <div class="field" id="m_catWrap"><label>Classificação do valor</label><select id="m_cat"></select>
+      <div style="font-size:10.5px;color:var(--mut);margin-top:4px">Define em qual total esta rotina entra no fim do mês.</div></div>
     <div class="field"><label>Responsável</label><select id="m_resp"><option value="">— sem responsável —</option></select></div>
     <div class="field"><label>Observações</label><textarea id="m_obs" rows="2" placeholder="Detalhes, links, contexto"></textarea></div>
   </div>
@@ -1062,7 +1067,7 @@ function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
-  if(tipo==='mensais'){row.dia=m.dia;row.ajuste=m.ajuste;row.valor=m.valor||0}
+  if(tipo==='mensais'){row.dia=m.dia;row.ajuste=m.ajuste;row.valor=m.valor||0;row.categoria=m.categoria||null}
   if(tipo==='semanais')row.dia_semana=m.diaSemana;
   if(tipo==='diarias')row.ordem=m.ordem||0;
   up(t,row)}
@@ -1088,7 +1093,7 @@ async function loadAll(){
   DB={
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
-    mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
+    mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
     diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
     feriados:(F.data||[]).map(f=>({id:f.id,data:f.data,nome:f.nome})),
@@ -1746,6 +1751,20 @@ function viewRotinas(){
   const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${rotinaTab===id?'active':''}" onclick="setRotinaTab('${id}')">${lbl}<span class="cnt">${alive(DB[id].modelos).length}</span></button>`).join('')}</div>`;
   const body=({mensais:viewMensais,semanais:viewSemanais,diarias:viewDiarias}[rotinaTab])();
   return tabsHTML+body}
+/* em qual total cada rotina mensal entra no fim do mês */
+const ROT_CATS=[
+ {id:'honorario',nome:'Honorários recebidos',curto:'Honorário',cor:'#3ea06b',fluxo:'entra'},
+ {id:'cartao',nome:'Cartões recebidos',curto:'Cartão',cor:'#06b6d4',fluxo:'entra'},
+ {id:'nota',nome:'Notas fiscais emitidas',curto:'Nota fiscal',cor:'#d4a840',fluxo:'nota'},
+ {id:'giro',nome:'Capital de giro pago',curto:'Capital de giro',cor:'#ef4444',fluxo:'sai'},
+ {id:'outro',nome:'Outros',curto:'Outro',cor:'#8a8f98',fluxo:'neutro'}];
+const rotCat=id=>ROT_CATS.find(c=>c.id===id)||ROT_CATS[ROT_CATS.length-1];
+const ROT_CAT_OPCOES=sel=>'<option value="">— sem classificação —</option>'+
+  ROT_CATS.map(c=>`<option value="${c.id}" ${sel===c.id?'selected':''}>${esc(c.nome)}</option>`).join('');
+function setModeloCat(id,cat){const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
+  mo.categoria=cat||'';persistModelo('mensais',mo);render();
+  toast(cat?'Classificada como '+rotCat(cat).nome.toLowerCase():'Classificação removida')}
+
 /* o valor de uma rotina mensal pode mudar de um mês para o outro:
    o modelo guarda o padrão, a execução do mês guarda a exceção */
 function mensalValor(mo,pk){const e=(DB.mensais.exec[pk]||{})[mo.id];
@@ -1760,8 +1779,15 @@ function mensalTotais(pk){
   const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0);
   const emitidas=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito);
   const soma=a=>a.reduce((t,mo)=>t+mensalValor(mo,pk),0);
+  const porCat={};
+  ROT_CATS.forEach(c=>porCat[c.id]={previsto:0,feito:0,n:0,nFeito:0});
+  mods.forEach(mo=>{const c=rotCat(mo.categoria).id,v=mensalValor(mo,pk);
+    porCat[c].previsto+=v;porCat[c].n++;
+    if(ex[mo.id]&&ex[mo.id].feito){porCat[c].feito+=v;porCat[c].nFeito++}});
+  const fluxo=f=>ROT_CATS.filter(c=>c.fluxo===f).reduce((t,c)=>t+porCat[c.id].feito,0);
   return {itens:mods.length,previsto:soma(mods),emitido:soma(emitidas),
-    nEmitidas:emitidas.length,aEmitir:soma(mods)-soma(emitidas),nPendentes:mods.length-emitidas.length}}
+    nEmitidas:emitidas.length,aEmitir:soma(mods)-soma(emitidas),nPendentes:mods.length-emitidas.length,
+    porCat,entrou:fluxo('entra'),saiu:fluxo('sai'),notas:porCat.nota.feito,nNotas:porCat.nota.nFeito}}
 
 function viewMensais(){
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();const pk=monthKey(mensalRef);const ex=DB.mensais.exec[pk]||{};
@@ -1773,8 +1799,10 @@ function viewMensais(){
       <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
       <div class="row-meta"><span class="chip chip-n">dia ${mo.dia} · ${ajLabel(mo.ajuste)} → ${fmtBR(iso(eff))}</span>
       ${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}
+      ${mo.categoria?`<span class="chip chip-n" style="color:${rotCat(mo.categoria).cor}">${esc(rotCat(mo.categoria).curto)}</span>`:''}
       ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
       <div class="row-actions" style="align-items:center">
+       <select class="rot-cat" title="Em qual total esta rotina entra" onchange="setModeloCat('${mo.id}',this.value)">${ROT_CAT_OPCOES(mo.categoria)}</select>
        <input type="number" step="0.01" class="rot-val" value="${v?v:''}" placeholder="${mo.valor?pdH1(mo.valor):'valor'}"
          title="Valor deste mês. Em branco usa o padrão da rotina."
          onchange="setExecValor('${mo.id}',this.value)" oninput="mensalTotaisLive()">
@@ -1783,13 +1811,29 @@ function viewMensais(){
        <button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button></div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina mensal. Clique em "+ Nova".</div>';
   const t=mensalTotais(pk);
-  const resumo=t.itens?`<div class="panel"><div class="panel-head"><h2>Honorários e notas do mês<small>somando as rotinas mensais que têm valor</small></h2>
+  const semCat=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0&&!mo.categoria).length;
+  const catRows=ROT_CATS.filter(c=>t.porCat[c.id].n).map(c=>{const d=t.porCat[c.id];
+    const pct=d.previsto?Math.round(d.feito/d.previsto*100):0;
+    return `<div class="hbar"><div class="hl"><span class="nm"><span style="width:8px;height:8px;border-radius:50%;background:${c.cor};display:inline-block"></span>${esc(c.nome)}</span>
+      <span class="muted"><b style="color:${c.cor}">${brl(d.feito)}</b> de ${brl(d.previsto)} · ${d.nFeito}/${d.n}</span></div>
+      <div class="ht"><i style="width:${pct}%;background:${c.cor}"></i></div></div>`}).join('');
+  const saldo=t.entrou-t.saiu;
+  const resumo=t.itens?`<div class="panel"><div class="panel-head"><h2>Fechamento do mês<small>somando as rotinas mensais que têm valor</small></h2>
     <button class="btn btn-sm" onclick="mensalBaixar()">↓ Baixar em CSV</button></div>
    <div class="stats">
     <div class="stat"><div class="k">Previsto</div><div class="v" style="color:var(--acc)" id="rotPrev">${brl(t.previsto)}</div><div class="sub" id="rotPrevN">${t.itens} rotina(s) com valor</div></div>
-    <div class="stat"><div class="k">Emitido</div><div class="v" style="color:var(--pos)" id="rotEmit">${brl(t.emitido)}</div><div class="sub" id="rotEmitN">${t.nEmitidas} nota(s) já emitida(s)</div></div>
-    <div class="stat"><div class="k">A emitir</div><div class="v" style="color:${t.aEmitir?'var(--warn)':'var(--pos)'}" id="rotFalta">${brl(t.aEmitir)}</div><div class="sub" id="rotFaltaN">${t.nPendentes} pendente(s)</div></div>
-   </div>${mensalHistorico()}</div>`:'';
+    <div class="stat"><div class="k">Realizado</div><div class="v" style="color:var(--pos)" id="rotEmit">${brl(t.emitido)}</div><div class="sub" id="rotEmitN">${t.nEmitidas} de ${t.itens} concluída(s)</div></div>
+    <div class="stat"><div class="k">Falta</div><div class="v" style="color:${t.aEmitir?'var(--warn)':'var(--pos)'}" id="rotFalta">${brl(t.aEmitir)}</div><div class="sub" id="rotFaltaN">${t.nPendentes} pendente(s)</div></div>
+    <div class="stat"><div class="k">Notas fiscais</div><div class="v" style="color:#d4a840">${brl(t.notas)}</div><div class="sub">${t.nNotas} emitida(s)</div></div>
+   </div>
+   <div style="font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:16px 0 10px">Por classificação · realizado</div>
+   ${catRows||'<div class="empty" style="padding:12px;font-size:11.5px">Nenhuma rotina classificada ainda.</div>'}
+   <div class="row" style="margin-top:10px;border:1px solid var(--line-f)">
+     <div class="row-body"><div class="row-title">Saldo do mês</div>
+      <div class="row-meta"><span class="muted">entrou ${brl(t.entrou)} · saiu ${brl(t.saiu)} · notas fiscais não entram nesta conta</span></div></div>
+     <div class="row-actions"><b style="font-size:17px;color:${saldo>=0?'var(--pos)':'var(--neg)'}">${brl(saldo)}</b></div></div>
+   ${semCat?`<div class="tip">${semCat} rotina(s) com valor ainda sem classificação. Use o seletor na linha para dizer em qual total ela entra.</div>`:''}
+   ${mensalHistorico()}</div>`:'';
   return `<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas</small></h2>
     <button class="btn btn-sm" onclick="stepMonth(-1)">‹</button><button class="btn btn-sm" onclick="mensalRef=new Date();render()">Este mês</button><button class="btn btn-sm" onclick="stepMonth(1)">›</button>
     <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`+resumo}
@@ -1837,12 +1881,15 @@ function mensalBaixar(){
   const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0).sort((a,b)=>a.dia-b.dia);
   if(!mods.length)return toast('Nenhuma rotina com valor neste mês');
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();
-  const linhas=[['Vencimento','Rotina','Responsável','Valor','Nota emitida'].join(';')]
-   .concat(mods.map(mo=>[fmtBR(iso(mensalEff(y,m,mo))),mo.descricao,mo.responsavelId?respName(mo.responsavelId):'',
+  const linhas=[['Vencimento','Rotina','Classificação','Responsável','Valor','Concluída'].join(';')]
+   .concat(mods.map(mo=>[fmtBR(iso(mensalEff(y,m,mo))),mo.descricao,mo.categoria?rotCat(mo.categoria).nome:'sem classificação',
+     mo.responsavelId?respName(mo.responsavelId):'',
      pdH1(mensalValor(mo,pk)),(ex[mo.id]&&ex[mo.id].feito)?'sim':'não']
      .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')));
   const t=mensalTotais(pk);
-  linhas.push(['"TOTAL"','""','""','"'+pdH1(t.previsto)+'"','"'+t.nEmitidas+' de '+t.itens+'"'].join(';'));
+  ROT_CATS.filter(c=>t.porCat[c.id].n).forEach(c=>linhas.push(
+    ['"TOTAL '+c.nome.toUpperCase()+'"','""','""','""','"'+pdH1(t.porCat[c.id].feito)+'"','"'+t.porCat[c.id].nFeito+' de '+t.porCat[c.id].n+'"'].join(';')));
+  linhas.push(['"SALDO (entradas - saidas)"','""','""','""','"'+pdH1(t.entrou-t.saiu)+'"','""'].join(';'));
   const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const el=document.createElement('a');el.href=URL.createObjectURL(b);
   el.download='Honorarios_'+pk+'.csv';el.click();
@@ -1893,20 +1940,21 @@ function openModelo(tipo,id,presetDia){
   gEl('modeloTitle').textContent=(m?'Editar':'Nova')+' — '+({mensais:'rotina mensal',semanais:'rotina semanal',diarias:'rotina diária'}[tipo]);
   gEl('m_desc').value=m?m.descricao:'';gEl('m_obs').value=m?(m.obs||''):'';
   gEl('m_dia').value=m&&m.dia?m.dia:1;gEl('m_valor').value=m&&m.valor?m.valor:'';
+  gEl('m_cat').innerHTML=ROT_CAT_OPCOES();gEl('m_cat').value=(m&&m.categoria)||'';
   gEl('m_sem').value=m&&m.diaSemana!=null?m.diaSemana:(presetDia||'5');
   pickAj(m?(m.ajuste||'posterga'):'posterga');
   gEl('m_resp').innerHTML='<option value="">— sem responsável —</option>'+alive(DB.responsaveis).map(r=>`<option value="${r.id}">${esc(r.nome)}</option>`).join('');
   gEl('m_resp').value=m?(m.responsavelId||''):'';
   gEl('m_diaWrap').style.display=tipo==='mensais'?'':'none';
   gEl('m_ajWrap').style.display=tipo==='mensais'?'':'none';
-  gEl('m_valWrap').style.display=tipo==='mensais'?'':'none';
+  gEl('m_valWrap').style.display=tipo==='mensais'?'':'none';gEl('m_catWrap').style.display=tipo==='mensais'?'':'none';
   gEl('m_semWrap').style.display=tipo==='semanais'?'':'none';
   showModal('ovModelo');setTimeout(()=>gEl('m_desc').focus(),60)}
 function saveModelo(){
   const tipo=gEl('m_tipo').value,id=gEl('m_id').value;
   const desc=gEl('m_desc').value.trim();if(!desc)return toast('Informe a descrição');
   const b={descricao:desc,obs:gEl('m_obs').value.trim(),responsavelId:gEl('m_resp').value||null,empresa:'Lidere'};
-  if(tipo==='mensais'){b.dia=Math.min(31,Math.max(1,parseInt(gEl('m_dia').value)||1));b.ajuste=curAj;b.valor=parseFloat(gEl('m_valor').value)||0}
+  if(tipo==='mensais'){b.dia=Math.min(31,Math.max(1,parseInt(gEl('m_dia').value)||1));b.ajuste=curAj;b.valor=parseFloat(gEl('m_valor').value)||0;b.categoria=gEl('m_cat').value||''}
   if(tipo==='semanais')b.diaSemana=parseInt(gEl('m_sem').value);
   let obj;
   if(id){obj=Object.assign(DB[tipo].modelos.find(m=>m.id===id),b)}
