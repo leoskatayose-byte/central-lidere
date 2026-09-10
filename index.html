@@ -2499,8 +2499,12 @@ const CAD_FASES=[
   ['proposta','Proposta enviada','roda o follow-up de proposta'],
   ['fechado','Fechado','ganho ou perdido — fora das réguas']];
 const FASE_LABEL={};CAD_FASES.forEach(f=>FASE_LABEL[f[0]]=f[1]);
-function crmFase(l){const e=crmEstById(l&&l.estagioId);if(!e)return'prospeccao';
+/* etapa que não existe mais (foi apagada do funil enquanto o cliente estava nela) */
+const crmSemEtapa=l=>!!(l&&l.estagioId)&&!crmEstById(l.estagioId);
+function crmFase(l){const e=crmEstById(l&&l.estagioId);
+  if(!e)return crmSemEtapa(l)?'semetapa':'prospeccao';
   if(e.tipo==='ganho'||e.tipo==='perdido')return'fechado';return e.fase||'prospeccao'}
+const crmSemEtapaLista=()=>crmLeadsAtivos().filter(crmSemEtapa);
 
 /* ===== Régua 1 · Cadência de prospecção (Playbook Comercial Lidere v1, seção 4) ===== */
 const CAD_TOQUES=[
@@ -2549,7 +2553,13 @@ const REGUAS={
 const REG=r=>REGUAS[r]||REGUAS.prospeccao;
 const CAD_REGUAS=['prospeccao','proposta'];
 const cadSuspensa=(l,r)=>((l&&l.cadenciaOff)||[]).indexOf(r)>=0;
+/* a proposta só entra em follow-up depois de ter saído de verdade */
+function propFoiEnviada(l){if(!l)return false;
+  if(l.propostaData)return true;
+  return comPropsDoLead(l).some(p=>['enviada','aceita','recusada'].indexOf(p.status)>=0)}
+const propAguardandoEnvio=()=>crmLeadsAtivos().filter(l=>crmFase(l)==='proposta'&&!l.semProposta&&!propFoiEnviada(l));
 function cadReguaAtiva(l){const f=crmFase(l);const r=f==='prospeccao'?'prospeccao':f==='proposta'?'proposta':null;
+  if(r==='proposta'&&!propFoiEnviada(l))return null;
   return (r&&cadSuspensa(l,r))?null:r}
 function cadSuspender(id,r,valor){const l=crmLeadById(id);if(!l)return;
   const off=(l.cadenciaOff||[]).filter(x=>x!==r);
@@ -2737,7 +2747,13 @@ function viewCrmKanban(){
     return `<div class="kb-col" data-est="${e.id}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="crmDropCol(event,'${e.id}')">
       <div class="kb-h"><span class="dot" style="background:${e.cor}"></span>${esc(e.nome)}<span class="cnt">${leads.length}</span></div>${cards}
       ${leads.length?`<div style="font-size:10.5px;color:var(--mut);font-weight:700;padding:4px 2px">${brl(val)}</div>`:''}</div>`}).join('');
-  return `<div class="panel"><div class="panel-head"><h2>Kanban do funil<small>arraste os cards entre as etapas</small></h2><button class="btn btn-sm" onclick="setCrmTab('config')">Editar etapas</button></div>
+  const orfaos=crmSemEtapaLista();
+  const aviso=orfaos.length?`<div class="panel" style="border-color:var(--neg)"><div class="panel-head"><h2>${orfaos.length} cliente(s) sem etapa<small>a etapa em que estavam foi apagada do funil</small></h2></div>
+    ${orfaos.map(l=>`<div class="row"><div class="row-body"><div class="row-title">${esc(l.empresa)}</div>
+      <div class="row-meta"><span class="muted">${brl(l.ticket)}${l.contato?' · '+esc(l.contato):''}</span></div></div>
+      <div class="row-actions"><select onchange="comMoverPara('${l.id}',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 9px;border-radius:8px;font-size:12px">
+        <option value="">Colocar em uma etapa...</option>${est.map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></div></div>`).join('')}</div>`:'';
+  return aviso+`<div class="panel"><div class="panel-head"><h2>Kanban do funil<small>arraste os cards entre as etapas</small></h2><button class="btn btn-sm" onclick="setCrmTab('config')">Editar etapas</button></div>
     <div class="kb" style="grid-template-columns:repeat(${est.length},minmax(200px,1fr));overflow-x:auto">${cols}</div></div>`}
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
@@ -2759,12 +2775,14 @@ function viewCrmCadencia(){
   const ag=cadAgenda(),hoje=todayKey(),lim=addDias(hoje,7);
   const atr=ag.filter(x=>x.atrasado),hj=ag.filter(x=>x.hoje),prox=ag.filter(x=>!x.atrasado&&!x.hoje&&x.prev<=lim);
   const sem=cadSemRegua(),comp=cadCompliance();
+  const aguardando=propAguardandoEnvio(),orfaos=crmSemEtapaLista();
   const stats=`<div class="stats">
     <div class="stat"><div class="k">Atrasados</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">toques que venceram</div></div>
     <div class="stat"><div class="k">Para hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">na régua de hoje</div></div>
     <div class="stat"><div class="k">Próximos 7 dias</div><div class="v" style="color:var(--meta)">${prox.length}</div><div class="sub">já agendados</div></div>
     <div class="stat"><div class="k">Compliance</div><div class="v" style="color:${comp>=95?'var(--pos)':comp>=70?'var(--meta)':'var(--neg)'}">${comp}%</div><div class="sub">meta do playbook: ≥ 95%</div></div>
     <div class="stat"><div class="k">Fora da régua</div><div class="v" style="color:${sem.length?'var(--warn)':'var(--txt)'}">${sem.length}</div><div class="sub">leads sem toque programado</div></div>
+    <div class="stat"><div class="k">Proposta a enviar</div><div class="v" style="color:${aguardando.length?'var(--meta)':'var(--txt)'}">${aguardando.length}</div><div class="sub">em negociação sem proposta enviada</div></div>
   </div>`;
   const linha=x=>{const l=x.l,t=x.t,r=x.r,msg=crmMsgRender(r,t.n,l),resp=crmRespById(l.responsavelId),R=REG(r);
     return `<div class="row" style="cursor:pointer" onclick="openCad('${l.id}','${r}')">
@@ -2788,6 +2806,19 @@ function viewCrmCadencia(){
         <button class="btn btn-sm btn-gold" onclick="event.stopPropagation();pdSet('${l.id}','feita')">✓ Liguei</button>
         <button class="btn btn-sm" onclick="event.stopPropagation();pdSet('${l.id}','sem')">Não houve ligação</button></div></div>`}).join('')
     ||'<div class="empty" style="padding:14px">Nenhuma ligação de pré-diagnóstico pendente.</div>';
+  const aguardRows=aguardando.map(l=>{const p=comPropAtiva(l),e=crmEstById(l.estagioId);
+    return `<div class="row" style="cursor:pointer" onclick="comAbrir('${l.id}','proposta')">
+      <div class="row-body"><div class="row-title">${esc(l.empresa)}${l.contato?`<span class="muted"> · ${esc(l.contato)}</span>`:''}</div>
+        <div class="row-meta">${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:''}
+          <span class="chip chip-n" style="color:var(--meta)">${p?'proposta '+esc(p.numero)+' em rascunho':'proposta ainda não gerada'}</span>
+          <span class="muted">enquanto não sair, não há mensagem de follow-up</span></div></div>
+      <div class="row-actions"><button class="btn btn-sm btn-gold" onclick="event.stopPropagation();comAbrir('${l.id}','proposta')">${p?'Abrir a proposta':'Gerar proposta'}</button></div></div>`}).join('')
+    ||'<div class="empty" style="padding:14px">Nenhum cliente esperando proposta.</div>';
+  const orfaoRows=orfaos.map(l=>`<div class="row">
+      <div class="row-body"><div class="row-title">${esc(l.empresa)}</div>
+        <div class="row-meta"><span class="chip chip-vencido">sem etapa</span><span class="muted">a etapa em que ele estava foi apagada do funil</span></div></div>
+      <div class="row-actions"><select onchange="comMoverPara('${l.id}',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 9px;border-radius:8px;font-size:12px">
+        <option value="">Colocar em uma etapa...</option>${crmEstagios().map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></div></div>`).join('');
   const semRows=sem.slice(0,12).map(l=>{const r=cadReguaAtiva(l);
     return `<div class="row" style="cursor:pointer" onclick="openCad('${l.id}','${r}')">
       <div class="row-body"><div class="row-title">${esc(l.empresa)}</div>
@@ -2807,7 +2838,12 @@ function viewCrmCadencia(){
     bloco('Para hoje','a régua de hoje',hj)+
     bloco('Próximos 7 dias','o que vem pela frente',prox)+
     `<div class="panel"><div class="panel-head"><h2>Ligação de pré-diagnóstico<small>reunião marcada e a ligação ainda não foi feita</small></h2></div>${pdRows}</div>
-     <div class="panel"><div class="panel-head"><h2>Fora da régua<small>leads ativos sem toque programado${sem.length>12?` · mostrando 12 de ${sem.length}`:''}</small></h2></div>${semRows}</div>`+trilho}
+     <div class="panel"><div class="panel-head"><h2>Proposta a enviar<small>estão na etapa de negociação, mas a proposta não saiu — o follow-up só começa depois</small></h2></div>${aguardRows}</div>
+     <div class="panel"><div class="panel-head"><h2>Fora da régua<small>leads ativos sem toque programado${sem.length>12?` · mostrando 12 de ${sem.length}`:''}</small></h2></div>${semRows}</div>`
+    +(orfaos.length?`<div class="panel" style="border-color:var(--neg)"><div class="panel-head"><h2>Clientes sem etapa<small>a etapa deles foi apagada do funil — escolha onde eles ficam</small></h2></div>${orfaoRows}</div>`:'')
+    +trilho}
+function comMoverPara(id,estId){if(!estId)return;const l=crmLeadById(id),e=crmEstById(estId);if(!l||!e)return;
+ l.estagioId=estId;persistCrmLead(l);comLog(l,'Mudança de etapa','sem etapa → '+e.nome);render();toast(l.empresa+' → '+e.nome)}
 function viewCrmHistorico(){
   const ats=alive(DB.crmAtividades).slice().sort((a,b)=>(b.data||'').localeCompare(a.data||''));
   const rows=ats.map(at=>{const l=crmLeadById(at.leadId);
@@ -4052,6 +4088,11 @@ function comAcoesHoje(){const hoje=todayKey(),out=[];
    titulo:'Toque '+x.t.n+' da '+REG(x.r).curto,detalhe:x.t.obj,
    rotulo:x.atrasado?'atrasado':'hoje',
    acao:`openCad('${x.l.id}','${x.r}')`,acaoLbl:'Abrir cadência'})});
+ propAguardandoEnvio().forEach(l=>{const p=comPropAtiva(l);
+  out.push({urg:1,quando:l.proximoContato||hoje,cliente:l,
+   titulo:p?'Proposta '+p.numero+' ainda em rascunho':'Proposta ainda não gerada',
+   detalhe:'está na etapa de negociação, mas a proposta não saiu',rotulo:'a enviar',
+   acao:`comAbrir('${l.id}','proposta')`,acaoLbl:p?'Abrir a proposta':'Gerar proposta'})});
  pdPendentes().forEach(l=>{out.push({urg:1,quando:l.proximoContato||hoje,cliente:l,
    titulo:'Ligação de pré-diagnóstico',detalhe:'reunião marcada e a ligação de qualificação ainda não foi feita',
    rotulo:'pendente',acao:`comAbrir('${l.id}','prediag')`,acaoLbl:'Fazer a ligação'})});
@@ -4152,7 +4193,7 @@ function viewComCliLista(){
   const late=l.proximoContato&&l.proximoContato<todayKey();
   return `<tr onclick="comAbrir('${l.id}')" style="cursor:pointer">
    <td><b>${esc(l.empresa)}</b><div class="muted">${esc(l.contato||'')}${l.cargo?' · '+esc(l.cargo):''}</div></td>
-   <td>${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:'—'}</td>
+   <td>${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:crmSemEtapa(l)?'<span class="chip chip-vencido">sem etapa</span>':'—'}</td>
    <td>${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:'—'}</td>
    <td class="num" style="color:var(--acc)">${brl(l.ticket)}</td>
    <td>${comChipPd(l)}</td><td>${comChipProp(l)}</td>
