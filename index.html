@@ -392,6 +392,9 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .pcard .pt{font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcard .pm{font-size:10.5px;color:var(--mut);margin-top:3px}
 .pgridc{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
+.rot-val{width:104px;background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);
+  padding:6px 9px;border-radius:8px;font-size:12.5px;text-align:right}
+.rot-val:focus{outline:none;border-color:var(--acc)}
 .prop-it{display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer}
 .prop-it:last-child{border-bottom:0}
 .prop-it:hover{background:var(--panel2)}
@@ -1063,7 +1066,7 @@ function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'sema
   if(tipo==='semanais')row.dia_semana=m.diaSemana;
   if(tipo==='diarias')row.ordem=m.ordem||0;
   up(t,row)}
-async function persistExec(tipo,mid,periodo,feito){const {error}=await sb.from('execucoes').upsert({tipo,modelo_id:mid,periodo,feito,feito_em:feito?new Date().toISOString():null},{onConflict:'tipo,modelo_id,periodo'});pErr(error,'exec')}
+async function persistExec(tipo,mid,periodo,feito,valor){const {error}=await sb.from('execucoes').upsert({tipo,modelo_id:mid,periodo,feito,feito_em:feito?new Date().toISOString():null,valor:(valor===undefined||valor===null||valor==='')?null:+valor},{onConflict:'tipo,modelo_id,periodo'});pErr(error,'exec')}
 /* ===== Contas a Pagar: persistência (mesmo padrão blob do app separado — tabela cp_state) ===== */
 let _cpSaveTimer=null;
 function saveCP(){clearTimeout(_cpSaveTimer);_cpSaveTimer=setTimeout(cpSaveNow,600)}
@@ -1075,7 +1078,7 @@ async function loadAll(){
   const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas')]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
-  (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em)}});
+  (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
   const cp=(CP&&CP.data&&CP.data.data)||{};
   const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
   const byCli={};onbClientes.forEach(c=>byCli[c.id]=c);
@@ -1723,7 +1726,9 @@ function calDayHTML(dk){
 function novaNoDia(dk){openTask(null,'afazer',dk)}
 function quickDoneAvulsa(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.status=a.status==='feito'?'afazer':'feito';a.concluidoEm=a.status==='feito'?Date.now():null;persistAvulsa(a);render()}
 function toggleExecDate(tipo,mid,dk){const dt=parseK(dk);const pk=tipo==='mensais'?monthKey(dt):tipo==='semanais'?weekKey(dt):dk;
-  const s=DB[tipo].exec;s[pk]=s[pk]||{};const cur=s[pk][mid]&&s[pk][mid].feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null};persistExec(tipo,mid,pk,!cur);render()}
+  const s=DB[tipo].exec;s[pk]=s[pk]||{};
+  const ant=s[pk][mid]||{};const cur=ant.feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null,valor:ant.valor==null?null:ant.valor};
+  persistExec(tipo,mid,pk,!cur,s[pk][mid].valor);render()}
 
 /* ===== Rotinas (mensais / semanais / diárias) ===== */
 let rotinaTab='mensais', mensalRef=new Date(), semRef=new Date(), diariaDate=null, curAj='posterga';
@@ -1733,27 +1738,115 @@ function stepWeek(n){semRef=new Date(semRef.getFullYear(),semRef.getMonth(),semR
 function stepDay(n){const d=parseK(diariaDate||todayKey());d.setDate(d.getDate()+n);diariaDate=iso(d);render()}
 function setRotinaTab(t){rotinaTab=t;render()}
 function periodKey(tipo){return tipo==='mensais'?monthKey(mensalRef):tipo==='semanais'?weekKey(semRef):(diariaDate||todayKey())}
-function toggleExec(tipo,mid){const pk=periodKey(tipo);const s=DB[tipo].exec;s[pk]=s[pk]||{};const cur=s[pk][mid]&&s[pk][mid].feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null};persistExec(tipo,mid,pk,!cur);render()}
+function toggleExec(tipo,mid){const pk=periodKey(tipo);const s=DB[tipo].exec;s[pk]=s[pk]||{};
+  const ant=s[pk][mid]||{};const cur=ant.feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null,valor:ant.valor==null?null:ant.valor};
+  persistExec(tipo,mid,pk,!cur,s[pk][mid].valor);render()}
 function viewRotinas(){
   const tabs=[['mensais','Mensais'],['semanais','Semanais'],['diarias','Diárias']];
   const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${rotinaTab===id?'active':''}" onclick="setRotinaTab('${id}')">${lbl}<span class="cnt">${alive(DB[id].modelos).length}</span></button>`).join('')}</div>`;
   const body=({mensais:viewMensais,semanais:viewSemanais,diarias:viewDiarias}[rotinaTab])();
   return tabsHTML+body}
+/* o valor de uma rotina mensal pode mudar de um mês para o outro:
+   o modelo guarda o padrão, a execução do mês guarda a exceção */
+function mensalValor(mo,pk){const e=(DB.mensais.exec[pk]||{})[mo.id];
+  return (e&&e.valor!=null)?+e.valor:(+mo.valor||0)}
+function mensalValorProprio(mo,pk){const e=(DB.mensais.exec[pk]||{})[mo.id];return !!(e&&e.valor!=null)}
+function setExecValor(mid,v){const pk=monthKey(mensalRef);const s=DB.mensais.exec;s[pk]=s[pk]||{};
+  const ant=s[pk][mid]||{feito:false,em:null};
+  ant.valor=(v===''||v==null)?null:(+String(v).replace(',','.')||0);
+  s[pk][mid]=ant;persistExec('mensais',mid,pk,!!ant.feito,ant.valor);render()}
+function mensalTotais(pk){
+  const ex=DB.mensais.exec[pk]||{};
+  const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0);
+  const emitidas=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito);
+  const soma=a=>a.reduce((t,mo)=>t+mensalValor(mo,pk),0);
+  return {itens:mods.length,previsto:soma(mods),emitido:soma(emitidas),
+    nEmitidas:emitidas.length,aEmitir:soma(mods)-soma(emitidas),nPendentes:mods.length-emitidas.length}}
+
 function viewMensais(){
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();const pk=monthKey(mensalRef);const ex=DB.mensais.exec[pk]||{};
   const mods=alive(DB.mensais.modelos).sort((a,b)=>a.dia-b.dia);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
   const rows=mods.map(mo=>{const on=ex[mo.id]&&ex[mo.id].feito;const eff=mensalEff(y,m,mo);
+    const v=mensalValor(mo,pk),proprio=mensalValorProprio(mo,pk);
     return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('mensais','${mo.id}')">✓</button>
       <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
       <div class="row-meta"><span class="chip chip-n">dia ${mo.dia} · ${ajLabel(mo.ajuste)} → ${fmtBR(iso(eff))}</span>
       ${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}
-      ${mo.valor?`<span class="chip chip-n">${brl(mo.valor)}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
-      <div class="row-actions"><button class="iconbtn" onclick="openModelo('mensais','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button></div></div>`}).join('')
+      ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+      <div class="row-actions" style="align-items:center">
+       <input type="number" step="0.01" class="rot-val" value="${v?v:''}" placeholder="${mo.valor?pdH1(mo.valor):'valor'}"
+         title="Valor deste mês. Em branco usa o padrão da rotina."
+         onchange="setExecValor('${mo.id}',this.value)" oninput="mensalTotaisLive()">
+       ${proprio?`<button class="iconbtn" title="Voltar ao valor padrão" onclick="setExecValor('${mo.id}','')">↺</button>`:''}
+       <button class="iconbtn" onclick="openModelo('mensais','${mo.id}')">✎</button>
+       <button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button></div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina mensal. Clique em "+ Nova".</div>';
-  return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${mensalRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}<small>${done}/${total} concluídas</small></h2>
+  const t=mensalTotais(pk);
+  const resumo=t.itens?`<div class="panel"><div class="panel-head"><h2>Honorários e notas do mês<small>somando as rotinas mensais que têm valor</small></h2>
+    <button class="btn btn-sm" onclick="mensalBaixar()">↓ Baixar em CSV</button></div>
+   <div class="stats">
+    <div class="stat"><div class="k">Previsto</div><div class="v" style="color:var(--acc)" id="rotPrev">${brl(t.previsto)}</div><div class="sub" id="rotPrevN">${t.itens} rotina(s) com valor</div></div>
+    <div class="stat"><div class="k">Emitido</div><div class="v" style="color:var(--pos)" id="rotEmit">${brl(t.emitido)}</div><div class="sub" id="rotEmitN">${t.nEmitidas} nota(s) já emitida(s)</div></div>
+    <div class="stat"><div class="k">A emitir</div><div class="v" style="color:${t.aEmitir?'var(--warn)':'var(--pos)'}" id="rotFalta">${brl(t.aEmitir)}</div><div class="sub" id="rotFaltaN">${t.nPendentes} pendente(s)</div></div>
+   </div>${mensalHistorico()}</div>`:'';
+  return `<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas</small></h2>
     <button class="btn btn-sm" onclick="stepMonth(-1)">‹</button><button class="btn btn-sm" onclick="mensalRef=new Date();render()">Este mês</button><button class="btn btn-sm" onclick="stepMonth(1)">›</button>
-    <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`}
+    <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`+resumo}
+
+/* recalcula os totais enquanto você digita, sem redesenhar a lista */
+function mensalTotaisLive(){
+  const pk=monthKey(mensalRef),ex=DB.mensais.exec[pk]||{};
+  const mods=alive(DB.mensais.modelos).sort((a,b)=>a.dia-b.dia);
+  const campos=document.querySelectorAll('.rot-val');
+  let previsto=0,emitido=0,n=0,nE=0;
+  mods.forEach((mo,i)=>{const el=campos[i];if(!el)return;
+    const bruto=String(el.value||'').replace(',','.');
+    const v=bruto===''?(+mo.valor||0):(+bruto||0);
+    if(v<=0)return;
+    n++;previsto+=v;
+    if(ex[mo.id]&&ex[mo.id].feito){emitido+=v;nE++}});
+  const set=(id,t)=>{const e=gEl(id);if(e)e.textContent=t};
+  set('rotPrev',brl(previsto));set('rotPrevN',n+' rotina(s) com valor');
+  set('rotEmit',brl(emitido));set('rotEmitN',nE+' nota(s) já emitida(s)');
+  set('rotFalta',brl(previsto-emitido));set('rotFaltaN',(n-nE)+' pendente(s)')}
+
+/* os últimos 6 meses, para comparar */
+function mensalHistorico(){
+  const meses=[];
+  for(let i=5;i>=0;i--){const d=new Date(mensalRef.getFullYear(),mensalRef.getMonth()-i,1);
+    const pk=monthKey(d),t=mensalTotais(pk);
+    meses.push({pk,d,t,atual:pk===monthKey(mensalRef),nome:mesCurto(d)})}
+  const max=Math.max(1,...meses.map(x=>x.atual?x.t.previsto:x.t.emitido));
+  if(!meses.some(x=>x.t.emitido>0))return '';
+  return `<div style="margin-top:6px">
+   <div style="font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:800;margin-bottom:10px">Emitido nos últimos 6 meses</div>
+   ${meses.map(x=>`<div class="hbar"><div class="hl"><span class="nm">${esc(x.nome)}</span>
+     <span class="muted">${brl(x.t.emitido)}${x.atual&&x.t.aEmitir?' · falta '+brl(x.t.aEmitir):''}</span></div>
+     <div class="ht"><i style="width:${Math.round(x.t.emitido/max*100)}%;background:var(--pos)"></i>
+      ${x.atual&&x.t.aEmitir?`<i style="width:${Math.round(x.t.aEmitir/max*100)}%;background:var(--warn);opacity:.5"></i>`:''}</div></div>`).join('')}
+   <div class="muted" style="font-size:10.5px;margin-top:8px">Só conta o que foi marcado como feito. Meses anteriores à criação da rotina aparecem zerados.</div></div>`}
+/* rótulos de mês em português, sem o "De" que o capitalize do CSS criava */
+function mesExtenso(d){const t=d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  return t.charAt(0).toUpperCase()+t.slice(1)}
+function mesCurto(d){const t=d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','');
+  return t.charAt(0).toUpperCase()+t.slice(1)+'/'+String(d.getFullYear()).slice(2)}
+
+function mensalBaixar(){
+  const pk=monthKey(mensalRef),ex=DB.mensais.exec[pk]||{};
+  const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0).sort((a,b)=>a.dia-b.dia);
+  if(!mods.length)return toast('Nenhuma rotina com valor neste mês');
+  const y=mensalRef.getFullYear(),m=mensalRef.getMonth();
+  const linhas=[['Vencimento','Rotina','Responsável','Valor','Nota emitida'].join(';')]
+   .concat(mods.map(mo=>[fmtBR(iso(mensalEff(y,m,mo))),mo.descricao,mo.responsavelId?respName(mo.responsavelId):'',
+     pdH1(mensalValor(mo,pk)),(ex[mo.id]&&ex[mo.id].feito)?'sim':'não']
+     .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')));
+  const t=mensalTotais(pk);
+  linhas.push(['"TOTAL"','""','""','"'+pdH1(t.previsto)+'"','"'+t.nEmitidas+' de '+t.itens+'"'].join(';'));
+  const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(b);
+  el.download='Honorarios_'+pk+'.csv';el.click();
+  setTimeout(()=>URL.revokeObjectURL(el.href),3000);toast(mods.length+' linha(s) exportada(s)')}
 function viewSemanais(){
   const wk=weekKey(semRef);const ex=DB.semanais.exec[wk]||{};
   const WDAYS=[['1','Segunda'],['2','Terça'],['3','Quarta'],['4','Quinta'],['5','Sexta'],['6','Sábado'],['0','Domingo']];
