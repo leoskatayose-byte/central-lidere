@@ -1055,7 +1055,7 @@ function pErr(error,ctx){if(error){console.error(ctx||'',error);toast('⚠ Erro 
 async function up(table,row){const {error}=await sb.from(table).upsert(row);pErr(error,table)}
 
 /* ===== Pendências: persistência (mesma tabela/colunas do Gestor separado) ===== */
-function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
+function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId||null,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
@@ -1084,7 +1084,7 @@ async function loadAll(){
   onbClientes.sort((a,b)=>a.nome.localeCompare(b.nome));
   DB={
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
-    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
+    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
     diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
@@ -1098,7 +1098,7 @@ async function loadAll(){
     onbClientes,
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],deletedAt:fromISO(l.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
     crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
@@ -2223,7 +2223,7 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,cadencia_off:l.cadenciaOff||[],responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,cadencia_off:l.cadenciaOff||[],sem_proposta:!!l.semProposta,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
 function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
 function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
@@ -2520,11 +2520,15 @@ function viewCrmKanban(){
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
 function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove('over');if(!_crmDrag)return;const l=crmLeadById(_crmDrag);
-  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraGanho=(crmEstById(l.estagioId)||{}).tipo==='ganho';l.estagioId=estId;
-    const ligou=crmAutoProposta(l);persistCrmLead(l);render();
-    if(alvo&&alvo.tipo==='ganho'&&!eraGanho)toast('🎉 Lead fechado: '+alvo.nome);
-    else if(ligou)toast('→ '+alvo.nome+' · follow-up de proposta começou hoje');
-    else toast('→ '+(alvo?alvo.nome:''))}
+  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraFechado=crmFase(l)==='fechado';l.estagioId=estId;
+    const ligou=crmAutoProposta(l);persistCrmLead(l);
+    if(alvo&&(alvo.tipo==='ganho'||alvo.tipo==='perdido')&&!eraFechado){
+      const perdeu=alvo.tipo==='perdido';
+      const motivo=perdeu?(prompt('Por que perdeu este cliente? (uma linha, ou deixe em branco)')||'').trim():'';
+      if(perdeu)comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}});
+      const feito=comLimpar(l,motivo,true);
+      render();toast((perdeu?'Perdido: ':'🎉 Fechado: ')+alvo.nome+(feito.length?' · limpei '+feito.join(', '):''))}
+    else{render();toast(ligou?'→ '+alvo.nome+' · follow-up de proposta começou hoje':'→ '+(alvo?alvo.nome:''))}}
   _crmDrag=null}
 function pdPendentes(){return crmLeadsAtivos()
   .filter(l=>crmFase(l)==='reuniao'&&(l.prediagStatus||'pendente')==='pendente')
@@ -3779,10 +3783,11 @@ function comAutoDiagnostico(c){const l=comLeadDe(c);if(!l)return;
 function propSetStatus(v){const p=propAtual();if(!p)return;
  const l=comLeadDe(p);p.status=v;
  if(v==='aceita'&&l){if(+p.mensalidade)l.ticket=+p.mensalidade;persistCrmLead(l);
-   comMoverTipo(l,'ganho','proposta '+p.numero+' aceita');toast('Proposta aceita · cliente movido para '+(comEtapaTipo('ganho')||{nome:'ganho'}).nome)}
+   comMoverTipo(l,'ganho','proposta '+p.numero+' aceita');
+   const f=comLimpar(l,'',true);toast('Proposta aceita · cliente fechado'+(f.length?' · limpei '+f.join(', '):''))}
  else if(v==='recusada'&&l){const m=(prompt('Por que o cliente recusou? (uma linha)')||'').trim();
-   l.motivoPerda=m;persistCrmLead(l);
-   comMoverTipo(l,'perdido','proposta '+p.numero+' recusada'+(m?' · '+m:''));toast('Registrado como perdido')}
+   comMoverTipo(l,'perdido','proposta '+p.numero+' recusada'+(m?' · '+m:''));
+   const f=comLimpar(l,m,true);toast('Registrado como perdido'+(f.length?' · limpei '+f.join(', '):''))}
  else if(v==='enviada'&&l){comMoverFase(l,'proposta','proposta '+p.numero+' enviada')}
  persistProposta(p);render()}
 
@@ -3970,9 +3975,11 @@ function viewComFicha(){const l=crmLeadById(comFichaId);
  if(!l)return `<div class="panel"><div class="empty">Cliente não encontrado.<br><br><button class="btn btn-sm" onclick="go('comCli')">Voltar para a lista</button></div></div>`;
  const c=comPdDoLead(l),p=comPropAtiva(l);
  const P=comPassos(l,c,p);
- const abas=[['dados','1 · Cadastro'],['contato','2 · Contato'],['prediag','3 · Pré-diagnóstico'],['proposta','4 · Proposta'],
+ const abas=[['dados','1 · Cadastro'],['contato','2 · Contato'],['prediag','3 · Pré-diagnóstico'],
+   ['proposta','4 · Proposta'],['fechamento','5 · Fechamento'],
    ['historico','Histórico',alive(DB.crmAtividades).filter(a=>a.leadId===l.id).length]];
- const body=({dados:comFichaDados,contato:comFichaContato,prediag:comFichaPd,proposta:comFichaProp,historico:comFichaHist}[comFichaTab]||comFichaDados)(l,c,p);
+ const body=({dados:comFichaDados,contato:comFichaContato,prediag:comFichaPd,proposta:comFichaProp,
+   fechamento:comFichaFech,historico:comFichaHist}[comFichaTab]||comFichaDados)(l,c,p);
  return comTrilho(P)+comTabs(abas,comFichaTab,'setComFichaTab')+body}
 
 function comFichaDados(l){
@@ -3996,7 +4003,8 @@ function comFichaDados(l){
     ${linha('Próximo contato',l.proximoContato?(l.proximoContato<todayKey()?`<span class="chip chip-vencido">${fmtBR(l.proximoContato)}</span>`:fmtBR(l.proximoContato)):'—')}
     ${linha('Último contato',fmtBR(l.ultimoContato)||'—')}${linha('Status do contrato',esc(l.statusContrato||'Aguardando'))}
     ${linha('Cadência',comLinhaCadencia(l,rAtiva,res))}
-    ${linha('Pré-diagnóstico',comLinhaPrediag(l))}</table>
+    ${linha('Pré-diagnóstico',comLinhaPrediag(l))}
+    ${linha('Proposta',comLinhaProposta(l))}</table>
    <div class="cad-acts" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
     ${rAtiva?`<button class="btn btn-sm" onclick="openCad('${l.id}')">Abrir cadência</button>`:''}
     <button class="btn btn-sm" onclick="openAtiv()">Registrar atividade</button>
@@ -4017,8 +4025,16 @@ function comLinhaPrediag(l){
    <div style="margin-top:6px"><button class="btn btn-sm" onclick="pdExigir('${l.id}')">Voltar a exigir</button></div>`;
  const est=c?(pdDiag(c).completo?'diagnóstico completo':pdDiag(c).respondidas+'/'+pdDiag(c).total+' respondidas'):'ainda não iniciado';
  return `${est}<div style="margin-top:6px"><button class="btn btn-sm btn-ghost" onclick="pdDispensar('${l.id}')">Não se aplica</button></div>`}
+function comLinhaProposta(l){
+ const p=comPropAtiva(l);
+ if(l.semProposta)return `<span style="color:var(--mut)">não se aplica</span>
+   <div style="margin-top:6px"><button class="btn btn-sm" onclick="propExigir('${l.id}')">Voltar a exigir</button></div>`;
+ const est=p?esc(p.numero)+' · '+esc(propStatusLabel(p.status)):'ainda não gerada';
+ return `${est}<div style="margin-top:6px">${p?'':`<button class="btn btn-sm btn-ghost" onclick="propDispensar('${l.id}')">Não se aplica</button>`}</div>`}
 function comMoverManual(estId){const l=crmLeadById(comFichaId);if(!l)return;
  const est=crmEstById(estId);if(!est)return;
+ if(est.tipo==='ganho')return comFecharGanho(l.id);
+ if(est.tipo==='perdido')return comFecharPerdido(l.id);
  if(comMover(l,est,'movido na ficha')){crmAutoProposta(l);persistCrmLead(l);render();toast('→ '+est.nome)}}
 
 function comFichaPd(l,c){
@@ -4042,9 +4058,14 @@ function comFichaPd(l,c){
 
 function comFichaProp(l,c,p){
  const ps=comPropsDoLead(l);
+ if(l.semProposta)return `<div class="panel"><div class="panel-head"><h2>Sem proposta<small>este cliente não passa por proposta formal</small></h2></div>
+   <div class="empty" style="text-align:left">Marcado como <b>não se aplica</b>: o passo fica neutro no trilho e o cliente sai das cobranças de proposta.<br>
+   Use em serviço fechado na conversa, projeto pontual ou renovação de contrato existente.<br><br>
+   <button class="btn" onclick="propExigir('${l.id}')">Voltar a exigir proposta</button></div></div>`;
  if(!ps.length)return `<div class="panel"><div class="empty">Nenhuma proposta para este cliente ainda.<br>
    ${c?'O pré-diagnóstico já está aqui: a proposta nasce com os planos, o escopo e os números dele.':'Sem pré-diagnóstico, a proposta nasce em branco e você digita o valor.'}<br><br>
-   <button class="btn btn-gold" onclick="leadGerarProposta('${l.id}')">Gerar proposta</button></div></div>`;
+   <button class="btn btn-gold" onclick="leadGerarProposta('${l.id}')">Gerar proposta</button>
+   <button class="btn" onclick="propDispensar('${l.id}')">Este cliente não vai ter proposta</button></div></div>`;
  if(!propAtual()||comLeadDe(propAtual())!==l)propSelId=ps[ps.length-1].id;
  const seletor=ps.length>1?`<select onchange="propSelId=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:9px;font-size:12.5px">
    ${ps.map(x=>`<option value="${x.id}" ${propSelId===x.id?'selected':''}>${esc(x.numero)} · ${brl(x.mensalidade)} · ${esc(propStatusLabel(x.status))}</option>`).join('')}</select>`:'';
@@ -4053,11 +4074,129 @@ function comFichaProp(l,c,p){
    <button class="btn btn-sm btn-ghost" onclick="propExcluir(propSelId)">Excluir esta proposta</button></div>`;
  const abas=[['editor','Editor'],['doc','Documento']];
  const body=(comPropTab==='doc'?viewPropDoc:viewPropEditor)();
- return comTabs(abas,comPropTab,'setComPropTab')+barra+body}
+ return propTrilhoHTML(propAtual()||ps[ps.length-1],l)+comTabs(abas,comPropTab,'setComPropTab')+barra+body}
+
+/* onde a proposta está e qual é o próximo movimento */
+function propTrilhoHTML(p,l){
+ const ordem=['rascunho','enviada','resposta'];
+ const atual=p.status==='rascunho'?0:p.status==='enviada'?1:2;
+ const rot=['Gerada','Enviada ao cliente',p.status==='aceita'?'Aceita':p.status==='recusada'?'Recusada':'Resposta do cliente'];
+ const cor=i=>i<atual?'var(--pos)':i===atual?(p.status==='recusada'?'var(--neg)':p.status==='aceita'?'var(--pos)':'var(--acc)'):'var(--line-f)';
+ const passos=ordem.map((k,i)=>`${i?`<span style="color:${cor(i)};font-weight:800;padding:0 4px">→</span>`:''}
+   <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:9px;
+     border:1px solid ${i<=atual?cor(i):'var(--line)'};background:${i===atual?'var(--panel2)':'transparent'}">
+    <span style="width:15px;height:15px;border-radius:50%;background:${i<atual?'var(--pos)':'transparent'};
+      border:1.5px solid ${cor(i)};color:var(--acc-ink);font-size:9px;font-weight:900;
+      display:inline-flex;align-items:center;justify-content:center">${i<atual?'✓':''}</span>
+    <b style="font-size:11.5px;color:${i<=atual?'var(--txt)':'var(--mut)'}">${esc(rot[i])}</b></span>`).join('');
+ const acao=p.status==='rascunho'
+   ? `<button class="btn btn-gold" onclick="propMarcarEnviada()">Marquei como enviada ao cliente</button>
+      <span class="muted" style="font-size:11.5px">Isso move o cliente para negociação e liga o follow-up.</span>`
+   : p.status==='enviada'
+   ? `<button class="btn btn-gold" onclick="propSetStatus('aceita')">Cliente aceitou</button>
+      <button class="btn btn-ghost" onclick="propSetStatus('recusada')">Cliente recusou</button>
+      <span class="muted" style="font-size:11.5px">Enviada em ${fmtBR(p.data)}${p.validadeDias?` · vale até ${fmtBR(addDias(p.data,+p.validadeDias||30))}`:''}.</span>`
+   : `<button class="btn btn-sm" onclick="propSetStatus('enviada')">Voltar para "enviada"</button>
+      <span class="muted" style="font-size:11.5px">${p.status==='aceita'?'Proposta aceita.':'Proposta recusada'+(l.motivoPerda?': '+esc(l.motivoPerda):'')+'.'}</span>`;
+ return `<div class="panel" style="padding:14px 16px;margin-bottom:12px">
+   <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:12px">${passos}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${acao}</div></div>`}
 function leadGerarProposta2(id){const l=crmLeadById(id);if(!l)return;
  const ps=comPropsDoLead(l);
  if(ps.length){propDuplicar(ps[ps.length-1].id);comPropTab='editor';return}
  leadGerarProposta(id)}
+
+/* passo 5: ganhar ou perder, e o que isso apaga da sua agenda */
+function comFichaFech(l,c,p){
+ const est=crmEstById(l.estagioId)||{},fase=crmFase(l);
+ const pend=comPendenciasDoLead(l);
+ const toques=CAD_REGUAS.reduce((s,r)=>s+REG(r).toques.filter(t=>cadEstado(l,r,t.n).st==='pendente').length,0);
+ const abertas=comPropsDoLead(l).filter(x=>x.status==='rascunho'||x.status==='enviada');
+ if(fase==='fechado'){
+  const ganho=est.tipo==='ganho';
+  return `<div class="panel" style="border-color:${ganho?'var(--pos)':'var(--neg)'}">
+   <div class="panel-head"><h2>${ganho?'Cliente fechado':'Cliente perdido'}<small>${esc(est.nome||'')}</small></h2></div>
+   <table class="tbl">
+    <tr><td class="muted" style="width:38%">Etapa</td><td>${esc(est.nome||'—')}</td></tr>
+    ${l.motivoPerda?`<tr><td class="muted">Motivo</td><td style="color:var(--neg)">${esc(l.motivoPerda)}</td></tr>`:''}
+    <tr><td class="muted">Mensalidade</td><td><b style="color:var(--acc)">${brl(l.ticket)}</b></td></tr>
+    <tr><td class="muted">Toques ainda pendentes</td><td>${toques||'nenhum'}</td></tr>
+    <tr><td class="muted">Pendências em aberto</td><td>${pend.length||'nenhuma'}</td></tr></table>
+   <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+    ${(toques||pend.length)?`<button class="btn btn-gold" onclick="comLimpar('${l.id}')">Limpar o que ficou pendente</button>`:''}
+    <button class="btn" onclick="comReabrir('${l.id}')">Reabrir este cliente</button></div>
+   ${(toques||pend.length)?'<div class="tip">Sobrou coisa na sua agenda deste cliente. Limpar encerra os toques e manda as pendências para os Excluídos.</div>':''}</div>`}
+ const resumo=[];
+ if(toques)resumo.push(toques+' toque(s) de cadência ainda pendente(s)');
+ if(pend.length)resumo.push(pend.length+' pendência(s) em aberto na sua agenda');
+ if(l.proximoContato)resumo.push('o próximo contato marcado para '+fmtBR(l.proximoContato));
+ if(abertas.length)resumo.push(abertas.length+' proposta(s) sem resposta');
+ return `<div class="panel"><div class="panel-head"><h2>Fechar este cliente<small>ganho ou perdido, e a agenda dele para de te cobrar</small></h2></div>
+  <table class="tbl">
+   <tr><td class="muted" style="width:38%">Etapa atual</td><td>${esc(est.nome||'—')}</td></tr>
+   <tr><td class="muted">Mensalidade em jogo</td><td><b style="color:var(--acc)">${brl(l.ticket)}</b></td></tr>
+   <tr><td class="muted">Proposta</td><td>${p?esc(p.numero)+' · '+esc(propStatusLabel(p.status)):l.semProposta?'não se aplica':'ainda não gerada'}</td></tr></table>
+  <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px">
+   <button class="btn btn-gold" onclick="comFecharGanho('${l.id}')">Fechei este cliente</button>
+   <button class="btn btn-ghost" onclick="comFecharPerdido('${l.id}')">Perdi este cliente</button></div>
+  ${resumo.length?`<div class="tip">Ao fechar, some da sua agenda: ${esc(resumo.join('; '))}.</div>`
+    :'<div class="tip">Não há nada pendente deste cliente na sua agenda.</div>'}</div>`}
+
+/* pendências da agenda que pertencem a este cliente */
+function comPendenciasDoLead(l){return alive(DB.avulsas).filter(a=>a.status!=='feito'&&
+ (a.leadId===l.id||a.titulo==='Reunião comercial · '+l.empresa))}
+
+/* encerra tudo o que estava pendente do cliente */
+function comLimpar(l,motivo,silencioso){
+ if(typeof l==='string')l=crmLeadById(l);
+ if(!l)return [];
+ const feito=[];
+ CAD_REGUAS.forEach(r=>{
+  const pend=REG(r).toques.filter(t=>cadEstado(l,r,t.n).st==='pendente');
+  if(!pend.length)return;
+  pend.forEach(t=>cadSet(l,r,t.n,'pulado'));
+  feito.push(pend.length+' toque(s) de '+REG(r).curto)});
+ if(l.proximoContato){l.proximoContato='';feito.push('o próximo contato')}
+ if(motivo)l.motivoPerda=motivo;
+ persistCrmLead(l);
+ const pend=comPendenciasDoLead(l);
+ pend.forEach(a=>{a.deletedAt=Date.now();persistAvulsa(a)});
+ if(pend.length)feito.push(pend.length+' pendência(s) da agenda');
+ if(feito.length)comLog(l,'Agenda limpa',feito.join('; '));
+ if(!silencioso){render();toast(feito.length?'Limpei: '+feito.join(', '):'Não havia nada pendente')}
+ return feito}
+
+function comFecharGanho(id){const l=crmLeadById(id);if(!l)return;
+ const alvo=comEtapaTipo('ganho');
+ if(!alvo)return toast('Não existe etapa de ganho no funil');
+ const p=comPropAtiva(l);
+ if(p&&p.status!=='aceita'){p.status='aceita';if(+p.mensalidade)l.ticket=+p.mensalidade;persistProposta(p)}
+ comMover(l,alvo,'fechado');
+ const feito=comLimpar(l,'',true);
+ render();toast('Cliente fechado'+(feito.length?' · limpei '+feito.join(', '):''))}
+
+function comFecharPerdido(id){const l=crmLeadById(id);if(!l)return;
+ const alvo=comEtapaTipo('perdido');
+ if(!alvo)return toast('Não existe etapa de perdido no funil');
+ const motivo=(prompt('Por que perdeu este cliente? (uma linha)')||'').trim();
+ comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}});
+ comMover(l,alvo,'perdido'+(motivo?' · '+motivo:''));
+ const feito=comLimpar(l,motivo,true);
+ render();toast('Registrado como perdido'+(feito.length?' · limpei '+feito.join(', '):''))}
+
+function comReabrir(id){const l=crmLeadById(id);if(!l)return;
+ const alvo=crmEstagios().find(e=>e.tipo==='normal');
+ if(!alvo)return toast('Não existe etapa aberta no funil');
+ l.motivoPerda='';persistCrmLead(l);
+ comMover(l,alvo,'cliente reaberto');render();toast('Reaberto em '+alvo.nome)}
+
+/* não se aplica: cliente que não passa por proposta formal */
+function propDispensar(id){const l=crmLeadById(id);if(!l)return;
+ l.semProposta=true;persistCrmLead(l);
+ comLog(l,'Proposta dispensada','cliente não passa por proposta formal');
+ render();toast('Proposta marcada como não se aplica')}
+function propExigir(id){const l=crmLeadById(id);if(!l)return;
+ l.semProposta=false;persistCrmLead(l);render();toast('Proposta voltou a ser exigida')}
 
 function comFichaHist(l){
  const ats=alive(DB.crmAtividades).filter(a=>a.leadId===l.id).sort((a,b)=>(b.data||'').localeCompare(a.data||''));
@@ -4156,14 +4295,22 @@ function comPassos(l,c,p){
  const diag=c?pdDiag(c):null;
  const reuniao=!!(c&&c.reuniao);
  const respondeu=(()=>{const res=cadResumo(l,'prospeccao');return res.feitos>0||res.pulados>0||(l.prediagStatus||'pendente')==='feita'})();
- const semCad=cadSuspensa(l,'prospeccao'), semPd=pdDispensado(l);
+ const semCad=cadSuspensa(l,'prospeccao'), semPd=pdDispensado(l), semProp=!!l.semProposta;
+ const fase=crmFase(l), est=crmEstById(l.estagioId)||{};
+ const fechado=fase==='fechado';
  return [
-  {n:1,nome:'Cadastro',aba:'dados',ok:!!l.empresa,falta:'preencha empresa e contato'},
-  {n:2,nome:'Contato',aba:'contato',ok:respondeu||semCad,na:semCad&&!respondeu,falta:'rode a cadência até falar com o cliente'},
-  {n:3,nome:'Pré-diagnóstico',aba:'prediag',ok:!!(diag&&diag.completo)||semPd,na:semPd,falta:c?`faltam ${diag.total-diag.respondidas} das 10 perguntas`:'ainda não iniciado'},
-  {n:4,nome:'Reunião',aba:'prediag',ok:reuniao,falta:'marque a call no fim do pré-diagnóstico'},
-  {n:5,nome:'Proposta',aba:'proposta',ok:!!(p&&p.status!=='rascunho'),falta:p?'ainda em rascunho':'ainda não gerada'},
-  {n:6,nome:'Fechamento',aba:'proposta',ok:!!(p&&p.status==='aceita'),falta:'aguardando resposta do cliente'}]}
+  {n:1,nome:'Cadastro',aba:'dados',ok:!!l.empresa,falta:'preencha empresa e contato',
+   feito:'dados do cliente preenchidos'},
+  {n:2,nome:'Contato',aba:'contato',ok:respondeu||semCad,na:semCad&&!respondeu,
+   falta:'rode a cadência até falar com o cliente',feito:'contato feito'},
+  {n:3,nome:'Pré-diagnóstico',aba:'prediag',ok:!!(diag&&diag.completo)||semPd,na:semPd,
+   falta:c?`faltam ${diag.total-diag.respondidas} das ${diag.total} perguntas`:'ainda não iniciado',
+   feito:reuniao?'reunião em '+fmtBR(String(c.reuniao).slice(0,10)):'diagnóstico completo, falta marcar a reunião'},
+  {n:4,nome:'Proposta',aba:'proposta',ok:!!(p&&p.status!=='rascunho')||semProp,na:semProp,
+   falta:p?'gerada, falta enviar':'ainda não gerada',
+   feito:p?'proposta '+p.numero+' '+propStatusLabel(p.status).toLowerCase():'sem proposta'},
+  {n:5,nome:'Fechamento',aba:'fechamento',ok:fechado,
+   falta:'aguardando a resposta do cliente',feito:esc(est.nome||'fechado')}]}
 function comTrilho(P){
  const atual=P.find(x=>!x.ok)||P[P.length-1];
  return `<div class="panel" style="padding:14px 16px;margin-bottom:12px">
@@ -4176,7 +4323,7 @@ function comTrilho(P){
      <span style="width:17px;height:17px;border-radius:50%;background:${x.na?'transparent':on?'var(--pos)':'transparent'};border:1.5px solid ${cor};
        color:${x.na?'var(--mut)':'var(--acc-ink)'};font-size:10px;font-weight:900;display:inline-flex;align-items:center;justify-content:center">${x.na?'–':on?'✓':''}</span>
      <b style="font-size:11.5px;letter-spacing:.3px">${esc(x.nome)}</b></div>
-    <div class="muted" style="font-size:10.5px;margin-top:3px;line-height:1.35">${x.na?'não se aplica':on?'concluído':esc(x.falta)}</div></button>`}).join('')}
+    <div class="muted" style="font-size:10.5px;margin-top:3px;line-height:1.35">${x.na?'não se aplica':on?esc(x.feito||'concluído'):esc(x.falta)}</div></button>`}).join('')}
   </div></div>`}
 
 /* ===== Clientes · aba Cadastrar (entra direto na primeira etapa do funil) ===== */
@@ -4327,9 +4474,9 @@ function pdDesmarcarCall(){const c=pdAtual();if(!c)return;
  c.reuniao='';savePd();render();toast('Reunião desmarcada')}
 function comPendenciaReuniao(l,data,hora){
  const titulo='Reunião comercial · '+l.empresa;
- const ja=alive(DB.avulsas).find(a=>a.titulo===titulo&&a.status!=='feito');
- if(ja){ja.prazo=data;ja.hora=hora;persistAvulsa(ja);return}
- const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,
+ const ja=alive(DB.avulsas).find(a=>(a.leadId===l.id||a.titulo===titulo)&&a.status!=='feito');
+ if(ja){ja.prazo=data;ja.hora=hora;ja.leadId=l.id;persistAvulsa(ja);return}
+ const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,leadId:l.id,
   prioridade:'alta',prazo:data,hora,ordem:-1,responsavelId:null,status:'afazer',valor:0,
   obs:'Apresentar o relatório de pré-diagnóstico.'+(l.telefone?' Contato: '+l.telefone+'.':''),
   empresa:'Lidere',concluidoEm:null,deletedAt:null};
