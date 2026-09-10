@@ -1449,14 +1449,94 @@ function homeContasAte(limite){
   return out.sort((a,b)=>iso(a.eff).localeCompare(iso(b.eff)))}
 
 /* ===== Pendências — Kanban ===== */
+let pendTab='kanban', pendArqMes='';
+function setPendTab(t){pendTab=t;render()}
+function togglePendMes(mk){pendArqMes=pendArqMes===mk?'':mk;render()}
+/* ===== Arquivo: tarefas concluídas, agrupadas por mês ===== */
+const PEND_ARQ_DIAS=15;
+const pendDataFeito=a=>a.concluidoEm?iso(new Date(a.concluidoEm)):(a.prazo||'');
+const pendMesFeito=a=>{const d=pendDataFeito(a);return d?d.slice(0,7):''};
+function pendArquivada(a){if(a.status!=='feito')return false;
+  const d=pendDataFeito(a);
+  if(!d)return true;
+  return d<addDias(todayKey(),-PEND_ARQ_DIAS)}
+function pendPorMes(){
+  const feitas=alive(DB.avulsas).filter(a=>a.status==='feito');
+  const map={};
+  feitas.forEach(a=>{const mk=pendMesFeito(a)||'sem-data';(map[mk]=map[mk]||[]).push(a)});
+  return Object.keys(map).sort((a,b)=>{
+    if(a==='sem-data')return 1;
+    if(b==='sem-data')return -1;
+    return b.localeCompare(a)}).map(mk=>({
+    mk,
+    nome:mk==='sem-data'?'Sem data de conclusão':(()=>{const p=mk.split('-');
+      const t=new Date(+p[0],+p[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      return t.charAt(0).toUpperCase()+t.slice(1)})(),
+    itens:map[mk].sort((x,y)=>String(pendDataFeito(y)).localeCompare(String(pendDataFeito(x))))}))}
+
+function viewPendArquivo(){
+  const meses=pendPorMes();
+  const total=meses.reduce((s,m)=>s+m.itens.length,0);
+  const comData=meses.filter(m=>m.mk!=='sem-data');
+  const media=comData.length?Math.round(comData.reduce((s,m)=>s+m.itens.length,0)/comData.length):0;
+  const melhor=comData.slice().sort((a,b)=>b.itens.length-a.itens.length)[0];
+  const mesAtual=todayKey().slice(0,7);
+  const doMes=(meses.find(m=>m.mk===mesAtual)||{itens:[]}).itens.length;
+  const stats=`<div class="stats">
+    <div class="stat"><div class="k">Concluídas</div><div class="v" style="color:var(--pos)">${total}</div><div class="sub">desde o começo</div></div>
+    <div class="stat"><div class="k">Neste mês</div><div class="v" style="color:var(--acc)">${doMes}</div><div class="sub">até hoje</div></div>
+    <div class="stat"><div class="k">Média por mês</div><div class="v">${media}</div><div class="sub">nos ${comData.length} mês(es) com registro</div></div>
+    <div class="stat"><div class="k">Melhor mês</div><div class="v" style="font-size:17px">${melhor?esc(melhor.nome.split(' de ')[0]):'—'}</div><div class="sub">${melhor?melhor.itens.length+' tarefas':''}</div></div>
+  </div>`;
+  if(!total)return stats+'<div class="panel"><div class="empty">Nenhuma tarefa concluída ainda.</div></div>';
+  const max=Math.max(1,...meses.map(m=>m.itens.length));
+  const grafico=`<div class="panel"><div class="panel-head"><h2>Tarefas concluídas por mês<small>clique no mês para abrir a lista</small></h2></div>
+    ${meses.map(m=>`<div class="hbar" style="cursor:pointer" onclick="togglePendMes('${m.mk}')">
+      <div class="hl"><span class="nm">${esc(m.nome)}</span><span class="muted">${m.itens.length} tarefa(s)</span></div>
+      <div class="ht"><i style="width:${Math.round(m.itens.length/max*100)}%;background:${m.mk===mesAtual?'var(--acc)':'var(--pos)'}"></i></div></div>`).join('')}</div>`;
+  const aberto=pendArqMes||meses[0].mk;
+  const m=meses.find(x=>x.mk===aberto)||meses[0];
+  const linhas=m.itens.map(a=>`<div class="row">
+     <div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(a.titulo)}</div>
+      <div class="row-meta"><span class="chip chip-n">${pendDataFeito(a)?fmtBR(pendDataFeito(a)):'sem data'}</span>
+       <span class="pchip ${a.prioridade}">${esc(a.prioridade)}</span>
+       ${a.responsavelId?`<span class="muted">${esc(respName(a.responsavelId))}</span>`:''}
+       ${a.empresa&&a.empresa!=='Lidere'?`<span class="muted">${esc(a.empresa)}</span>`:''}</div>
+      ${a.obs?`<div class="row-meta">${esc(a.obs)}</div>`:''}</div>
+     <div class="row-actions"><button class="btn btn-sm" onclick="pendReabrir('${a.id}')">Reabrir</button>
+      <button class="iconbtn del" onclick="delTask('${a.id}')">🗑</button></div></div>`).join('');
+  const lista=`<div class="panel"><div class="panel-head"><h2>${esc(m.nome)}<small>${m.itens.length} tarefa(s) concluída(s)</small></h2>
+    <button class="btn btn-sm" onclick="pendBaixarMes('${m.mk}')">↓ Baixar este mês</button></div>${linhas}</div>`;
+  return stats+grafico+lista}
+
+function pendReabrir(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+  a.status='fazendo';a.concluidoEm=null;persistAvulsa(a);render();toast('Reaberta em Fazendo')}
+function pendBaixarMes(mk){
+  const m=pendPorMes().find(x=>x.mk===mk);if(!m)return;
+  const linhas=[['Concluída em','Tarefa','Prioridade','Responsável','Empresa','Observações'].join(';')]
+    .concat(m.itens.map(a=>[pendDataFeito(a)?fmtBR(pendDataFeito(a)):'',a.titulo,a.prioridade,
+      a.responsavelId?respName(a.responsavelId):'',a.empresa||'',(a.obs||'').replace(/[\r\n;]+/g,' ')]
+      .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')));
+  const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const el=document.createElement('a');el.href=URL.createObjectURL(b);
+  el.download='Pendencias_'+mk+'.csv';el.click();
+  setTimeout(()=>URL.revokeObjectURL(el.href),3000);
+  toast(m.itens.length+' tarefa(s) exportada(s)')}
+
 function viewPend(){
+  const abas=[['kanban','Kanban'],['arquivo','Arquivo',alive(DB.avulsas).filter(a=>a.status==='feito').length]];
+  return comTabs(abas,pendTab,'setPendTab')+(pendTab==='arquivo'?viewPendArquivo():viewPendKanban())}
+function viewPendKanban(){
   const list=alive(DB.avulsas);const today=todayKey();
   const nf=list.filter(a=>a.status!=='feito');
+  const arq=list.filter(pendArquivada);
+  const mesAtual=today.slice(0,7);
+  const noMes=list.filter(a=>a.status==='feito'&&pendMesFeito(a)===mesAtual).length;
   const stats=`<div class="stats">
-    <div class="stat"><div class="k">Total</div><div class="v" style="color:var(--acc)">${list.length}</div><div class="sub">tarefas ativas</div></div>
+    <div class="stat"><div class="k">Em aberto</div><div class="v" style="color:var(--acc)">${nf.length}</div><div class="sub">a fazer + fazendo</div></div>
     <div class="stat"><div class="k">A Fazer</div><div class="v" style="color:#8a7cf2">${list.filter(a=>a.status==='afazer').length}</div><div class="sub">na fila</div></div>
     <div class="stat"><div class="k">Fazendo</div><div class="v" style="color:var(--meta)">${list.filter(a=>a.status==='fazendo').length}</div><div class="sub">em andamento</div></div>
-    <div class="stat"><div class="k">Feito</div><div class="v" style="color:var(--pos)">${list.filter(a=>a.status==='feito').length}</div><div class="sub">concluídas</div></div>
+    <div class="stat" onclick="setPendTab('arquivo')" style="cursor:pointer"><div class="k">Feitas no mês</div><div class="v" style="color:var(--pos)">${noMes}</div><div class="sub">${arq.length} no arquivo</div></div>
     <div class="stat"><div class="k">Alta prior.</div><div class="v" style="color:var(--neg)">${nf.filter(a=>a.prioridade==='alta').length}</div><div class="sub">olhe primeiro</div></div>
     <div class="stat"><div class="k">Atrasadas</div><div class="v" style="color:var(--warn)">${nf.filter(a=>a.prazo&&a.prazo<today).length}</div><div class="sub">passaram do prazo</div></div>
   </div>`;
@@ -1477,9 +1557,10 @@ function viewPend(){
       ${a.responsavelId?`<span class="chip chip-n">${esc(respName(a.responsavelId))}</span>`:''}</div>
      <div class="acts">${manual?`<button class="iconbtn up" title="Subir" onclick="event.stopPropagation();moveCard('${a.id}',-1)">▲</button><button class="iconbtn dn" title="Descer" onclick="event.stopPropagation();moveCard('${a.id}',1)">▼</button>`:''}<button class="iconbtn del" title="Excluir" onclick="event.stopPropagation();delTask('${a.id}')">🗑</button></div></div>`};
   const kb=`<div class="kb">${cols.map(([id,lbl,color])=>{
-    const items=pendSorted(list.filter(a=>a.status===id));
+    const items=pendSorted(list.filter(a=>a.status===id&&!(id==='feito'&&pendArquivada(a))));
     return `<div class="kb-col" data-col="${id}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropCol(event,'${id}')">
       <div class="kb-h"><span class="dot" style="background:${color}"></span>${lbl}<span class="cnt">${items.length}</span></div>
+      ${id==='feito'&&arq.length?`<button class="kb-add" style="margin:0 0 8px" onclick="setPendTab('arquivo')">${arq.length} concluída(s) há mais de ${PEND_ARQ_DIAS} dias no Arquivo →</button>`:''}
       ${items.map((a,i)=>card(a,i,items.length)).join('')||''}
       <button class="kb-add" onclick="openTask(null,'${id}')">+ nova tarefa</button></div>`}).join('')}</div>`;
   return stats+toolbar+kb}
