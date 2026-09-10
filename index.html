@@ -3995,11 +3995,28 @@ function comFichaDados(l){
     ${linha('Ticket','<b style="color:var(--acc)">'+brl(l.ticket)+'</b>')}${linha('Prioridade',`<span class="pchip ${l.prioridade}">${esc(l.prioridade)}</span>`)}
     ${linha('Próximo contato',l.proximoContato?(l.proximoContato<todayKey()?`<span class="chip chip-vencido">${fmtBR(l.proximoContato)}</span>`:fmtBR(l.proximoContato)):'—')}
     ${linha('Último contato',fmtBR(l.ultimoContato)||'—')}${linha('Status do contrato',esc(l.statusContrato||'Aguardando'))}
-    ${linha('Cadência',rAtiva?`${esc(REG(rAtiva).nome)} · ${res.iniciada?res.feitos+'/'+res.total+(res.atrasada?' · <b style="color:var(--neg)">toque atrasado</b>':''):'não iniciada'}`:'fora das réguas')}</table>
+    ${linha('Cadência',comLinhaCadencia(l,rAtiva,res))}
+    ${linha('Pré-diagnóstico',comLinhaPrediag(l))}</table>
    <div class="cad-acts" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
     ${rAtiva?`<button class="btn btn-sm" onclick="openCad('${l.id}')">Abrir cadência</button>`:''}
     <button class="btn btn-sm" onclick="openAtiv()">Registrar atividade</button>
     <button class="btn btn-sm btn-ghost" onclick="delLead('${l.id}');go('comCli')">Excluir cliente</button></div></div></div>`}
+function comLinhaCadencia(l,rAtiva,res){
+ const suspensas=CAD_REGUAS.filter(r=>cadSuspensa(l,r));
+ const btn=r=>cadSuspensa(l,r)
+   ?`<button class="btn btn-sm" onclick="cadSuspender('${l.id}','${r}',false)">Reativar ${esc(REG(r).curto)}</button>`
+   :`<button class="btn btn-sm btn-ghost" onclick="cadSuspender('${l.id}','${r}',true)">Suspender ${esc(REG(r).curto)}</button>`;
+ const estado=rAtiva
+   ?`${esc(REG(rAtiva).nome)} · ${res.iniciada?res.feitos+'/'+res.total+(res.atrasada?' · <b style="color:var(--neg)">toque atrasado</b>':''):'não iniciada'}`
+   :suspensas.length?`<span style="color:var(--mut)">suspensa: ${suspensas.map(r=>esc(REG(r).curto)).join(' e ')}</span>`
+   :'fora das réguas nesta etapa';
+ return `${estado}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${CAD_REGUAS.map(btn).join('')}</div>`}
+function comLinhaPrediag(l){
+ const c=comPdDoLead(l);
+ if(pdDispensado(l))return `<span style="color:var(--mut)">não se aplica</span>
+   <div style="margin-top:6px"><button class="btn btn-sm" onclick="pdExigir('${l.id}')">Voltar a exigir</button></div>`;
+ const est=c?(pdDiag(c).completo?'diagnóstico completo':pdDiag(c).respondidas+'/'+pdDiag(c).total+' respondidas'):'ainda não iniciado';
+ return `${est}<div style="margin-top:6px"><button class="btn btn-sm btn-ghost" onclick="pdDispensar('${l.id}')">Não se aplica</button></div>`}
 function comMoverManual(estId){const l=crmLeadById(comFichaId);if(!l)return;
  const est=crmEstById(estId);if(!est)return;
  if(comMover(l,est,'movido na ficha')){crmAutoProposta(l);persistCrmLead(l);render();toast('→ '+est.nome)}}
@@ -4018,7 +4035,10 @@ function comFichaPd(l,c){
  const d=pdDiag(c);
  const abas=[['ligacao','Ligação',d.respondidas+'/'+d.total],['resultado','Resultado'],['relatorio','Relatório']];
  const body=({ligacao:viewPdLigacao,resultado:viewPdResultado,relatorio:viewPdRelatorio}[comPdTab]||viewPdLigacao)();
- return comTabs(abas,comPdTab,'setComPdTab')+body}
+ const barra=`<div class="filters" style="justify-content:space-between;align-items:center">
+   <span class="muted" style="font-size:11.5px">${d.completo?'Diagnóstico completo.':'Faltam '+(d.total-d.respondidas)+' das '+d.total+' perguntas.'}</span>
+   <button class="btn btn-sm btn-ghost" onclick="pdDispensar('${l.id}')">Não se aplica a este cliente</button></div>`;
+ return comTabs(abas,comPdTab,'setComPdTab')+barra+body}
 
 function comFichaProp(l,c,p){
  const ps=comPropsDoLead(l);
