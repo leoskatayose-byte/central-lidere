@@ -795,7 +795,7 @@ tbody tr:hover{background:var(--panel2)}
       <div class="seg" id="l_pd">
         <div class="o sel" data-v="pendente" onclick="pickPd('pendente')">Pendente</div>
         <div class="o" data-v="feita" onclick="pickPd('feita')">Realizada</div>
-        <div class="o" data-v="sem" onclick="pickPd('sem')">Não houve ligação</div></div></div>
+        <div class="o" data-v="sem" onclick="pickPd('sem')">Não se aplica</div></div></div>
     <div class="fgrid">
       <div class="field"><label>Data da ligação</label><input id="l_pd_data" type="date"></div>
       <div class="field"><label>O que saiu da ligação</label><input id="l_pd_obs" placeholder="dor principal, quem decide, urgência"></div>
@@ -1098,7 +1098,7 @@ async function loadAll(){
     onbClientes,
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',deletedAt:fromISO(l.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],deletedAt:fromISO(l.deleted_at)})),
     crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
@@ -2223,7 +2223,7 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,cadencia_off:l.cadenciaOff||[],responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
 function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
 function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
@@ -2326,7 +2326,16 @@ const REGUAS={
     fim:'Sem resposta até o D+12, pare de cobrar: registre como perdido ou devolva para nutrição.'}};
 const REG=r=>REGUAS[r]||REGUAS.prospeccao;
 const CAD_REGUAS=['prospeccao','proposta'];
-function cadReguaAtiva(l){const f=crmFase(l);return f==='prospeccao'?'prospeccao':f==='proposta'?'proposta':null}
+const cadSuspensa=(l,r)=>((l&&l.cadenciaOff)||[]).indexOf(r)>=0;
+function cadReguaAtiva(l){const f=crmFase(l);const r=f==='prospeccao'?'prospeccao':f==='proposta'?'proposta':null;
+  return (r&&cadSuspensa(l,r))?null:r}
+function cadSuspender(id,r,valor){const l=crmLeadById(id);if(!l)return;
+  const off=(l.cadenciaOff||[]).filter(x=>x!==r);
+  if(valor)off.push(r);
+  l.cadenciaOff=off;persistCrmLead(l);
+  comLog(l,valor?'Cadência suspensa':'Cadência reativada',REG(r).nome);
+  render();cadRefresh(l);
+  toast(valor?REG(r).nome+' suspensa para este cliente':REG(r).nome+' reativada')}
 const crmFinalizado=l=>crmFase(l)==='fechado';
 const cadToque=(r,n)=>REG(r).toques.find(t=>t.n===+n)||REG(r).toques[0];
 const cadInicio=(l,r)=>(l&&l[REG(r).inicio])||'';
@@ -2429,7 +2438,10 @@ function cadBodyHTML(l,r){
     </div>
     <div class="field" style="max-width:185px;margin:0"><label>${R.rotuloInicio}</label>
       <input type="date" value="${ini}" onchange="cadSetInicio('${l.id}','${r}',this.value)"></div>
-    ${ini&&vale?`<button class="btn btn-sm" onclick="cadEncerrar('${l.id}','${r}')">Respondeu — encerrar</button>`:''}
+    ${ini&&vale?`<button class="btn btn-sm" onclick="cadEncerrar('${l.id}','${r}')">Respondeu, encerrar</button>`:''}
+    ${cadSuspensa(l,r)
+      ?`<button class="btn btn-sm btn-gold" onclick="cadSuspender('${l.id}','${r}',false)">Reativar a cadência</button>`
+      :`<button class="btn btn-sm btn-ghost" onclick="cadSuspender('${l.id}','${r}',true)">Este cliente não entra nesta cadência</button>`}
   </div>
   <div class="cad-step">${passos}<span class="muted" style="font-size:11.5px;margin-left:6px">${res.feitos} de ${res.total} enviados${res.pulados?` · ${res.pulados} pulado(s)`:''}${vale&&res.atrasada?' · <span style="color:var(--neg);font-weight:700">toque atrasado</span>':''}</span></div>`;
   /* avisos de fase */
@@ -2464,11 +2476,13 @@ function cadBodyHTML(l,r){
     <div class="muted" style="font-size:11.5px;margin-top:14px;line-height:1.6">${esc(R.dica)} Não envie dois toques no mesmo dia e não pule a ordem. ${esc(R.fim)}</div>`}
 
 /* ===== Ligação de pré-diagnóstico ===== */
-const PD_LABEL={pendente:'Pendente',feita:'Realizada',sem:'Não houve ligação'};
+const PD_LABEL={pendente:'Pendente',feita:'Realizada',sem:'Não se aplica'};
+/* cliente que não precisa de pré-diagnóstico (projeto de IA, indicação direta, etc.) */
+const pdDispensado=l=>(l&&l.prediagStatus)==='sem';
 const pdRelevante=l=>['prospeccao','reuniao'].indexOf(crmFase(l))>=0;
 function pdChip(l){if(!pdRelevante(l))return'';const st=l.prediagStatus||'pendente';
   if(st==='feita')return `<span class="chip chip-pago" title="Pré-diagnóstico em ${fmtBR(l.prediagData)}">☎ pré-diag ok</span>`;
-  if(st==='sem')return '<span class="chip chip-n">☎ sem ligação</span>';
+  if(st==='sem')return '<span class="chip chip-n" title="Este cliente não precisa de pré-diagnóstico">☎ não se aplica</span>';
   return crmFase(l)==='reuniao'?'<span class="chip chip-avencer">☎ ligar antes da reunião</span>':''}
 function pdSet(id,st){const l=crmLeadById(id);if(!l)return;l.prediagStatus=st;
   if(st==='feita'&&!l.prediagData)l.prediagData=todayKey();
@@ -3991,9 +4005,15 @@ function comMoverManual(estId){const l=crmLeadById(comFichaId);if(!l)return;
  if(comMover(l,est,'movido na ficha')){crmAutoProposta(l);persistCrmLead(l);render();toast('→ '+est.nome)}}
 
 function comFichaPd(l,c){
+ if(pdDispensado(l))return `<div class="panel"><div class="panel-head"><h2>Pré-diagnóstico não se aplica<small>este cliente segue direto para a proposta</small></h2></div>
+   <div class="empty" style="text-align:left">Marcado como <b>não se aplica</b>: ele sai das pendências do Painel e o passo fica neutro no trilho.<br>
+   Use em projeto pontual, serviço que não é BPO, ou cliente que já chegou com o escopo definido.<br><br>
+   <button class="btn" onclick="pdExigir('${l.id}')">Voltar a exigir o pré-diagnóstico</button>
+   ${comPropsDoLead(l).length?'':`<button class="btn btn-gold" onclick="leadGerarProposta('${l.id}')">Ir direto para a proposta</button>`}</div></div>`;
  if(!c)return `<div class="panel"><div class="empty">Este cliente ainda não tem pré-diagnóstico.<br>
    A ligação puxa empresa, contato e CNPJ daqui e devolve os números que a proposta usa.<br><br>
-   <button class="btn btn-gold" onclick="leadAbrirPd('${l.id}')">Iniciar pré-diagnóstico</button></div></div>`;
+   <button class="btn btn-gold" onclick="leadAbrirPd('${l.id}')">Iniciar pré-diagnóstico</button>
+   <button class="btn" onclick="pdDispensar('${l.id}')">Este cliente não precisa</button></div></div>`;
  DB.pdAtualId=c.id;
  const d=pdDiag(c);
  const abas=[['ligacao','Ligação',d.respondidas+'/'+d.total],['resultado','Resultado'],['relatorio','Relatório']];
@@ -4115,11 +4135,12 @@ function setPropTab(id){
 function comPassos(l,c,p){
  const diag=c?pdDiag(c):null;
  const reuniao=!!(c&&c.reuniao);
- const respondeu=(()=>{const res=cadResumo(l,'prospeccao');return res.feitos>0||res.pulados>0||(l.prediagStatus||'pendente')!=='pendente'})();
+ const respondeu=(()=>{const res=cadResumo(l,'prospeccao');return res.feitos>0||res.pulados>0||(l.prediagStatus||'pendente')==='feita'})();
+ const semCad=cadSuspensa(l,'prospeccao'), semPd=pdDispensado(l);
  return [
   {n:1,nome:'Cadastro',aba:'dados',ok:!!l.empresa,falta:'preencha empresa e contato'},
-  {n:2,nome:'Contato',aba:'contato',ok:respondeu,falta:'rode a cadência até falar com o cliente'},
-  {n:3,nome:'Pré-diagnóstico',aba:'prediag',ok:!!(diag&&diag.completo),falta:c?`faltam ${diag.total-diag.respondidas} das 10 perguntas`:'ainda não iniciado'},
+  {n:2,nome:'Contato',aba:'contato',ok:respondeu||semCad,na:semCad&&!respondeu,falta:'rode a cadência até falar com o cliente'},
+  {n:3,nome:'Pré-diagnóstico',aba:'prediag',ok:!!(diag&&diag.completo)||semPd,na:semPd,falta:c?`faltam ${diag.total-diag.respondidas} das 10 perguntas`:'ainda não iniciado'},
   {n:4,nome:'Reunião',aba:'prediag',ok:reuniao,falta:'marque a call no fim do pré-diagnóstico'},
   {n:5,nome:'Proposta',aba:'proposta',ok:!!(p&&p.status!=='rascunho'),falta:p?'ainda em rascunho':'ainda não gerada'},
   {n:6,nome:'Fechamento',aba:'proposta',ok:!!(p&&p.status==='aceita'),falta:'aguardando resposta do cliente'}]}
@@ -4128,14 +4149,14 @@ function comTrilho(P){
  return `<div class="panel" style="padding:14px 16px;margin-bottom:12px">
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:stretch">
   ${P.map((x,i)=>{const on=x.ok,aqui=x.n===atual.n;
-   const cor=on?'var(--pos)':aqui?'var(--acc)':'var(--line-f)';
+   const cor=x.na?'var(--mut)':on?'var(--pos)':aqui?'var(--acc)':'var(--line-f)';
    return `<button onclick="setComFichaTab('${x.aba}')" style="flex:1;min-width:110px;text-align:left;background:${aqui?'var(--panel2)':'transparent'};
      border:1px solid ${aqui?'var(--acc)':'var(--line)'};border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--txt)">
     <div style="display:flex;align-items:center;gap:6px">
-     <span style="width:17px;height:17px;border-radius:50%;background:${on?'var(--pos)':'transparent'};border:1.5px solid ${cor};
-       color:var(--acc-ink);font-size:10px;font-weight:900;display:inline-flex;align-items:center;justify-content:center">${on?'✓':''}</span>
+     <span style="width:17px;height:17px;border-radius:50%;background:${x.na?'transparent':on?'var(--pos)':'transparent'};border:1.5px solid ${cor};
+       color:${x.na?'var(--mut)':'var(--acc-ink)'};font-size:10px;font-weight:900;display:inline-flex;align-items:center;justify-content:center">${x.na?'–':on?'✓':''}</span>
      <b style="font-size:11.5px;letter-spacing:.3px">${esc(x.nome)}</b></div>
-    <div class="muted" style="font-size:10.5px;margin-top:3px;line-height:1.35">${on?'concluído':esc(x.falta)}</div></button>`}).join('')}
+    <div class="muted" style="font-size:10.5px;margin-top:3px;line-height:1.35">${x.na?'não se aplica':on?'concluído':esc(x.falta)}</div></button>`}).join('')}
   </div></div>`}
 
 /* ===== Clientes · aba Cadastrar (entra direto na primeira etapa do funil) ===== */
@@ -4177,12 +4198,19 @@ function comFichaContato(l,c){
  const r='prospeccao',R=REG(r),res=cadResumo(l,r),ini=cadInicio(l,r),hoje=todayKey();
  const fase=crmFase(l);
  const jaPassou=fase!=='prospeccao';
+ const suspensa=cadSuspensa(l,r);
  const destaque=`<div class="panel" style="border-color:var(--acc)">
    <div class="panel-head"><h2>Conseguiu falar com o cliente?<small>o objetivo da ligação é preencher o pré-diagnóstico e agendar a reunião</small></h2></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <button class="btn btn-gold" onclick="comLigacaoOk('${l.id}')">Ligação atendida · ir para o pré-diagnóstico</button>
     ${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}
-    <span class="muted" style="font-size:11.5px">Encerra a cadência de mensagens e abre a ligação de pré-diagnóstico.</span></div></div>`;
+    ${suspensa
+      ?`<button class="btn" onclick="cadSuspender('${l.id}','${r}',false)">Reativar a cadência</button>`
+      :`<button class="btn btn-ghost" onclick="cadSuspender('${l.id}','${r}',true)">Este cliente não entra na cadência</button>`}
+    <span class="muted" style="font-size:11.5px">${suspensa?'As mensagens estão suspensas: ele some da agenda e do compliance.':'Encerra a cadência de mensagens e abre a ligação de pré-diagnóstico.'}</span></div></div>`;
+ if(suspensa)
+   return destaque+`<div class="panel"><div class="empty">Cadência suspensa para este cliente.<br>
+     Use quando o negócio não nasceu de prospecção fria — indicação direta, projeto pontual, cliente que já chegou conversando.</div></div>`;
  if(jaPassou&&res.feitos+res.pulados===R.toques.length)
    return destaque+`<div class="panel"><div class="empty">Cadência encerrada. O cliente já passou desta etapa.</div></div>`;
  const linhas=R.toques.map(t=>{const e=cadEstado(l,r,t.n),prev=cadPrev(l,r,t.n);
@@ -4204,6 +4232,13 @@ function comFichaContato(l,c){
    <div class="tip">${esc(R.fim)} Os textos das 7 mensagens ficam em <b>Ajustes → Mensagens</b>.</div></div>`;
  return destaque+cabecalho}
 
+function pdDispensar(id){const l=crmLeadById(id);if(!l)return;
+ l.prediagStatus='sem';l.prediagData=l.prediagData||todayKey();persistCrmLead(l);
+ comLog(l,'Pré-diagnóstico dispensado','cliente não precisa de pré-diagnóstico');
+ render();toast('Pré-diagnóstico marcado como não se aplica')}
+function pdExigir(id){const l=crmLeadById(id);if(!l)return;
+ l.prediagStatus=comPdDoLead(l)?'feita':'pendente';persistCrmLead(l);
+ render();toast('Pré-diagnóstico voltou a ser exigido')}
 function comLigacaoOk(id){const l=crmLeadById(id);if(!l)return;
  REG('prospeccao').toques.forEach(t=>{if(cadEstado(l,'prospeccao',t.n).st==='pendente')cadSet(l,'prospeccao',t.n,'pulado')});
  l.ultimoContato=todayKey();
