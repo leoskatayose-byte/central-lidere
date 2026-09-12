@@ -495,7 +495,7 @@ tbody tr:hover{background:var(--panel2)}
       <div id="userSlot"></div>
       <div class="temas" id="temas"></div>
       <button class="lnk" onclick="showModal('privOverlay')">Privacidade</button>
-      <button class="lnk" onclick="exportData()">↓ Baixar backup</button>
+      <button class="lnk" id="btnBackup" onclick="exportData()" style="display:none">↓ Baixar backup</button>
       <button class="lnk" onclick="doLogout()">Sair</button>
     </div>
   </aside>
@@ -1063,7 +1063,7 @@ function pErr(error,ctx){if(error){console.error(ctx||'',error);toast('⚠ Erro 
 async function up(table,row){const {error}=await sb.from(table).upsert(row);pErr(error,table)}
 
 /* ===== Pendências: persistência (mesma tabela/colunas do Gestor separado) ===== */
-function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId||null,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
+function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId||null,tipo:a.tipo||null,proposta_id:a.propostaId||null,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
@@ -1080,19 +1080,28 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas')]);
+  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
   const cp=(CP&&CP.data&&CP.data.data)||{};
-  const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
+  const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',leadId:r.lead_id||'',origem:r.origem||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
   const byCli={};onbClientes.forEach(c=>byCli[c.id]=c);
   (OE.data||[]).forEach(r=>{const cl=byCli[r.cliente_id];if(!cl)return;
     cl.etapas.push({id:r.id,modeloId:r.modelo_id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,prazo:r.prazo,status:r.status,dataConclusao:r.data_conclusao,responsavelId:r.responsavel_id,obs:r.obs||''})});
   onbClientes.sort((a,b)=>a.nome.localeCompare(b.nome));
   DB={
+    crmEventos:(EV&&EV.data?EV.data:[]).map(e=>({id:e.id,leadId:e.lead_id,tipo:e.tipo,
+      em:e.ocorreu_em,de:e.de_etapa_id||'',para:e.para_etapa_id||'',ciclo:e.ciclo||1,detalhe:e.detalhe||''})),
+    pessoas:(PS&&PS.data?PS.data:[]).map(p=>({id:p.id,nome:p.nome,cor:p.cor||'#d4a840',cargo:p.cargo||'',
+      papeis:Array.isArray(p.papeis)?p.papeis:[],ativo:p.ativo!==false,userId:p.user_id||'',obs:p.obs||'',
+      idOperacao:p.id_operacao||'',idComercial:p.id_comercial||'',idImplantacao:p.id_implantacao||'',
+      deletedAt:fromISO(p.deleted_at)})),
+    _legado_operacao:(R.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
+    _legado_comercial:(CR.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
+    _legado_implantacao:(OO.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
-    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
+    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',tipo:a.tipo||'',propostaId:a.proposta_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
     diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
@@ -1106,8 +1115,8 @@ async function loadAll(){
     onbClientes,
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
-    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
+    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
     crmOrigens:(CX.data||[]).filter(x=>x.tipo==='origem').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
@@ -1126,6 +1135,7 @@ async function loadAll(){
   DB.pdClientes=(pd.clientes&&pd.clientes.length)?pd.clientes:[];
   DB.pdAtualId=(pd.clientes||[]).find(c=>c.id===pd.atualId)?pd.atualId:(DB.pdClientes[0]&&DB.pdClientes[0].id)||null;
   DB.pnSoAtivas=(function(){try{return localStorage.getItem('lidere_pn_soativas')==='1'}catch(e){return false}})();
+  pessoasProjetar();
   clearHCache();
 }
 
@@ -1171,26 +1181,119 @@ function buildUserSlot(){const el=gEl('userSlot');if(!el||!ME)return;
 let admTab='equipe';
 function setAdmTab(t){admTab=t;render()}
 function viewAdmin(){
- const abas=[['equipe','Equipe'],['funil','Funil e listas'],['mensagens','Mensagens'],
-   ['preco','Tabela de preço'],['excluidos','Excluídos',admLixoQtd()]];
- if(ME&&ME.is_admin)abas.push(['usuarios','Usuários']);
- if(admTab==='usuarios'&&!(ME&&ME.is_admin))admTab='equipe';
- const body=({equipe:admEquipe,funil:admFunil,mensagens:comAjMsgs,preco:viewPdConfig,
-   excluidos:admLixo,usuarios:admUsuarios}[admTab]||admEquipe)();
+ const adm=!!(ME&&ME.is_admin);
+ const abas=[['equipe','Pessoas',pessoasVivas().length],['excluidos','Excluídos',admLixoQtd()]];
+ if(adm){abas.splice(1,0,['funil','Funil e listas'],['mensagens','Mensagens'],['preco','Tabela de preço']);
+   abas.push(['usuarios','Usuários'])}
+ if(!adm&&['funil','mensagens','preco','usuarios'].indexOf(admTab)>=0)admTab='equipe';
+ const body=({equipe:admPessoas,funil:admFunil,mensagens:comAjMsgs,preco:viewPdConfig,
+   excluidos:admLixo,usuarios:admUsuarios}[admTab]||admPessoas)();
  return comTabs(abas,admTab,'setAdmTab')+body}
 
 function admUsuarios(){return `<div class="panel"><div class="panel-head"><h2>Usuários<small>aprove cadastros e gerencie acessos — vale para o app todo</small></h2></div>
   <div id="adminList"><div class="empty">Carregando...</div></div></div>`}
 
 /* Equipe: quem executa a operação e quem toca o comercial, no mesmo lugar */
-function admEquipe(){
- const respRows=alive(DB.crmResponsaveis).map(r=>{const cnt=crmLeadsAtivos().filter(l=>l.responsavelId===r.id).length;
-  return `<div class="row"><span class="avatar" style="background:${r.cor}">${esc(initials(r.nome))}</span>
-   <div class="row-body"><div class="row-title">${esc(r.nome)}</div><div class="row-meta">${cnt} cliente(s) no funil</div></div>
-   <div class="row-actions"><button class="iconbtn" onclick="openRespCrm('${r.id}')">✎</button><button class="iconbtn del" onclick="delRespCrm('${r.id}')">🗑</button></div></div>`}).join('')
-  ||'<div class="empty">Nenhum responsável comercial.</div>';
- return viewResp()+`<div class="panel"><div class="panel-head"><h2>Responsáveis comerciais<small>quem aparece como dono do cliente no funil</small></h2>
-   <button class="btn btn-sm btn-gold" onclick="openRespCrm()">+ Novo</button></div>${respRows}</div>`}
+
+/* ===================================================================
+   Pessoas: um cadastro só. As listas antigas (operação, comercial e
+   implantação) continuam existindo no banco, mas viram projeções desta
+   tabela — cada pessoa guarda o id que tem em cada área.
+   =================================================================== */
+const PAPEIS=[['operacao','Operação','idOperacao','responsaveis'],
+              ['comercial','Comercial','idComercial','crm_responsaveis'],
+              ['implantacao','Implantação','idImplantacao','onb_operadores']];
+const papelInfo=k=>PAPEIS.find(p=>p[0]===k)||PAPEIS[0];
+const pessoasVivas=()=>alive(DB.pessoas||[]);
+const pessoaById=id=>(DB.pessoas||[]).find(p=>p.id===id);
+const pessoaTemPapel=(p,k)=>((p&&p.papeis)||[]).indexOf(k)>=0;
+/* quem aparece nos seletores daquela área */
+const pessoasDaArea=k=>pessoasVivas().filter(p=>p.ativo&&pessoaTemPapel(p,k));
+/* resolve qualquer id antigo, mesmo de quem perdeu o papel, para não quebrar histórico */
+function pessoaPorLegado(id){if(!id)return null;
+  return (DB.pessoas||[]).find(p=>p.idOperacao===id||p.idComercial===id||p.idImplantacao===id)||null}
+function persistPessoa(p){up('pessoas',{id:p.id,nome:p.nome,cor:p.cor||'#d4a840',cargo:p.cargo||null,
+  papeis:p.papeis||[],ativo:p.ativo!==false,user_id:p.userId||null,obs:p.obs||null,
+  id_operacao:p.idOperacao||null,id_comercial:p.idComercial||null,id_implantacao:p.idImplantacao||null,
+  deleted_at:toISO(p.deletedAt)})}
+
+/* as três listas do app passam a ser geradas a partir de pessoas */
+function pessoasProjetar(){
+  /* se o cadastro novo estiver vazio, mantém as listas antigas: melhor o de antes do que nenhum */
+  if(!DB.pessoas||!DB.pessoas.length)return;
+  const proj=(papel,campo)=>pessoasVivas().filter(p=>p[campo]&&pessoaTemPapel(p,papel)&&p.ativo)
+    .map(p=>({id:p[campo],nome:p.nome,cor:p.cor,pessoaId:p.id,deletedAt:null}))
+    .sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+  DB.responsaveis=proj('operacao','idOperacao');
+  DB.crmResponsaveis=proj('comercial','idComercial');
+  DB.onbOperadores=proj('implantacao','idImplantacao')}
+
+/* dar um papel a alguém cria o registro na tabela antiga, para o histórico continuar resolvendo */
+function pessoaTogglePapel(id,papel){const p=pessoaById(id);if(!p)return;
+  const [k,nome,campo,tabela]=papelInfo(papel);
+  const tem=pessoaTemPapel(p,k);
+  p.papeis=(p.papeis||[]).filter(x=>x!==k);
+  if(!tem){
+    p.papeis.push(k);
+    if(!p[campo]){p[campo]=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
+      up(tabela,{id:p[campo],nome:p.nome,cor:p.cor,deleted_at:null})}
+  }
+  persistPessoa(p);pessoasProjetar();render();
+  toast(tem?p.nome+' saiu de '+nome:p.nome+' agora atua em '+nome)}
+
+function pessoaSetCampo(id,campo,v){const p=pessoaById(id);if(!p)return;
+  p[campo]=campo==='ativo'?!!v:v;
+  persistPessoa(p);
+  /* nome e cor descem para as tabelas antigas, senão o app velho mostra o nome desatualizado */
+  if(campo==='nome'||campo==='cor')PAPEIS.forEach(([k,,cp,tb])=>{if(p[cp])up(tb,{id:p[cp],nome:p.nome,cor:p.cor,deleted_at:null})});
+  pessoasProjetar();render()}
+function pessoaNova(){
+  const nome=(prompt('Nome da pessoa:')||'').trim();if(!nome)return;
+  const p={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome,cor:'#d4a840',cargo:'',
+    papeis:[],ativo:true,userId:'',obs:'',idOperacao:'',idComercial:'',idImplantacao:'',deletedAt:null};
+  (DB.pessoas=DB.pessoas||[]).push(p);persistPessoa(p);pessoasProjetar();render();
+  toast(nome+' cadastrada. Marque em quais áreas ela atua.')}
+function pessoaExcluir(id){const p=pessoaById(id);if(!p)return;
+  if(!confirm('Remover '+p.nome+' do cadastro? Os registros antigos continuam com o nome dela.'))return;
+  p.deletedAt=Date.now();persistPessoa(p);pessoasProjetar();render();toast('Removida')}
+
+function admPessoas(){
+  const ps=pessoasVivas().slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+  const carga=p=>{const out=[];
+    if(p.idOperacao){const n=alive(DB.avulsas).filter(a=>a.responsavelId===p.idOperacao&&a.status!=='feito').length;if(n)out.push(n+' pendência(s)')}
+    if(p.idComercial){const n=crmLeadsAtivos().filter(l=>l.responsavelId===p.idComercial).length;if(n)out.push(n+' cliente(s)')}
+    if(p.idImplantacao){const n=alive(DB.onbClientes).filter(c=>c.operadorId===p.idImplantacao).length;if(n)out.push(n+' implantação(ões)')}
+    return out.join(' · ')||'sem carga no momento'};
+  const linhas=ps.map(p=>`<div class="row" style="align-items:flex-start;${p.ativo?'':'opacity:.5'}">
+     <input type="color" value="${esc(p.cor)}" title="Cor" onchange="pessoaSetCampo('${p.id}','cor',this.value)"
+       style="width:26px;height:26px;border:1px solid var(--line);border-radius:7px;background:transparent;padding:0;cursor:pointer">
+     <div class="row-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+       <input value="${esc(p.nome)}" onchange="pessoaSetCampo('${p.id}','nome',this.value)"
+         style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:6px 10px;border-radius:8px;font-size:13px;font-weight:700;min-width:180px">
+       <input value="${esc(p.cargo||'')}" placeholder="cargo" onchange="pessoaSetCampo('${p.id}','cargo',this.value)"
+         style="background:var(--panel2);border:1px solid var(--line);color:var(--dim);padding:6px 10px;border-radius:8px;font-size:12px;max-width:170px">
+      </div>
+      <div class="row-meta" style="margin-top:7px;gap:6px">
+       ${PAPEIS.map(([k,nome])=>`<button class="pill" style="cursor:pointer;border:1px solid ${pessoaTemPapel(p,k)?'var(--acc)':'var(--line)'};
+         background:${pessoaTemPapel(p,k)?'color-mix(in srgb,var(--acc) 16%,transparent)':'transparent'};
+         color:${pessoaTemPapel(p,k)?'var(--acc)':'var(--mut)'}" onclick="pessoaTogglePapel('${p.id}','${k}')">${pessoaTemPapel(p,k)?'✓ ':''}${esc(nome)}</button>`).join('')}
+      </div>
+      <div class="row-meta"><span class="muted">${esc(carga(p))}</span></div></div>
+     <div class="row-actions">
+      <button class="btn btn-sm" onclick="pessoaSetCampo('${p.id}','ativo',${p.ativo?'false':'true'})">${p.ativo?'Desativar':'Reativar'}</button>
+      <button class="iconbtn del" onclick="pessoaExcluir('${p.id}')">🗑</button></div></div>`).join('')
+   ||'<div class="empty">Nenhuma pessoa cadastrada.</div>';
+  const orfaos=[];
+  PAPEIS.forEach(([k,nome,campo])=>{
+    const legacy={operacao:'responsaveis',comercial:'crmResponsaveis',implantacao:'onbOperadores'}[k];
+    (DB['_legado_'+k]||[]).forEach(r=>{if(!pessoasVivas().some(p=>p[campo]===r.id))orfaos.push(nome+': '+r.nome)})});
+  return `<div class="panel"><div class="panel-head"><h2>Pessoas<small>um cadastro só; marque em quais áreas cada uma atua</small></h2>
+    <button class="btn btn-sm btn-gold" onclick="pessoaNova()">+ Nova pessoa</button></div>${linhas}
+    <div class="tip">Antes eram três cadastros separados (Operação, Comercial e Implantação) e a mesma pessoa aparecia repetida.
+     Agora o papel é que define onde ela aparece nos seletores. Marcar um papel novo cria o vínculo na área correspondente;
+     desmarcar só tira dos seletores, o histórico continua com o nome dela.
+     ${orfaos.length?'<br><b>Sobraram nas listas antigas, sem pessoa correspondente:</b> '+esc(orfaos.join(', ')):''}</div></div>`}
 
 /* Funil e as listas que alimentam o cadastro do cliente */
 function admFunil(){
@@ -1217,11 +1320,17 @@ function admLixoItens(){
    acoes:`<button class="btn btn-sm" onclick="pdRestaurar('${c.id}')">Restaurar</button><button class="iconbtn del" onclick="pdPurgar('${c.id}')">🗑</button>`}));
  DB.crmPropostas.filter(x=>x.deletedAt).forEach(p=>out.push({area:'Comercial',titulo:p.numero||'proposta',meta:'proposta · '+brl(p.mensalidade),
    acoes:`<button class="btn btn-sm" onclick="propRestaurar('${p.id}')">Restaurar</button>`}));
+ DB.onbClientes.filter(x=>x.deletedAt).forEach(c=>out.push({area:'Implantação',titulo:c.nome,
+   meta:'cliente · perfil '+esc(c.perfil||'')+' · '+c.etapas.length+' etapa(s)',
+   acoes:`<button class="btn btn-sm" onclick="restCliente('${c.id}')">Restaurar</button>`+(ME&&ME.is_admin?`<button class="iconbtn del" onclick="purgeCliente('${c.id}')">🗑</button>`:'')}));
+ (DB.pnTarefas||[]).filter(x=>x.deletedAt).forEach(t=>out.push({area:'Plano de Negócio',titulo:t.titulo,
+   meta:'tarefa · '+esc((pnAreaById(t.areaId)||{}).nome||''),
+   acoes:`<button class="btn btn-sm" onclick="restorePnTarefa('${t.id}')">Restaurar</button>`+(ME&&ME.is_admin?`<button class="iconbtn del" onclick="purgePnTarefa('${t.id}')">🗑</button>`:'')}));
  return out}
 function admLixoQtd(){return admLixoItens().length||null}
 function admLixo(){
  const itens=admLixoItens();
- const areas=['Pendências','Rotinas','Comercial'];
+ const areas=['Pendências','Rotinas','Comercial','Implantação','Plano de Negócio'];
  const blocos=areas.map(a=>{const seg=itens.filter(x=>x.area===a);if(!seg.length)return '';
    return `<div class="panel"><div class="panel-head"><h2>${a}<small>${seg.length} item(ns)</small></h2></div>
     ${seg.map(x=>`<div class="row"><div class="row-body"><div class="row-title">${esc(x.titulo)}</div><div class="row-meta">${esc(x.meta)}</div></div>
@@ -1252,6 +1361,7 @@ const IC={
  home:'<path d="M4 11.5L12 4l8 7.5"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/>',
  pend:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 11.5l2.4 2.4L16 8.5"/>',
  cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/>',
+ agenda:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/><path d="M8 13h3M8 17h6"/>',
  rotinas:'<path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/>',
  resp:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>',
  onb:'<path d="M4 20V14M10 20V10M16 20V6M22 20V3"/>',
@@ -1273,7 +1383,7 @@ const svgIc=k=>'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 function NAV(){const base=[
   {g:'Visão geral',its:[['home','Painel']]},
   {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário']]},
-  {g:'Operação',its:[['rotinas','Rotinas'],['onb','Implantação']]},
+  {g:'Operação',its:[['agenda','Agenda'],['rotinas','Rotinas'],['onb','Implantação']]},
   {g:'Comercial',its:[['comPainel','Painel'],['comCli','Clientes'],['comFunil','Funil']]},
   {g:'Financeiro',its:[['contas','Contas a Pagar']]},
   {g:'Planejamento',its:[['plano','Plano de Negócio']]},
@@ -1284,6 +1394,7 @@ const SECAO={
   home:['Painel','Visão geral do que importa hoje, em todas as áreas'],
   pend:['Pendências','Kanban da equipe — arraste entre as colunas'],
   cal:['Calendário','Avulsas, rotinas, feriados e contas a pagar — tudo o que tem em cada dia'],
+  agenda:['Agenda','Tudo o que tem data, das seis origens, num lugar só'],
   rotinas:['Rotinas','Mensais, semanais e diárias — o que se repete'],
 
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
@@ -1303,6 +1414,7 @@ function tabCount(id){
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
   if(id==='comFunil')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='comCli')return crmLeadsAtivos().length||null;
+  if(id==='agenda'){const h=todayKey();return agendaItens(addDias(h,-60),h).filter(x=>!x.feito).length||null}
   return null}
 function renderNav(){
   gEl('nav').innerHTML=NAV().map(g=>`<div class="nav-g"><b>${g.g}</b>${
@@ -1321,7 +1433,8 @@ function render(){
     if(_l){gEl('pgTitle').childNodes[0].nodeValue=_l.empresa||'Cliente';gEl('pgSub').textContent=comFichaSub(_l)}}
   gEl('pgActs').innerHTML=pgActsHTML();
   renderNav();renderTemas();
-  const V={home:viewHome,pend:viewPend,cal:viewCalendar,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
+  {const b=gEl('btnBackup');if(b)b.style.display=(ME&&ME.is_admin)?'':'none'}
+  const V={home:viewHome,pend:viewPend,cal:viewCalendar,agenda:viewAgenda,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
   if(activeTab==='admin'&&admTab==='usuarios')setTimeout(loadAdmin,0)}
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
@@ -1572,7 +1685,8 @@ function viewPendKanban(){
       ${items.map((a,i)=>card(a,i,items.length)).join('')||''}
       <button class="kb-add" onclick="openTask(null,'${id}')">+ nova tarefa</button></div>`}).join('')}</div>`;
   return stats+toolbar+kb}
-function respName(id){const r=DB.responsaveis.find(x=>x.id===id);return r?r.nome:'—'}
+function respName(id){const r=DB.responsaveis.find(x=>x.id===id);if(r)return r.nome;
+  const p=pessoaPorLegado(id);return p?p.nome:'—'}
 
 /* --- Ordenação do Kanban de pendências --- */
 const PEND_SORTS=[['manual','Ordem manual (arrastar)'],['pri_desc','Prioridade: mais importante primeiro'],['pri_asc','Prioridade: menos importante primeiro'],['prazo_asc','Prazo: mais próximo primeiro'],['prazo_desc','Prazo: mais distante primeiro']];
@@ -1684,10 +1798,11 @@ function viewCalendar(){
   for(let d=1;d<=dim;d++){
     const dt=new Date(y,mo,d);const dk=iso(dt);
     const av=avulsasOnDate(dt).filter(a=>a.status!=='feito').length,men=mensaisOnDate(dt).length,sem=semanaisOnDate(dt).length,dia=diariasOnDate(dt).length;
+    const onbArr=onbEtapasOnDate(dt),cadArr=cadToquesOnDate(dt);
     const cpArr=cpByDay[d]||[];const cpSoma=cpArr.reduce((s,x)=>s+x.c.valor,0);const cpVe=cpArr.some(x=>x.st==='vencido');
     const crmArr=crmByDay[d]||[];
-    const total=av+men+sem+dia+cpArr.length+crmArr.length;const hol=holidayName(dt);
-    const dots=[av&&'<i style="background:var(--acc)"></i>',men&&'<i style="background:var(--meta)"></i>',sem&&'<i style="background:#8a7cf2"></i>',dia&&'<i style="background:var(--pos)"></i>',cpArr.length&&`<i style="background:${CONTAS_COR}"></i>`,crmArr.length&&`<i style="background:${CRM_CAL_COR}"></i>`].filter(Boolean).join('');
+    const total=av+men+sem+dia+cpArr.length+crmArr.length+onbArr.length+cadArr.length;const hol=holidayName(dt);
+    const dots=[av&&'<i style="background:var(--acc)"></i>',men&&'<i style="background:var(--meta)"></i>',sem&&'<i style="background:#8a7cf2"></i>',dia&&'<i style="background:var(--pos)"></i>',cpArr.length&&`<i style="background:${CONTAS_COR}"></i>`,crmArr.length&&`<i style="background:${CRM_CAL_COR}"></i>`,onbArr.length&&`<i style="background:${ONB_CAL_COR}"></i>`,cadArr.length&&`<i style="background:${CAD_CAL_COR}"></i>`].filter(Boolean).join('');
     cells+=`<div class="d ${dk===todayK?'hoje':''} ${!isDiaUtil(dt)?'nu':''} ${hol?'hol':''} ${calSel===dk?'sel':''}" onclick="calSel='${dk}';render()">
       <span class="n">${d}</span>${total?`<span class="cnt">${total}</span>`:''}
       <div class="dots">${dots}</div>${cpSoma?`<div class="val" style="color:${cpVe?'var(--neg)':CONTAS_COR}">${brl(cpSoma)}</div>`:''}${hol?`<div class="hol-lab">${esc(hol)}</div>`:''}</div>`;
@@ -1696,7 +1811,8 @@ function viewCalendar(){
   const mn=calRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const sw=(cor,lab)=>`<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:5px"></i>${lab}</span>`;
   const legend=`<div class="row-meta" style="margin-bottom:12px;font-size:12px">
-    ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')} · ${sw(CRM_CAL_COR,'CRM')}</div>`;
+    ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')} · ${sw(CRM_CAL_COR,'CRM')} · ${sw(ONB_CAL_COR,'Implantação')} · ${sw(CAD_CAL_COR,'Cadência')}</div>
+    <div class="tip" style="margin-bottom:12px">As mesmas informações em lista ou Kanban estão em <b>Operação → Agenda</b>.</div>`;
   return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${mn}</h2>
     <button class="btn btn-sm" onclick="stepCal(-1)">‹</button><button class="btn btn-sm" onclick="calRef=new Date();render()">Hoje</button><button class="btn btn-sm" onclick="stepCal(1)">›</button></div>
     ${legend}
@@ -2210,7 +2326,7 @@ function criarCliente(nome,operadorId,perfil,dataInicio,prazoDias,obs){
   onbRenumerar(cli);return cli}
 /* persistência */
 const onbRowOperador=o=>({id:o.id,nome:o.nome,cor:o.cor,deleted_at:toISO(o.deletedAt)});
-const onbRowCliente=c=>({id:c.id,nome:c.nome,operador_id:c.operadorId||null,perfil:c.perfil,data_inicio:c.dataInicio,prazo_dias:c.prazoDias,obs:c.obs||null,deleted_at:toISO(c.deletedAt),updated_at:new Date().toISOString()});
+const onbRowCliente=c=>({id:c.id,nome:c.nome,operador_id:c.operadorId||null,perfil:c.perfil,data_inicio:c.dataInicio,prazo_dias:c.prazoDias,obs:c.obs||null,lead_id:c.leadId||null,origem:c.origem||null,deleted_at:toISO(c.deletedAt),updated_at:new Date().toISOString()});
 const onbRowEtapa=(e,cid)=>({id:e.id,cliente_id:cid,modelo_id:e.modeloId||null,num:e.num,ordem:e.ordem,fase:e.fase,titulo:e.titulo,obrigatorio:!!e.obrigatorio,bloqueador:!!e.bloqueador,marco:!!e.marco,offset_dias:e.offset,prazo:e.prazo||null,status:e.status,data_conclusao:e.dataConclusao||null,responsavel_id:e.responsavelId||null,obs:e.obs||null,updated_at:new Date().toISOString()});
 async function upMany(t,rows){if(!rows.length)return;const {error}=await sb.from(t).upsert(rows);if(error){console.error(t,error);toast('⚠ Erro ao salvar na nuvem')}}
 function pOnbOp(o){up('onb_operadores',onbRowOperador(o))}
@@ -2445,7 +2561,7 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,cadencia_off:l.cadenciaOff||[],sem_proposta:!!l.semProposta,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,loss_detail:l.lossDetail||null,lost_from_stage_id:l.lostFrom||null,lost_at:l.lostAt||null,reativar_em:l.reativarEm||null,reativar_status:l.reativarStatus||null,ciclo:l.ciclo||1,linha_servico:l.linhaServico||null,cadencia_off:l.cadenciaOff||[],sem_proposta:!!l.semProposta,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,cnpj:l.cnpj||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
 function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
 function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
@@ -2494,10 +2610,12 @@ function waIcon(tel,msg,titulo){const h=waHref(tel,msg);
    prospecção → cadência de 7 mensagens · reunião → só a ligação de pré-diagnóstico
    proposta → follow-up de proposta · fechado → nenhuma. */
 const CAD_FASES=[
-  ['prospeccao','Prospecção','antes da reunião — roda a cadência de 7 mensagens'],
-  ['reuniao','Reunião marcada','a prospecção para aqui; é a hora da ligação de pré-diagnóstico'],
-  ['proposta','Proposta enviada','roda o follow-up de proposta'],
-  ['fechado','Fechado','ganho ou perdido — fora das réguas']];
+  ['prospeccao','Prospecção','ainda não falou com o cliente: roda a cadência de 7 mensagens'],
+  ['contato','Contato feito','já falou; nenhuma mensagem automática, é a hora do pré-diagnóstico'],
+  ['reuniao','Reunião marcada','reunião agendada; ao realizá-la nasce o prazo da proposta'],
+  ['preparar','Proposta a preparar','reunião feita e proposta ainda não enviada'],
+  ['proposta','Proposta enviada','roda o follow-up de 5 mensagens'],
+  ['fechado','Fechado','ganho ou perdido, fora das réguas']];
 const FASE_LABEL={};CAD_FASES.forEach(f=>FASE_LABEL[f[0]]=f[1]);
 /* etapa que não existe mais (foi apagada do funil enquanto o cliente estava nela) */
 const crmSemEtapa=l=>!!(l&&l.estagioId)&&!crmEstById(l.estagioId);
@@ -2758,12 +2876,14 @@ function viewCrmKanban(){
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
 function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove('over');if(!_crmDrag)return;const l=crmLeadById(_crmDrag);
-  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraFechado=crmFase(l)==='fechado';l.estagioId=estId;
+  if(l&&l.estagioId!==estId){const alvo=crmEstById(estId);const eraFechado=crmFase(l)==='fechado';const eraId=l.estagioId;l.estagioId=estId;
     const ligou=crmAutoProposta(l);persistCrmLead(l);
     if(alvo&&(alvo.tipo==='ganho'||alvo.tipo==='perdido')&&!eraFechado){
       const perdeu=alvo.tipo==='perdido';
       const motivo=perdeu?(prompt('Por que perdeu este cliente? (uma linha, ou deixe em branco)')||'').trim():'';
-      if(perdeu)comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}});
+      if(perdeu){l.lostFrom=eraId;l.lostAt=new Date().toISOString();l.lossDetail=motivo;
+        comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}})}
+      comTarefaPropostaFecha(l);
       const feito=comLimpar(l,motivo,true);
       render();toast((perdeu?'Perdido: ':'🎉 Fechado: ')+alvo.nome+(feito.length?' · limpei '+feito.join(', '):''))}
     else{render();toast(ligou?'→ '+alvo.nome+' · follow-up de proposta começou hoje':'→ '+(alvo?alvo.nome:''))}}
@@ -3667,7 +3787,7 @@ function persistProposta(p){up('crm_propostas',{id:p.id,lead_id:p.leadId||null,p
  validade_dias:p.validadeDias||30,empresa:p.empresa||null,contato:p.contato||null,cargo:p.cargo||null,email:p.email||null,telefone:p.telefone||null,
  cnpj:p.cnpj||null,segmento:p.segmento||null,necessidade:p.necessidade||null,plano:p.plano||'inter',mensalidade:+p.mensalidade||0,
  implantacao:+p.implantacao||0,perfil_impl:p.perfilImpl||'B',escopo:p.escopo||[],beneficios:p.beneficios||[],condicoes:p.condicoes||{},
- numeros:p.numeros||{},transcricao:p.transcricao||null,status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
+ numeros:p.numeros||{},transcricao:p.transcricao||null,enviada_em:p.enviadaEm||null,versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
 
 /* perfil de implantação sugerido pelo tamanho e pela complexidade da operação */
 function propPerfilSugerido(c,k){if(!c)return 'B';
@@ -3769,8 +3889,9 @@ function propVincLead(id){const p=propAtual();if(!p)return;p.leadId=id;persistPr
 
 /* marca a proposta como enviada: liga a régua 2 e atualiza o lead */
 function propMarcarEnviada(){const p=propAtual();if(!p)return;
- p.status='enviada';persistProposta(p);
+ p.status='enviada';p.enviadaEm=new Date().toISOString();persistProposta(p);
  const l=p.leadId?crmLeadById(p.leadId):null;
+ if(l){comEvento(l,'proposta_enviada',{detalhe:'proposta '+p.numero});comTarefaPropostaFecha(l)}
  if(l){l.statusContrato='Enviado';l.propostaData=todayKey();l.ticket=+p.mensalidade||l.ticket;
   if(!l.cadenciaProp||!l.cadenciaProp.length)l.cadenciaProp=[];
   persistCrmLead(l);comMoverFase(l,'proposta','proposta '+p.numero+' enviada')}
@@ -4026,8 +4147,10 @@ function comLog(l,tipo,obs){const at={id:(crypto.randomUUID?crypto.randomUUID():
   leadId:l.id,data:todayKey(),tipo,proximaAcao:'',dataProxima:'',obs:obs||'',deletedAt:null};
  DB.crmAtividades.push(at);persistCrmAtiv(at)}
 function comMover(l,est,motivo){if(!l||!est||l.estagioId===est.id)return false;
- const de=crmEstById(l.estagioId);l.estagioId=est.id;persistCrmLead(l);
- comLog(l,'Mudança de etapa',(de?de.nome:'—')+' → '+est.nome+(motivo?' · '+motivo:''));
+ const de=crmEstById(l.estagioId);const deId=l.estagioId;
+ l.estagioId=est.id;persistCrmLead(l);
+ comLog(l,'Mudança de etapa',(de?de.nome:'sem etapa')+' para '+est.nome+(motivo?' · '+motivo:''));
+ comEvento(l,'etapa',{de:deId,para:est.id,detalhe:motivo||''});
  return true}
 function comMoverFase(l,fase,motivo){return comMover(l,comEtapaFase(fase),motivo)}
 function comMoverTipo(l,tipo,motivo){return comMover(l,comEtapaTipo(tipo),motivo)}
@@ -4088,6 +4211,9 @@ function comAcoesHoje(){const hoje=todayKey(),out=[];
    titulo:'Toque '+x.t.n+' da '+REG(x.r).curto,detalhe:x.t.obj,
    rotulo:x.atrasado?'atrasado':'hoje',
    acao:`openCad('${x.l.id}','${x.r}')`,acaoLbl:'Abrir cadência'})});
+ comParaReativar().forEach(l=>{out.push({urg:1,quando:l.reativarEm,cliente:l,
+   titulo:'Retomar contato',detalhe:'você agendou para hoje ou antes; perdido em '+(l.motivoPerda||'motivo não registrado'),
+   rotulo:'reativar',acao:`comAbrir('${l.id}','fechamento')`,acaoLbl:'Abrir ficha'})});
  propAguardandoEnvio().forEach(l=>{const p=comPropAtiva(l);
   out.push({urg:1,quando:l.proximoContato||hoje,cliente:l,
    titulo:p?'Proposta '+p.numero+' ainda em rascunho':'Proposta ainda não gerada',
@@ -4154,8 +4280,18 @@ function viewComPainel(){
    return `<div class="hbar"><div class="hl"><span class="nm">${esc(e.nome)}</span>
     <span class="muted">${chegou} cliente(s)${i?` · ${pct}% da etapa anterior`:''}</span></div>
     <div class="ht"><i style="width:${cv.total?Math.round(chegou/cv.total*100):0}%;background:${e.cor}"></i></div></div>`}).join('');
- const convPanel=`<div class="panel"><div class="panel-head"><h2>Conversão entre etapas<small>com base na posição atual dos clientes, não em histórico de movimentação</small></h2></div>
-   ${conv}${cv.perdidos?`<div class="muted" style="font-size:11.5px;margin-top:10px">${cv.perdidos} cliente(s) em Perdido ficam fora desta conta: não dá para saber de qual etapa saíram.</div>`:''}</div>`;
+ const real=comConversaoReal();
+ const convReal=real?real.linhas.map((x,i)=>{const ant=i?real.linhas[i-1].n:x.n;
+     const pct=ant?Math.round(x.n/ant*100):0;
+     return `<div class="hbar"><div class="hl"><span class="nm">${esc(x.etapa.nome)}</span>
+      <span class="muted">${x.n} cliente(s)${i?` · ${pct}% da etapa anterior`:''}</span></div>
+      <div class="ht"><i style="width:${real.base?Math.round(x.n/real.base*100):0}%;background:${x.etapa.cor}"></i></div></div>`}).join(''):'';
+ const convPanel=real
+  ? `<div class="panel"><div class="panel-head"><h2>Conversão entre etapas<small>por movimentação registrada, contando cada ciclo do cliente</small></h2></div>
+     ${convReal}<div class="muted" style="font-size:11.5px;margin-top:10px">Conta quem realmente passou por cada etapa, a partir de ${(DB.crmEventos||[]).filter(e=>e.tipo==='etapa').length} movimento(s) registrado(s).</div></div>`
+  : `<div class="panel"><div class="panel-head"><h2>Conversão entre etapas<small>ainda pela posição atual: o histórico de movimentação começou agora</small></h2></div>
+     ${conv}${cv.perdidos?`<div class="muted" style="font-size:11.5px;margin-top:10px">${cv.perdidos} cliente(s) em Perdido ficam fora desta conta.</div>`:''}
+     <div class="tip">A partir de agora cada mudança de etapa fica registrada. Em algumas semanas este quadro passa a mostrar a conversão real.</div></div>`;
 
  const metas=alive(DB.crmMetas);
  const metasHTML=metas.length?metas.map(m=>{const real=crmMetricValue(m),meta=+m.meta||0;
@@ -4370,6 +4506,109 @@ function leadGerarProposta2(id){const l=crmLeadById(id);if(!l)return;
  leadGerarProposta(id)}
 
 /* passo 5: ganhar ou perder, e o que isso apaga da sua agenda */
+
+/* ===================================================================
+   Do comercial para a implantação: o cliente ganho não é recadastrado,
+   ele é reaproveitado. Perfil e prazo saem da proposta.
+   =================================================================== */
+const onbDoLead=l=>l?alive(DB.onbClientes).find(c=>c.leadId===l.id):null;
+const onbLeadDe=c=>(c&&c.leadId)?crmLeadById(c.leadId):null;
+function comIniciarImplantacao(id){const l=crmLeadById(id);if(!l)return;
+ const ja=onbDoLead(l);
+ if(ja){onbCliente=ja.id;go('onb');return toast('Este cliente já está em implantação')}
+ if(!alive(DB.onbModelo).length)return toast('Cadastre o modelo de implantação antes');
+ const p=comPropAtiva(l);
+ const perfil=(p&&p.perfilImpl)||'B';
+ const prazo=PERFIS_ONB[perfil]||90;
+ /* o responsável comercial vira o responsável da implantação, se ele atuar lá */
+ const pes=pessoaPorLegado(l.responsavelId);
+ const op=(pes&&pes.idImplantacao&&pessoaTemPapel(pes,'implantacao'))?pes.idImplantacao:'';
+ const detalhes=[];
+ if(p){detalhes.push('Proposta '+p.numero+' · '+brl(p.mensalidade)+'/mês');
+   if(+p.implantacao)detalhes.push('implantação '+brl(p.implantacao));}
+ if(l.contato)detalhes.push('Contato: '+l.contato+(l.telefone?' · '+l.telefone:''));
+ if(l.cnpj)detalhes.push('CNPJ: '+l.cnpj);
+ const c=criarCliente(l.empresa,op,perfil,todayKey(),prazo,detalhes.join(' · '));
+ c.leadId=l.id;c.origem='comercial';
+ DB.onbClientes.push(c);pOnbCli(c);pOnbEtAll(c);
+ comLog(l,'Implantação iniciada','perfil '+perfil+' · '+prazo+' dias · '+c.etapas.length+' etapas criadas');
+ onbCliente=c.id;go('onb');
+ toast('Implantação criada para '+l.empresa+' com '+c.etapas.length+' etapas')}
+
+/* atalho no sentido contrário: da implantação para a ficha comercial */
+/* ===================================================================
+   Linha do tempo do cliente. Cada movimento vira um evento, e é dele
+   que sai a conversão real entre etapas.
+   =================================================================== */
+function comEvento(l,tipo,extra){if(!l)return;
+ const ev={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+   leadId:l.id,tipo,em:new Date().toISOString(),
+   de:(extra&&extra.de)||'',para:(extra&&extra.para)||'',ciclo:l.ciclo||1,
+   detalhe:(extra&&extra.detalhe)||''};
+ (DB.crmEventos=DB.crmEventos||[]).unshift(ev);
+ up('crm_events',{id:ev.id,lead_id:ev.leadId,tipo:ev.tipo,ocorreu_em:ev.em,
+   de_etapa_id:ev.de||null,para_etapa_id:ev.para||null,ciclo:ev.ciclo,
+   user_id:ME?ME.id:null,detalhe:ev.detalhe||null});
+ return ev}
+const comEventosDo=l=>(DB.crmEventos||[]).filter(e=>e.leadId===(l&&l.id));
+
+/* conversão a partir do que aconteceu, não da posição atual */
+function comConversaoReal(){
+ const est=crmEstagios().filter(e=>e.tipo==='normal').sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+ const evs=(DB.crmEventos||[]).filter(e=>e.tipo==='etapa'&&e.para);
+ if(!evs.length)return null;
+ const alcancou={};
+ est.forEach(e=>alcancou[e.id]=new Set());
+ /* quem chegou numa etapa chegou em todas as anteriores */
+ evs.forEach(ev=>{const alvo=crmEstById(ev.para);if(!alvo)return;
+   est.forEach(e=>{if((e.ordem||0)<=(alvo.ordem||0))alcancou[e.id].add(ev.leadId+'#'+(ev.ciclo||1))});
+ });
+ const linhas=est.map((e,i)=>({etapa:e,n:alcancou[e.id].size}));
+ return {linhas,base:linhas.length?linhas[0].n:0}}
+
+/* ===== reunião realizada e o prazo da proposta ===== */
+const PRAZO_PROPOSTA_DIAS=3;
+function pdReuniaoFeita(c){return !!(c&&c.reuniaoFeita)}
+function pdMarcarReuniaoFeita(){const c=pdAtual();if(!c)return;
+ if(pdReuniaoFeita(c)){if(!confirm('Desmarcar a reunião como realizada?'))return;
+   c.reuniaoFeita='';savePd();render();return toast('Reunião desmarcada')}
+ c.reuniaoFeita=new Date().toISOString();savePd();
+ const l=comLeadDe(c);
+ if(l){comEvento(l,'reuniao_realizada',{detalhe:'reunião realizada'});
+   comMoverFase(l,'preparar','reunião realizada');
+   comTarefaProposta(l)}
+ render();toast(l?'Reunião registrada · criei a tarefa de enviar a proposta':'Reunião registrada')}
+
+/* prazo em dias úteis, usando o calendário do app */
+function diasUteisAFrente(dk,n){let d=dk;for(let i=0;i<n;i++){d=addDias(d,1);
+  while(!isDiaUtil(parseK(d)))d=addDias(d,1)}return d}
+function comTarefaProposta(l){
+ const titulo='Enviar proposta · '+l.empresa;
+ const ja=alive(DB.avulsas).find(a=>a.leadId===l.id&&a.tipo==='proposta'&&a.status!=='feito');
+ const prazo=diasUteisAFrente(todayKey(),PRAZO_PROPOSTA_DIAS);
+ if(ja){ja.prazo=prazo;persistAvulsa(ja);return ja}
+ const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,leadId:l.id,
+   tipo:'proposta',propostaId:'',prioridade:'alta',prazo,hora:'',ordem:-1,responsavelId:null,
+   status:'afazer',valor:+l.ticket||0,obs:'Prazo de '+PRAZO_PROPOSTA_DIAS+' dias úteis a partir da reunião.',
+   empresa:'Lidere',concluidoEm:null,deletedAt:null};
+ DB.avulsas.push(a);persistAvulsa(a);return a}
+function comTarefaPropostaFecha(l){
+ alive(DB.avulsas).filter(a=>a.leadId===l.id&&a.tipo==='proposta'&&a.status!=='feito')
+  .forEach(a=>{a.status='feito';a.concluidoEm=Date.now();persistAvulsa(a)})}
+
+/* ===== reativação agendada ===== */
+const REATIVAR_OPCOES=[['30','Em 30 dias'],['60','Em 60 dias'],['90','Em 90 dias'],['180','Em 180 dias']];
+function comAgendarReativacao(id,dias){const l=crmLeadById(id);if(!l)return;
+ const d=dias==='custom'?(prompt('Data para retomar (AAAA-MM-DD):')||'').trim():addDias(todayKey(),+dias);
+ if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d))return toast('Data inválida');
+ l.reativarEm=d;l.reativarStatus='agendada';persistCrmLead(l);
+ comEvento(l,'reativacao_agendada',{detalhe:'retomar em '+fmtBR(d)});
+ render();toast('Vou te lembrar em '+fmtBR(d))}
+function comCancelarReativacao(id){const l=crmLeadById(id);if(!l)return;
+ l.reativarEm='';l.reativarStatus='';persistCrmLead(l);render();toast('Reativação cancelada')}
+const comParaReativar=()=>crmLeadsAtivos().filter(l=>l.reativarEm&&l.reativarStatus==='agendada'
+  &&crmFase(l)==='fechado'&&l.reativarEm<=todayKey());
+
 function comFichaFech(l,c,p){
  const est=crmEstById(l.estagioId)||{},fase=crmFase(l);
  const pend=comPendenciasDoLead(l);
@@ -4382,9 +4621,29 @@ function comFichaFech(l,c,p){
    <table class="tbl">
     <tr><td class="muted" style="width:38%">Etapa</td><td>${esc(est.nome||'—')}</td></tr>
     ${l.motivoPerda?`<tr><td class="muted">Motivo</td><td style="color:var(--neg)">${esc(l.motivoPerda)}</td></tr>`:''}
+    ${l.lostFrom?`<tr><td class="muted">Perdido na etapa</td><td>${esc((crmEstById(l.lostFrom)||{}).nome||'etapa removida')}${l.lostAt?' · '+fmtBR(String(l.lostAt).slice(0,10)):''}</td></tr>`:''}
+    ${(l.ciclo||1)>1?`<tr><td class="muted">Ciclo</td><td>${l.ciclo}º (já foi reaberto ${(l.ciclo||1)-1}x)</td></tr>`:''}
     <tr><td class="muted">Mensalidade</td><td><b style="color:var(--acc)">${brl(l.ticket)}</b></td></tr>
     <tr><td class="muted">Toques ainda pendentes</td><td>${toques||'nenhum'}</td></tr>
     <tr><td class="muted">Pendências em aberto</td><td>${pend.length||'nenhuma'}</td></tr></table>
+   ${ganho?(()=>{const imp=onbDoLead(l);
+     return `<div class="row" style="margin-top:12px;border:1px solid ${imp?'var(--line-f)':'var(--acc)'}">
+      <div class="row-body"><div class="row-title">${imp?'Implantação em andamento':'Ainda não entrou em implantação'}</div>
+       <div class="row-meta"><span class="muted">${imp
+         ?'perfil '+esc(imp.perfil)+' · início em '+fmtBR(imp.dataInicio)+' · '+onbProg(imp)+'% concluído'
+         :'o cadastro, o perfil e o prazo da proposta são reaproveitados; as etapas são criadas automaticamente'}</span></div></div>
+      <div class="row-actions">${imp
+        ? `<button class="btn btn-sm" onclick="onbCliente='${imp.id}';go('onb')">Abrir a implantação</button>`
+        : `<button class="btn btn-gold" onclick="comIniciarImplantacao('${l.id}')">Iniciar implantação</button>`}</div></div>`})():''}
+   ${!ganho?`<div class="row" style="margin-top:12px;border:1px solid ${l.reativarEm?'var(--line-f)':'var(--line)'}">
+     <div class="row-body"><div class="row-title">${l.reativarEm?'Retomar em '+fmtBR(l.reativarEm):'Quer tentar de novo mais pra frente?'}</div>
+      <div class="row-meta"><span class="muted">${l.reativarEm
+        ?'na data, ele aparece na sua agenda como "Reativar cliente"; o histórico deste ciclo fica salvo'
+        :'agende uma data e o sistema te lembra, sem precisar reabrir agora'}</span></div></div>
+     <div class="row-actions" style="flex-wrap:wrap">${l.reativarEm
+       ? `<button class="btn btn-sm btn-ghost" onclick="comCancelarReativacao('${l.id}')">Cancelar</button>`
+       : REATIVAR_OPCOES.map(o=>`<button class="btn btn-sm" onclick="comAgendarReativacao('${l.id}','${o[0]}')">${o[1]}</button>`).join('')
+         +`<button class="btn btn-sm" onclick="comAgendarReativacao('${l.id}','custom')">Data...</button>`}</div></div>`:''}
    <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
     ${(toques||pend.length)?`<button class="btn btn-gold" onclick="comLimpar('${l.id}')">Limpar o que ficou pendente</button>`:''}
     <button class="btn" onclick="comReabrir('${l.id}')">Reabrir este cliente</button></div>
@@ -4436,13 +4695,17 @@ function comFecharGanho(id){const l=crmLeadById(id);if(!l)return;
  if(p&&p.status!=='aceita'){p.status='aceita';if(+p.mensalidade)l.ticket=+p.mensalidade;persistProposta(p)}
  comMover(l,alvo,'fechado');
  const feito=comLimpar(l,'',true);
- render();toast('Cliente fechado'+(feito.length?' · limpei '+feito.join(', '):''))}
+ comFichaTab='fechamento';render();
+ toast('Cliente fechado'+(feito.length?' · limpei '+feito.join(', '):''));
+ if(!onbDoLead(l)&&alive(DB.onbModelo).length&&confirm('Iniciar a implantação de '+l.empresa+' agora?\n\nO cadastro, o perfil e o prazo da proposta são reaproveitados.'))comIniciarImplantacao(l.id)}
 
 function comFecharPerdido(id){const l=crmLeadById(id);if(!l)return;
  const alvo=comEtapaTipo('perdido');
  if(!alvo)return toast('Não existe etapa de perdido no funil');
  const motivo=(prompt('Por que perdeu este cliente? (uma linha)')||'').trim();
+ l.lostFrom=l.estagioId;l.lostAt=new Date().toISOString();l.lossDetail=motivo;
  comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}});
+ comTarefaPropostaFecha(l);
  comMover(l,alvo,'perdido'+(motivo?' · '+motivo:''));
  const feito=comLimpar(l,motivo,true);
  render();toast('Registrado como perdido'+(feito.length?' · limpei '+feito.join(', '):''))}
@@ -4450,8 +4713,11 @@ function comFecharPerdido(id){const l=crmLeadById(id);if(!l)return;
 function comReabrir(id){const l=crmLeadById(id);if(!l)return;
  const alvo=crmEstagios().find(e=>e.tipo==='normal');
  if(!alvo)return toast('Não existe etapa aberta no funil');
- l.motivoPerda='';persistCrmLead(l);
- comMover(l,alvo,'cliente reaberto');render();toast('Reaberto em '+alvo.nome)}
+ l.ciclo=(l.ciclo||1)+1;l.motivoPerda='';l.lossDetail='';l.lostAt='';l.lostFrom='';
+ l.reativarEm='';l.reativarStatus='';persistCrmLead(l);
+ comEvento(l,'reaberto',{detalhe:'ciclo '+l.ciclo});
+ comMover(l,alvo,'cliente reaberto, ciclo '+l.ciclo);render();
+ toast('Reaberto em '+alvo.nome+' · ciclo '+l.ciclo+', o histórico anterior continua salvo')}
 
 /* não se aplica: cliente que não passa por proposta formal */
 function propDispensar(id){const l=crmLeadById(id);if(!l)return;
@@ -4475,8 +4741,18 @@ function comFichaHist(l){
      <div class="row-meta"><span class="chip chip-n" style="color:${cor}">${st==='feito'?'enviado':st==='pulado'?'pulado':prev?fmtBR(prev):'sem data'}</span><span class="muted">${esc(t.obj)}</span></div></div></div>`}).join('');
   return `<div class="panel"><div class="panel-head"><h2>${esc(R.nome)}<small>${res.iniciada?res.feitos+' de '+res.total+' enviados':'ainda não iniciada'}</small></h2>
     <button class="btn btn-sm" onclick="openCad('${l.id}','${r}')">Abrir</button></div>${linhas}</div>`}).join('');
+ const evs=comEventosDo(l);
+ const EV_LABEL={etapa:'Mudou de etapa',reuniao_realizada:'Reunião realizada',proposta_enviada:'Proposta enviada',
+   reaberto:'Cliente reaberto',reativacao_agendada:'Reativação agendada'};
+ const linha=evs.map(e=>{const de=e.de?(crmEstById(e.de)||{}).nome:'',para=e.para?(crmEstById(e.para)||{}).nome:'';
+   return `<div class="row"><div class="row-body">
+     <div class="row-title" style="font-size:12.5px">${esc(EV_LABEL[e.tipo]||e.tipo)}${para?': '+esc(de||'sem etapa')+' para '+esc(para):''}</div>
+     <div class="row-meta"><span class="chip chip-n">${fmtBR(String(e.em).slice(0,10))}</span>
+      ${(e.ciclo||1)>1?`<span class="chip chip-n">ciclo ${e.ciclo}</span>`:''}
+      ${e.detalhe?`<span class="muted">${esc(e.detalhe)}</span>`:''}</div></div></div>`}).join('');
+ const tl=evs.length?`<div class="panel"><div class="panel-head"><h2>Linha do tempo<small>o que aconteceu, em ordem; base da conversão do painel</small></h2></div>${linha}</div>`:'';
  return `<div class="panel"><div class="panel-head"><h2>Atividades deste cliente</h2>
-   <button class="btn btn-sm btn-gold" onclick="openAtiv()">+ Registrar atividade</button></div>${rows}</div>`+reguas}
+   <button class="btn btn-sm btn-gold" onclick="openAtiv()">+ Registrar atividade</button></div>${rows}</div>`+tl+reguas}
 
 function comAjFunil(){const est=crmEstagios();
  const rows=est.map((e,i)=>{const cnt=crmLeadsAtivos().filter(l=>l.estagioId===e.id).length;
@@ -4721,7 +4997,13 @@ function pdBlocoCall(){const c=pdAtual();if(!c)return '';
   <div class="cad-acts" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
    <button class="btn btn-gold" onclick="pdMarcarCall()">${marcada?'Atualizar a reunião':'Call agendada'}</button>
    ${marcada?`<button class="btn btn-ghost" onclick="pdDesmarcarCall()">Desmarcar</button>`:''}
-   ${!l?'<span class="muted" style="font-size:11.5px">Vincule um cliente no passo 1 para criar a pendência.</span>':''}</div></div>`}
+   ${!l?'<span class="muted" style="font-size:11.5px">Vincule um cliente no passo 1 para criar a pendência.</span>':''}</div>
+  ${marcada?`<div class="row" style="margin-top:12px;border:1px solid ${pdReuniaoFeita(c)?'var(--line-f)':'var(--acc)'}">
+    <div class="row-body"><div class="row-title">${pdReuniaoFeita(c)?'Reunião realizada em '+fmtBR(String(c.reuniaoFeita).slice(0,10)):'A reunião já aconteceu?'}</div>
+     <div class="row-meta"><span class="muted">${pdReuniaoFeita(c)
+       ?'o prazo de '+PRAZO_PROPOSTA_DIAS+' dias úteis para a proposta começou a contar daqui'
+       :'ao confirmar, o cliente vai para "Proposta a preparar" e nasce a tarefa de enviar a proposta em '+PRAZO_PROPOSTA_DIAS+' dias úteis'}</span></div></div>
+    <div class="row-actions"><button class="btn btn-sm ${pdReuniaoFeita(c)?'':'btn-gold'}" onclick="pdMarcarReuniaoFeita()">${pdReuniaoFeita(c)?'Desmarcar':'Reunião realizada'}</button></div></div>`:''}</div>`}
 function pdMarcarCall(){const c=pdAtual();if(!c)return;
  const data=gEl('pd_call_data').value, hora=gEl('pd_call_hora').value||'09:00';
  if(!data)return toast('Escolha a data da reunião');
@@ -4841,6 +5123,150 @@ function propBlocoIA(p){
    <textarea id="prop_ia" rows="5" placeholder="Cole aqui a resposta que o Claude devolveu (o bloco JSON)."></textarea></div>
   <button class="btn" onclick="propAplicarIA()">Aplicar na proposta</button>
   <div class="tip">O que ele preenche: entendimento da necessidade, escopo, benefícios e condições. Valor, plano e prazo continuam sendo seus, definidos acima.</div></div>`}
+
+
+/* ===================================================================
+   Agenda única: tudo o que tem data, vindo das seis origens, num
+   formato só. Lista, Kanban e o Calendário leem daqui.
+   =================================================================== */
+const AG_ORIGENS=[
+ {id:'pendencia',nome:'Pendências',cor:'var(--acc)'},
+ {id:'rotina',nome:'Rotinas',cor:'var(--meta)'},
+ {id:'conta',nome:'Contas a pagar',cor:'#06b6d4'},
+ {id:'cadencia',nome:'Cadência',cor:'#8a7cf2'},
+ {id:'reuniao',nome:'Reuniões',cor:'#ec4899'},
+ {id:'implantacao',nome:'Implantação',cor:'var(--pos)'}];
+const agOrigem=id=>AG_ORIGENS.find(o=>o.id===id)||AG_ORIGENS[0];
+const ONB_CAL_COR='var(--pos)', CAD_CAL_COR='#8a7cf2';
+
+/* etapas de implantação que vencem num dia */
+function onbEtapasOnDate(dt){const dk=iso(dt),out=[];
+  alive(DB.onbClientes).forEach(c=>c.etapas.forEach(e=>{
+    if(e.prazo===dk&&onbAplic(e)&&!onbFeito(e))out.push({cliente:c,etapa:e})}));
+  return out}
+/* toques de cadência previstos para um dia */
+function cadToquesOnDate(dt){const dk=iso(dt),out=[];
+  crmLeadsAtivos().forEach(l=>{const r=cadReguaAtiva(l);if(!r)return;
+    REG(r).toques.forEach(t=>{
+      if(cadEstado(l,r,t.n).st!=='pendente')return;
+      if(cadPrev(l,r,t.n)===dk)out.push({l,r,t})})});
+  return out}
+
+function agendaItens(de,ate){
+  const out=[],hoje=todayKey();
+  const add=o=>out.push(o);
+  /* 1. pendências */
+  alive(DB.avulsas).forEach(a=>{if(!a.prazo||a.prazo<de||a.prazo>ate)return;
+    add({dk:a.prazo,hora:a.hora||'',origem:'pendencia',tipo:'Tarefa',titulo:a.titulo,
+      cliente:'',resp:a.responsavelId?respName(a.responsavelId):'',prioridade:a.prioridade,
+      feito:a.status==='feito',valor:0,abrir:`openTask('${a.id}')`})});
+  /* 2. rotinas, dia a dia */
+  for(let d=de;d<=ate;d=addDias(d,1)){const dt=parseK(d);
+    const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[d]||{};
+    const push=(m,lbl,ex)=>add({dk:d,hora:'',origem:'rotina',tipo:'Rotina '+lbl,titulo:m.descricao,
+      cliente:'',resp:m.responsavelId?respName(m.responsavelId):'',prioridade:'media',
+      feito:!!(ex[m.id]&&ex[m.id].feito),valor:0,abrir:"go('rotinas')"});
+    mensaisOnDate(dt).forEach(m=>push(m,'mensal',mex));
+    semanaisOnDate(dt).forEach(m=>push(m,'semanal',wex));
+    diariasOnDate(dt).forEach(m=>push(m,'diária',dex))}
+  /* 3. contas a pagar, varrendo os meses tocados */
+  const vistos={};
+  for(let d=de;d<=ate;d=addDias(d,1)){const dt=parseK(d),mk=monthKey(dt);
+    if(vistos[mk])continue;vistos[mk]=1;
+    cpContasDoMes(dt).forEach(x=>{const dk=iso(x.eff);if(dk<de||dk>ate)return;
+      add({dk,hora:'',origem:'conta',tipo:'Vencimento',titulo:x.c.fornecedor,
+        cliente:cpGrupoNome(x.c.grupoId),resp:'',prioridade:x.st==='vencido'?'alta':'media',
+        feito:x.st==='pago',valor:x.c.valor,abrir:"go('contas')"})})}
+  /* 4. cadência comercial */
+  crmLeadsAtivos().forEach(l=>{const r=cadReguaAtiva(l);if(!r)return;
+    REG(r).toques.forEach(t=>{const prev=cadPrev(l,r,t.n);
+      if(!prev||prev<de||prev>ate)return;
+      const st=cadEstado(l,r,t.n).st;
+      add({dk:prev,hora:'',origem:'cadencia',tipo:REG(r).curto+' '+t.n+'/'+REG(r).toques.length,
+        titulo:t.obj,cliente:l.empresa,resp:l.responsavelId?respName(l.responsavelId):'',
+        prioridade:'media',feito:st!=='pendente',valor:0,abrir:`openCad('${l.id}','${r}')`})})});
+  /* 5. reuniões e contatos marcados */
+  crmLeadsAtivos().forEach(l=>{if(!l.proximoContato||l.proximoContato<de||l.proximoContato>ate)return;
+    add({dk:l.proximoContato,hora:'',origem:'reuniao',tipo:'Contato marcado',titulo:l.empresa,
+      cliente:l.contato||'',resp:l.responsavelId?respName(l.responsavelId):'',prioridade:l.prioridade,
+      feito:false,valor:+l.ticket||0,abrir:`comAbrir('${l.id}')`})});
+  /* 6. reativações agendadas */
+  crmLeadsAtivos().forEach(l=>{if(!l.reativarEm||l.reativarStatus!=='agendada')return;
+    if(l.reativarEm<de||l.reativarEm>ate)return;
+    add({dk:l.reativarEm,hora:'',origem:'reuniao',tipo:'Reativar cliente',titulo:l.empresa,
+      cliente:l.motivoPerda||'',resp:l.responsavelId?respName(l.responsavelId):'',prioridade:'media',
+      feito:false,valor:+l.ticket||0,abrir:`comAbrir('${l.id}','fechamento')`})});
+  /* 7. etapas de implantação */
+  alive(DB.onbClientes).forEach(c=>c.etapas.forEach(e=>{
+    if(!e.prazo||e.prazo<de||e.prazo>ate||!onbAplic(e))return;
+    add({dk:e.prazo,hora:'',origem:'implantacao',tipo:'Etapa '+(e.num||''),titulo:e.titulo,
+      cliente:c.nome,resp:e.responsavelId?respName(e.responsavelId):(c.operadorId?respName(c.operadorId):''),
+      prioridade:e.bloqueador?'alta':'media',feito:onbFeito(e),valor:0,
+      abrir:`onbCliente='${c.id}';go('onb')`})}));
+  return out.sort((a,b)=>a.dk.localeCompare(b.dk)||String(a.hora||'99').localeCompare(String(b.hora||'99')))}
+
+/* ===== Agenda: tela ===== */
+let agModo='lista', agPeriodo='30', agOrigemF='', agRespF='', agSoAbertos=true;
+function setAgModo(m){agModo=m;render()}
+function agSet(campo,v){({periodo:()=>agPeriodo=v,origem:()=>agOrigemF=v,resp:()=>agRespF=v})[campo]();render()}
+function agToggleAbertos(){agSoAbertos=!agSoAbertos;render()}
+function agIntervalo(){const hoje=todayKey();
+  const fim={'7':addDias(hoje,7),'30':addDias(hoje,30),'mes':iso(new Date(parseK(hoje).getFullYear(),parseK(hoje).getMonth()+1,0))}[agPeriodo]||addDias(hoje,30);
+  return {de:addDias(hoje,-60),ate:fim}}
+function agFiltrados(){const {de,ate}=agIntervalo();
+  return agendaItens(de,ate).filter(x=>{
+    if(agSoAbertos&&x.feito)return false;
+    if(agOrigemF&&x.origem!==agOrigemF)return false;
+    if(agRespF&&x.resp!==agRespF)return false;
+    return true})}
+function agCartao(x){const o=agOrigem(x.origem),hoje=todayKey();
+  const atrasado=!x.feito&&x.dk<hoje, hoje_=x.dk===hoje;
+  return `<button class="pcard" style="border-left-color:${atrasado?'var(--neg)':hoje_?'var(--warn)':o.cor}" onclick="${x.abrir}">
+    <div class="ph"><span class="pl" style="background:color-mix(in srgb,${o.cor} 18%,transparent);color:${o.cor}">${esc(o.nome)}</span>
+     <span class="pf">${esc(x.tipo)}</span></div>
+    <div class="pt" style="${x.feito?'text-decoration:line-through;opacity:.6':''}">${esc(x.titulo)}</div>
+    <div class="pm">${fmtBR(x.dk)}${x.hora?' · '+esc(x.hora):''}${x.cliente?' · '+esc(x.cliente):''}${x.resp?' · '+esc(x.resp):''}${x.valor?' · '+brl(x.valor):''}</div></button>`}
+
+function viewAgenda(){
+  const hoje=todayKey(),itens=agFiltrados();
+  const atr=itens.filter(x=>!x.feito&&x.dk<hoje),hj=itens.filter(x=>x.dk===hoje);
+  const sete=itens.filter(x=>x.dk>hoje&&x.dk<=addDias(hoje,7));
+  const depois=itens.filter(x=>x.dk>addDias(hoje,7));
+  const resps=[...new Set(itens.map(x=>x.resp).filter(Boolean))].sort();
+  const stats=`<div class="stats">
+    <div class="stat"><div class="k">Atrasado</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">passou da data</div></div>
+    <div class="stat"><div class="k">Hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">para fechar o dia</div></div>
+    <div class="stat"><div class="k">Próximos 7 dias</div><div class="v" style="color:var(--meta)">${sete.length}</div><div class="sub">já agendado</div></div>
+    <div class="stat"><div class="k">No período</div><div class="v">${itens.length}</div><div class="sub">de 6 origens diferentes</div></div>
+  </div>`;
+  const filtros=`<div class="filters">
+    <select onchange="agSet('periodo',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+      <option value="7" ${agPeriodo==='7'?'selected':''}>Próximos 7 dias</option>
+      <option value="30" ${agPeriodo==='30'?'selected':''}>Próximos 30 dias</option>
+      <option value="mes" ${agPeriodo==='mes'?'selected':''}>Até o fim do mês</option></select>
+    <select onchange="agSet('origem',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+      <option value="">Todas as origens</option>${AG_ORIGENS.map(o=>`<option value="${o.id}" ${agOrigemF===o.id?'selected':''}>${esc(o.nome)}</option>`).join('')}</select>
+    <select onchange="agSet('resp',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+      <option value="">Todos os responsáveis</option>${resps.map(r=>`<option ${agRespF===r?'selected':''}>${esc(r)}</option>`).join('')}</select>
+    <button class="btn btn-sm ${agSoAbertos?'btn-gold':''}" onclick="agToggleAbertos()">${agSoAbertos?'Só em aberto':'Mostrando tudo'}</button>
+    <span class="right" style="display:flex;gap:6px">
+      ${[['lista','Lista'],['kanban','Kanban']].map(([k,l])=>`<button class="btn btn-sm ${agModo===k?'btn-gold':''}" onclick="setAgModo('${k}')">${l}</button>`).join('')}
+      <button class="btn btn-sm" onclick="go('cal')">Calendário</button></span></div>`;
+  let corpo='';
+  if(agModo==='kanban'){
+    const col=(t,arr,cor)=>`<div class="kb-col" style="min-width:240px">
+      <div class="kb-h"><span class="dot" style="background:${cor}"></span>${t}<span class="cnt">${arr.length}</span></div>
+      ${arr.map(agCartao).join('')||'<div class="empty" style="padding:12px;font-size:11.5px">Nada aqui.</div>'}</div>`;
+    corpo=`<div class="panel"><div class="kb" style="grid-template-columns:repeat(4,minmax(230px,1fr));overflow-x:auto">
+      ${col('Atrasado',atr,'var(--neg)')}${col('Hoje',hj,'var(--warn)')}${col('Próximos 7 dias',sete,'var(--meta)')}${col('Depois',depois,'var(--mut)')}</div></div>`}
+  else{
+    const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
+    const dias=Object.keys(porDia).sort();
+    corpo=dias.length?dias.map(dk=>{const atrasadoDia=dk<hoje;
+      return `<div class="panel"><div class="panel-head"><h2>${fmtBR(dk)}<small>${porDia[dk].length} item(ns)${atrasadoDia?' · atrasado':dk===hoje?' · hoje':''}</small></h2></div>
+        <div class="pgridc">${porDia[dk].map(agCartao).join('')}</div></div>`}).join('')
+      :'<div class="panel"><div class="empty">Nada na agenda com esses filtros.</div></div>'}
+  return stats+filtros+corpo}
 
 /* ===== Excluídos ===== */
 /* ===== Backup ===== */
