@@ -463,6 +463,52 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .pcard .pt{font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pcard .pm{font-size:10.5px;color:var(--mut);margin-top:3px}
 .pgridc{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:8px}
+/* ---- agenda ---- */
+.ag-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.ag-nav{display:flex;align-items:center;gap:4px}
+.ag-per{font-size:13px;font-weight:700;min-width:200px;text-align:center;color:var(--txt)}
+.ag-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.ag-chip{font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:4px 10px;border-radius:999px;
+  border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;white-space:nowrap}
+.ag-chip.off{opacity:.45;text-decoration:line-through}
+.ag-week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.ag-day{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:8px 8px 9px;
+  min-width:0;min-height:118px}
+.ag-day.hoje{border-color:var(--acc)}
+.ag-day.fds .dh{opacity:.55}
+.ag-day .dh{display:flex;align-items:baseline;justify-content:space-between;gap:5px;
+  margin-bottom:7px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.ag-day .dh .dn{font-size:9.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--mut)}
+.ag-day .dh .dd{font-size:15px;font-weight:800;color:var(--txt)}
+.ag-day.hoje .dh .dd,.ag-day.hoje .dh .dn{color:var(--acc)}
+.ag-vazio{font-size:10.5px;color:var(--mut);opacity:.55;padding:3px 2px}
+.ag-row{display:block;width:100%;text-align:left;background:transparent;border:0;
+  border-left:2.5px solid var(--line);padding:4px 0 5px 7px;margin-bottom:4px;cursor:pointer;
+  border-radius:0 5px 5px 0;font:inherit}
+.ag-row:hover{background:var(--raise)}
+.ag-row .rt{font-size:11px;font-weight:600;line-height:1.35;color:var(--txt);overflow-wrap:anywhere}
+.ag-row .rm{font-size:9.5px;color:var(--mut);margin-top:1px;overflow-wrap:anywhere;line-height:1.35}
+.ag-row.ok .rt{text-decoration:line-through;opacity:.5}
+.ag-lin{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;
+  border:0;border-top:1px solid var(--line);padding:9px 4px;cursor:pointer;font:inherit}
+.ag-lin:hover{background:var(--raise)}
+.ag-lin .bo{width:3px;align-self:stretch;border-radius:2px;flex:0 0 3px;min-height:26px}
+.ag-lin .tx{flex:1;min-width:0}
+.ag-lin .tx b{font-size:12.5px;font-weight:600;display:block;line-height:1.4;color:var(--txt);overflow-wrap:anywhere}
+.ag-lin .tx i{font-size:11px;color:var(--mut);font-style:normal;overflow-wrap:anywhere}
+.ag-lin.ok .tx b{text-decoration:line-through;opacity:.5}
+.ag-lin .vl{font-size:12px;font-weight:700;white-space:nowrap;color:var(--txt)}
+.ag-lin .dt{font-size:11px;color:var(--mut);white-space:nowrap;font-weight:700;min-width:64px;text-align:right}
+.ag-dh{display:flex;align-items:baseline;gap:8px;padding:13px 4px 5px;border-top:1px solid var(--line);margin-top:5px}
+.ag-dh:first-child{border-top:0;margin-top:0;padding-top:2px}
+.ag-dh b{font-size:12.5px;color:var(--txt)}
+.ag-dh span{font-size:11px;color:var(--mut);flex:1}
+.ag-dh i{font-size:10px;font-style:normal;color:var(--mut);font-weight:800}
+.ag-dh + .ag-lin{border-top:0}
+@media(max-width:1100px){.ag-week{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:680px){.ag-week{grid-template-columns:repeat(2,1fr)}
+  .ag-per{min-width:120px;font-size:12px}
+  .ag-lin .dt{min-width:0}}
 .rot-cat{width:132px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
   padding:6px 8px;border-radius:8px;font-size:11.5px}
 .rot-cat:focus{outline:none;border-color:var(--acc)}
@@ -1467,7 +1513,7 @@ const SECAO={
   home:['Painel','Visão geral do que importa hoje, em todas as áreas'],
   pend:['Pendências','Kanban da equipe — arraste entre as colunas'],
   cal:['Calendário','Avulsas, rotinas, feriados e contas a pagar — tudo o que tem em cada dia'],
-  agenda:['Agenda','Tudo o que tem data, das seis origens, num lugar só'],
+  agenda:['Agenda','O que vence hoje e nos próximos dias, juntando as seis origens'],
   rotinas:['Rotinas','Mensais, semanais e diárias — o que se repete'],
 
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
@@ -1487,7 +1533,7 @@ function tabCount(id){
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
   if(id==='comFunil')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='comCli')return crmLeadsAtivos().length||null;
-  if(id==='agenda'){const h=todayKey();return agendaItens(addDias(h,-60),h).filter(x=>!x.feito).length||null}
+  if(id==='agenda')return agPendentes()||null
   return null}
 function renderNav(){
   gEl('nav').innerHTML=NAV().map(g=>`<div class="nav-g"><b>${g.g}</b>${
@@ -1885,7 +1931,7 @@ function viewCalendar(){
   const sw=(cor,lab)=>`<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:5px"></i>${lab}</span>`;
   const legend=`<div class="row-meta" style="margin-bottom:12px;font-size:12px">
     ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')} · ${sw(CRM_CAL_COR,'CRM')} · ${sw(ONB_CAL_COR,'Implantação')} · ${sw(CAD_CAL_COR,'Cadência')}</div>
-    <div class="tip" style="margin-bottom:12px">As mesmas informações em lista ou Kanban estão em <b>Operação → Agenda</b>.</div>`;
+    <div class="tip" style="margin-bottom:12px">A mesma informação por dia, por semana ou nos próximos 30 dias está em <b>Operação → Agenda</b>.</div>`;
   return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${mn}</h2>
     <button class="btn btn-sm" onclick="stepCal(-1)">‹</button><button class="btn btn-sm" onclick="calRef=new Date();render()">Hoje</button><button class="btn btn-sm" onclick="stepCal(1)">›</button></div>
     ${legend}
@@ -5461,12 +5507,12 @@ function agendaItens(de,ate){
   /* 2. rotinas, dia a dia */
   for(let d=de;d<=ate;d=addDias(d,1)){const dt=parseK(d);
     const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[d]||{};
-    const push=(m,lbl,ex)=>add({dk:d,hora:'',origem:'rotina',tipo:'Rotina '+lbl,titulo:m.descricao,
+    const push=(m,lbl,ex,sub)=>add({dk:d,hora:'',origem:'rotina',tipo:'Rotina '+lbl,sub,titulo:m.descricao,
       cliente:'',resp:m.responsavelId?respName(m.responsavelId):'',prioridade:'media',
       feito:!!(ex[m.id]&&ex[m.id].feito),valor:0,abrir:"go('rotinas')"});
-    mensaisOnDate(dt).forEach(m=>push(m,'mensal',mex));
-    semanaisOnDate(dt).forEach(m=>push(m,'semanal',wex));
-    diariasOnDate(dt).forEach(m=>push(m,'diária',dex))}
+    mensaisOnDate(dt).forEach(m=>push(m,'mensal',mex,'mensal'));
+    semanaisOnDate(dt).forEach(m=>push(m,'semanal',wex,'semanal'));
+    diariasOnDate(dt).forEach(m=>push(m,'diária',dex,'diaria'))}
   /* 3. contas a pagar, varrendo os meses tocados */
   const vistos={};
   for(let d=de;d<=ate;d=addDias(d,1)){const dt=parseK(d),mk=monthKey(dt);
@@ -5503,68 +5549,149 @@ function agendaItens(de,ate){
       abrir:`onbCliente='${c.id}';go('onb')`})}));
   return out.sort((a,b)=>a.dk.localeCompare(b.dk)||String(a.hora||'99').localeCompare(String(b.hora||'99')))}
 
-/* ===== Agenda: tela ===== */
-let agModo='lista', agPeriodo='30', agOrigemF='', agRespF='', agSoAbertos=true;
-function setAgModo(m){agModo=m;render()}
-function agSet(campo,v){({periodo:()=>agPeriodo=v,origem:()=>agOrigemF=v,resp:()=>agRespF=v})[campo]();render()}
+/* ===================================================================
+   Agenda: o que cobra de você agora.
+   Três visões (Dia, Semana, Próximos 30 dias) sobre as mesmas seis origens.
+   O que passou da data sai da linha do tempo e vira um bloco só, no topo.
+   =================================================================== */
+const AG_DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+let agModo='semana', agRef=todayKey(), agOrigemOff=[], agRespF='', agSoAbertos=true, agAtrAberto=false;
+
+function setAgModo(m){agModo=m;agRef=todayKey();render()}
+function agHoje(){agRef=todayKey();render()}
+function agAndar(n){agRef=addDias(agRef,n*(agModo==='dia'?1:agModo==='semana'?7:30));render()}
+function agTogOrigem(id){const i=agOrigemOff.indexOf(id);
+ if(i<0)agOrigemOff.push(id);else agOrigemOff.splice(i,1);render()}
+function agSetResp(v){agRespF=v;render()}
 function agToggleAbertos(){agSoAbertos=!agSoAbertos;render()}
-function agIntervalo(){const hoje=todayKey();
-  const fim={'7':addDias(hoje,7),'30':addDias(hoje,30),'mes':iso(new Date(parseK(hoje).getFullYear(),parseK(hoje).getMonth()+1,0))}[agPeriodo]||addDias(hoje,30);
-  return {de:addDias(hoje,-60),ate:fim}}
-function agFiltrados(){const {de,ate}=agIntervalo();
-  return agendaItens(de,ate).filter(x=>{
-    if(agSoAbertos&&x.feito)return false;
-    if(agOrigemF&&x.origem!==agOrigemF)return false;
-    if(agRespF&&x.resp!==agRespF)return false;
-    return true})}
-function agCartao(x){const o=agOrigem(x.origem),hoje=todayKey();
-  const atrasado=!x.feito&&x.dk<hoje, hoje_=x.dk===hoje;
-  return `<button class="pcard" style="border-left-color:${atrasado?'var(--neg)':hoje_?'var(--warn)':o.cor}" onclick="${x.abrir}">
-    <div class="ph"><span class="pl" style="background:color-mix(in srgb,${o.cor} 18%,transparent);color:${o.cor}">${esc(o.nome)}</span>
-     <span class="pf">${esc(x.tipo)}</span></div>
-    <div class="pt" style="${x.feito?'text-decoration:line-through;opacity:.6':''}">${esc(x.titulo)}</div>
-    <div class="pm">${fmtBR(x.dk)}${x.hora?' · '+esc(x.hora):''}${x.cliente?' · '+esc(x.cliente):''}${x.resp?' · '+esc(x.resp):''}${x.valor?' · '+brl(x.valor):''}</div></button>`}
+function agTogAtraso(){agAtrAberto=!agAtrAberto;render()}
+
+const agSegunda=dk=>addDias(dk,-((parseK(dk).getDay()+6)%7));
+function agJanela(){
+ if(agModo==='dia')return {de:agRef,ate:agRef};
+ if(agModo==='semana'){const s=agSegunda(agRef);return {de:s,ate:addDias(s,6)}}
+ return {de:agRef,ate:addDias(agRef,29)}}
+
+/* Atraso é o que passou da data e ainda cobra alguma coisa.
+   Rotina diária de um dia que já passou não se faz mais: fica fora da conta.
+   Semanal só pesa dentro da própria semana; mensal, dentro do próprio mês. */
+function agEhAtraso(x,hoje){
+ if(x.feito||x.dk>=hoje)return false;
+ if(x.origem!=='rotina')return true;
+ if(x.sub==='diaria')return false;
+ if(x.sub==='semanal')return weekKey(parseK(x.dk))===weekKey(parseK(hoje));
+ return monthKey(parseK(x.dk))===monthKey(parseK(hoje))}
+function agPassa(x){
+ if(agOrigemOff.indexOf(x.origem)>=0)return false;
+ if(agRespF&&x.resp!==agRespF)return false;
+ return true}
+/* o número do menu: o que está atrasado mais o que vence hoje */
+function agPendentes(){const hoje=todayKey();
+ const t=agendaItens(addDias(hoje,-90),hoje);
+ return t.filter(x=>agEhAtraso(x,hoje)).length+t.filter(x=>x.dk===hoje&&!x.feito).length}
+
+/* várias rotinas no mesmo dia viram uma linha só; a tela de Rotinas é que detalha */
+function agAgrupaRotinas(arr){
+ const rot=arr.filter(x=>x.origem==='rotina');
+ if(rot.length<3)return arr;
+ const feitas=rot.filter(x=>x.feito).length;
+ return arr.filter(x=>x.origem!=='rotina').concat([{dk:rot[0].dk,hora:'',origem:'rotina',
+   tipo:'Rotinas do dia',titulo:rot.length+' rotinas',cliente:feitas?feitas+' já feita'+(feitas>1?'s':''):'',
+   resp:'',prioridade:'media',feito:feitas===rot.length,valor:0,abrir:"go('rotinas')"}])}
+
+function agLinha(x,hoje){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
+ return `<button class="ag-row ${x.feito?'ok':''}" style="border-left-color:${atr?'var(--neg)':o.cor}"
+   onclick="${x.abrir}" title="${esc(o.nome+' · '+x.tipo+' · '+x.titulo)}">
+   <div class="rt">${esc(x.titulo)}</div>
+   <div class="rm">${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.valor?' · '+brl(x.valor):''}</div></button>`}
+
+function agLinhaLarga(x,hoje){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
+ return `<button class="ag-lin ${x.feito?'ok':''}" onclick="${x.abrir}">
+   <span class="bo" style="background:${atr?'var(--neg)':o.cor}"></span>
+   <span class="tx"><b>${esc(x.titulo)}</b><i>${esc(o.nome)} · ${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.resp?' · '+esc(x.resp):''}</i></span>
+   ${x.valor?`<span class="vl">${brl(x.valor)}</span>`:''}
+   <span class="dt" style="${atr?'color:var(--neg)':''}">${x.dk===hoje?'hoje':fmtBR(x.dk)}${x.hora?' · '+esc(x.hora):''}</span></button>`}
+
+function agCabecalhoDia(dk,n,hoje){const d=parseK(dk);
+ const nome=d.toLocaleDateString('pt-BR',{weekday:'long'});
+ return `<div class="ag-dh"><b>${fmtBR(dk)}</b>
+   <span>${nome.charAt(0).toUpperCase()+nome.slice(1)}${dk===hoje?' · hoje':dk===addDias(hoje,1)?' · amanhã':''}</span>
+   <i>${n}</i></div>`}
+
+function agTituloPeriodo(){const {de,ate}=agJanela();const dd=parseK(de),da=parseK(ate);
+ if(agModo==='dia'){const t=dd.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  return t.charAt(0).toUpperCase()+t.slice(1)}
+ if(agModo==='semana'){const mi=dd.toLocaleDateString('pt-BR',{month:'long'}),mf=da.toLocaleDateString('pt-BR',{month:'long'});
+  return dd.getDate()+(mi===mf?'':' de '+mi)+' a '+da.getDate()+' de '+mf}
+ return fmtBR(de)+' a '+fmtBR(ate)}
 
 function viewAgenda(){
-  const hoje=todayKey(),itens=agFiltrados();
-  const atr=itens.filter(x=>!x.feito&&x.dk<hoje),hj=itens.filter(x=>x.dk===hoje);
-  const sete=itens.filter(x=>x.dk>hoje&&x.dk<=addDias(hoje,7));
-  const depois=itens.filter(x=>x.dk>addDias(hoje,7));
-  const resps=[...new Set(itens.map(x=>x.resp).filter(Boolean))].sort();
-  const stats=`<div class="stats">
-    <div class="stat"><div class="k">Atrasado</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">passou da data</div></div>
-    <div class="stat"><div class="k">Hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">para fechar o dia</div></div>
-    <div class="stat"><div class="k">Próximos 7 dias</div><div class="v" style="color:var(--meta)">${sete.length}</div><div class="sub">já agendado</div></div>
-    <div class="stat"><div class="k">No período</div><div class="v">${itens.length}</div><div class="sub">de 6 origens diferentes</div></div>
-  </div>`;
-  const filtros=`<div class="filters">
-    <select onchange="agSet('periodo',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
-      <option value="7" ${agPeriodo==='7'?'selected':''}>Próximos 7 dias</option>
-      <option value="30" ${agPeriodo==='30'?'selected':''}>Próximos 30 dias</option>
-      <option value="mes" ${agPeriodo==='mes'?'selected':''}>Até o fim do mês</option></select>
-    <select onchange="agSet('origem',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
-      <option value="">Todas as origens</option>${AG_ORIGENS.map(o=>`<option value="${o.id}" ${agOrigemF===o.id?'selected':''}>${esc(o.nome)}</option>`).join('')}</select>
-    <select onchange="agSet('resp',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
-      <option value="">Todos os responsáveis</option>${resps.map(r=>`<option ${agRespF===r?'selected':''}>${esc(r)}</option>`).join('')}</select>
-    <button class="btn btn-sm ${agSoAbertos?'btn-gold':''}" onclick="agToggleAbertos()">${agSoAbertos?'Só em aberto':'Mostrando tudo'}</button>
-    <span class="right" style="display:flex;gap:6px">
-      ${[['lista','Lista'],['kanban','Kanban']].map(([k,l])=>`<button class="btn btn-sm ${agModo===k?'btn-gold':''}" onclick="setAgModo('${k}')">${l}</button>`).join('')}
-      <button class="btn btn-sm" onclick="go('cal')">Calendário</button></span></div>`;
-  let corpo='';
-  if(agModo==='kanban'){
-    const col=(t,arr,cor)=>`<div class="kb-col" style="min-width:240px">
-      <div class="kb-h"><span class="dot" style="background:${cor}"></span>${t}<span class="cnt">${arr.length}</span></div>
-      ${arr.map(agCartao).join('')||'<div class="empty" style="padding:12px;font-size:11.5px">Nada aqui.</div>'}</div>`;
-    corpo=`<div class="panel"><div class="kb" style="grid-template-columns:repeat(4,minmax(230px,1fr));overflow-x:auto">
-      ${col('Atrasado',atr,'var(--neg)')}${col('Hoje',hj,'var(--warn)')}${col('Próximos 7 dias',sete,'var(--meta)')}${col('Depois',depois,'var(--mut)')}</div></div>`}
-  else{
-    const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
-    const dias=Object.keys(porDia).sort();
-    corpo=dias.length?dias.map(dk=>{const atrasadoDia=dk<hoje;
-      return `<div class="panel"><div class="panel-head"><h2>${fmtBR(dk)}<small>${porDia[dk].length} item(ns)${atrasadoDia?' · atrasado':dk===hoje?' · hoje':''}</small></h2></div>
-        <div class="pgridc">${porDia[dk].map(agCartao).join('')}</div></div>`}).join('')
-      :'<div class="panel"><div class="empty">Nada na agenda com esses filtros.</div></div>'}
-  return stats+filtros+corpo}
+ const hoje=todayKey(), {de,ate}=agJanela();
+ const ini=de<addDias(hoje,-90)?de:addDias(hoje,-90);
+ const fim=ate>addDias(hoje,7)?ate:addDias(hoje,7);
+ const todos=agendaItens(ini,fim);
+ const atr=todos.filter(x=>agEhAtraso(x,hoje)&&agPassa(x));
+ const hj=todos.filter(x=>x.dk===hoje&&!x.feito&&agPassa(x));
+ const itens=todos.filter(x=>x.dk>=de&&x.dk<=ate&&agPassa(x)&&!(agSoAbertos&&x.feito));
+ const resps=[...new Set(todos.map(x=>x.resp).filter(Boolean))].sort();
+
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Atrasado</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">${atr.length?'ainda cobra de você':'nada para trás'}</div></div>
+   <div class="stat"><div class="k">Hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">para fechar o dia</div></div>
+   <div class="stat"><div class="k">${agModo==='dia'?'Neste dia':agModo==='semana'?'Nesta semana':'Neste período'}</div><div class="v">${itens.length}</div><div class="sub">${agSoAbertos?'em aberto':'tudo, feito incluso'}</div></div>
+ </div>`;
+
+ const modos=[['dia','Dia'],['semana','Semana'],['lista','30 dias']]
+   .map(([k,l])=>`<button class="btn btn-sm ${agModo===k?'btn-gold':''}" onclick="setAgModo('${k}')">${l}</button>`).join('');
+ const naSemana=agModo==='semana'&&agSegunda(agRef)===agSegunda(hoje);
+ const barra=`<div class="ag-top">
+   <div class="ag-nav">
+     <button class="btn btn-sm" onclick="agAndar(-1)" title="Anterior">‹</button>
+     <span class="ag-per">${esc(agTituloPeriodo())}</span>
+     <button class="btn btn-sm" onclick="agAndar(1)" title="Próximo">›</button>
+     ${(agRef===hoje||naSemana)?'':'<button class="btn btn-sm" onclick="agHoje()">Hoje</button>'}</div>
+   <div style="display:flex;gap:5px">${modos}</div>
+   <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
+     ${resps.length?`<select onchange="agSetResp(this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+       <option value="">Todos os responsáveis</option>${resps.map(r=>`<option ${agRespF===r?'selected':''}>${esc(r)}</option>`).join('')}</select>`:''}
+     <button class="btn btn-sm ${agSoAbertos?'btn-gold':''}" onclick="agToggleAbertos()">${agSoAbertos?'Só em aberto':'Mostrando tudo'}</button>
+     <button class="btn btn-sm" onclick="go('cal')">Calendário</button></div></div>`;
+
+ const chips=`<div class="ag-chips">${AG_ORIGENS.map(o=>{const on=agOrigemOff.indexOf(o.id)<0;
+   const n=todos.filter(x=>x.origem===o.id&&x.dk>=de&&x.dk<=ate&&!(agSoAbertos&&x.feito)).length;
+   return `<button class="ag-chip ${on?'':'off'}" onclick="agTogOrigem('${o.id}')"
+     style="${on?`border-color:${o.cor};color:${o.cor}`:''}">${esc(o.nome)}${n?' · '+n:''}</button>`}).join('')}</div>`;
+
+ const MOSTRA=3;
+ const blocoAtr=atr.length?`<div class="panel" style="border-color:color-mix(in srgb,var(--neg) 35%,var(--line))">
+   <div class="panel-head"><h2>Atrasado<small>passou da data e continua aberto${atr.length>MOSTRA&&!agAtrAberto?' · mostrando '+MOSTRA+' de '+atr.length:''}</small></h2>
+     ${atr.length>MOSTRA?`<button class="btn btn-sm" onclick="agTogAtraso()">${agAtrAberto?'Recolher':'Ver os '+atr.length}</button>`:''}</div>
+   ${(agAtrAberto?atr:atr.slice(0,MOSTRA)).map(x=>agLinhaLarga(x,hoje)).join('')}</div>`:'';
+
+ let corpo='';
+ if(agModo==='semana'){
+   const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
+   let cols='';
+   for(let i=0;i<7;i++){const dk=addDias(de,i),d=parseK(dk),fds=d.getDay()===0||d.getDay()===6;
+     const lista=agAgrupaRotinas(porDia[dk]||[]);
+     cols+=`<div class="ag-day ${dk===hoje?'hoje':''} ${fds?'fds':''}">
+       <div class="dh"><span class="dn">${AG_DIAS[d.getDay()]}</span><span class="dd">${pad(d.getDate())}</span></div>
+       ${lista.map(x=>agLinha(x,hoje)).join('')||'<div class="ag-vazio">livre</div>'}</div>`}
+   corpo=`<div class="panel"><div class="ag-week">${cols}</div></div>`}
+ else if(agModo==='dia'){
+   const lista=itens.slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
+   corpo=`<div class="panel"><div class="panel-head"><h2>${esc(agTituloPeriodo())}<small>${lista.length} item(ns)${agRef===hoje?'':' · '+fmtBR(agRef)}</small></h2></div>
+     ${lista.map(x=>agLinhaLarga(x,hoje)).join('')||'<div class="empty">Nada marcado para este dia.</div>'}</div>`}
+ else{
+   const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
+   const dias=Object.keys(porDia).sort();
+   corpo=dias.length?`<div class="panel">${dias.map(dk=>{const g=agAgrupaRotinas(porDia[dk]);
+     return agCabecalhoDia(dk,porDia[dk].length,hoje)+g.map(x=>agLinhaLarga(x,hoje)).join('')}).join('')}</div>`
+     :'<div class="panel"><div class="empty">Nada marcado neste período.</div></div>'}
+
+ const vazio=(!itens.length&&!atr.length&&agOrigemOff.length)
+   ?'<div class="tip" style="margin-top:10px">Você escondeu origens nos filtros acima. Clique de novo para trazer de volta.</div>':'';
+ return stats+barra+chips+blocoAtr+corpo+vazio}
 
 /* ===== Excluídos ===== */
 /* ===== Backup ===== */
