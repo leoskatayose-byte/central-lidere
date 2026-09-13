@@ -205,6 +205,41 @@ a.btn{text-decoration:none;cursor:pointer}
 .kb-card.late{border-left-color:var(--neg)}
 .kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
+/* ---- festinha de cliente fechado ---- */
+#festa{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;display:none}
+#festa.on{display:block}
+#festa .cf{position:absolute;top:-24px;width:9px;height:14px;opacity:0;border-radius:2px;
+  animation:cai linear forwards}
+#festa .cf.r{border-radius:50%;width:8px;height:8px}
+#festa .cf.f{width:7px;height:16px;border-radius:1px}
+@keyframes cai{
+  0%{opacity:0;transform:translate3d(0,0,0) rotate(0deg)}
+  8%{opacity:1}
+  100%{opacity:.9;transform:translate3d(var(--dx),102vh,0) rotate(var(--rot))}}
+#festa .msg{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);
+  background:var(--panel);border:1px solid var(--acc);border-radius:18px;padding:22px 34px;text-align:center;
+  box-shadow:0 18px 60px rgba(0,0,0,.55);opacity:0;animation:pop .5s cubic-bezier(.2,1.4,.4,1) forwards}
+#festa .msg .em{font-size:42px;line-height:1;display:block;margin-bottom:8px}
+#festa .msg b{display:block;font-size:19px;color:var(--acc);letter-spacing:.4px}
+#festa .msg span{display:block;font-size:13px;color:var(--dim);margin-top:5px}
+@keyframes pop{to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@media(prefers-reduced-motion:reduce){#festa .cf{display:none}#festa .msg{animation:none;opacity:1;transform:translate(-50%,-50%)}}
+/* ---- funil compacto: as 8 etapas cabem na largura da tela ---- */
+.kb.funil{gap:7px}
+.kb.funil .kb-col{padding:0 7px 8px;min-height:120px;min-width:0}
+.kb.funil .kb-h{padding:10px 1px;margin-bottom:7px;font-size:9px;letter-spacing:.8px;gap:5px}
+.kb.funil .kb-h .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb.funil .kb-card{padding:7px 8px;margin-bottom:5px;border-radius:0 7px 7px 0}
+.kb.funil .kb-card .t{font-size:11.5px;line-height:1.3;padding-right:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb.funil .kb-card .d{display:none}
+.kb.funil .kb-card .m{margin-top:5px;gap:4px}
+.kb.funil .kb-card .m .chip,.kb.funil .kb-card .m .pchip{font-size:9.5px;padding:1px 5px}
+.kb.funil .kb-card .acts{position:static;opacity:.45;margin-top:6px;justify-content:flex-end}
+.kb.funil .kb-card:hover .acts{opacity:1}
+.kb.funil .kb-tot{font-size:9.5px;color:var(--mut);font-weight:700;padding:3px 1px}
+@media(max-width:1100px){.kb.funil{grid-template-columns:repeat(4,1fr)!important}}
+@media(max-width:680px){.kb.funil{grid-template-columns:repeat(2,1fr)!important}}
 @media(hover:none){.kb-card .acts{opacity:1}}
 .kb-card .acts .iconbtn{width:23px;height:23px;font-size:11px;border-radius:6px}
 .kb-card.first .acts .up,.kb-card.last .acts .dn{opacity:.25;pointer-events:none}
@@ -815,6 +850,7 @@ tbody tr:hover{background:var(--panel2)}
 </div></div>
 
 <!-- ===== Modal Cadência de 7 mensagens (CRM) ===== -->
+<div id="festa" aria-hidden="true"></div>
 <div class="overlay" id="ovCad"><div class="modal wide">
   <div class="modal-head"><h3 id="cadTitle">Cadência de 7 mensagens</h3><button class="modal-x" onclick="closeModal('ovCad')">×</button></div>
   <div class="modal-body" id="cadBody"></div>
@@ -2857,14 +2893,14 @@ function viewCrmKanban(){
   const a=crmLeadsAtivos();
   const cols=est.map(e=>{const leads=a.filter(l=>l.estagioId===e.id);const val=leads.reduce((s,l)=>s+(+l.ticket||0),0);
     const cards=leads.map(l=>{const r=crmRespById(l.responsavelId);const late=l.proximoContato&&l.proximoContato<todayKey();
-      return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')">
-        <div class="t">${esc(l.empresa)}</div>${l.contato?`<div class="d">${esc(l.contato)}${l.cargo?' · '+esc(l.cargo):''}</div>`:''}
-        <div class="m"><span class="chip chip-n">${brl(l.ticket)}</span><span class="pchip ${l.prioridade}">${l.prioridade}</span>${late?'<span class="chip chip-vencido">atraso</span>':''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div>
-        <div class="m">${cadChip(l)}${pdChip(l)}</div>
+      return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')"
+        title="${esc(l.empresa)}${l.contato?' · '+esc(l.contato):''} · ${brl(l.ticket)}">
+        <div class="t">${esc(l.empresa)}</div>
+        <div class="m"><span class="chip chip-n">${brl(l.ticket)}</span>${late?'<span class="chip chip-vencido">atraso</span>':''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div>
         <div class="acts">${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button></div></div>`}).join('')||'';
     return `<div class="kb-col" data-est="${e.id}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="crmDropCol(event,'${e.id}')">
-      <div class="kb-h"><span class="dot" style="background:${e.cor}"></span>${esc(e.nome)}<span class="cnt">${leads.length}</span></div>${cards}
-      ${leads.length?`<div style="font-size:10.5px;color:var(--mut);font-weight:700;padding:4px 2px">${brl(val)}</div>`:''}</div>`}).join('');
+      <div class="kb-h"><span class="dot" style="background:${e.cor}"></span><span class="nm">${esc(e.nome)}</span><span class="cnt">${leads.length}</span></div>${cards}
+      ${leads.length?`<div class="kb-tot">${brl(val)}</div>`:''}</div>`}).join('');
   const orfaos=crmSemEtapaLista();
   const aviso=orfaos.length?`<div class="panel" style="border-color:var(--neg)"><div class="panel-head"><h2>${orfaos.length} cliente(s) sem etapa<small>a etapa em que estavam foi apagada do funil</small></h2></div>
     ${orfaos.map(l=>`<div class="row"><div class="row-body"><div class="row-title">${esc(l.empresa)}</div>
@@ -2872,7 +2908,7 @@ function viewCrmKanban(){
       <div class="row-actions"><select onchange="comMoverPara('${l.id}',this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:6px 9px;border-radius:8px;font-size:12px">
         <option value="">Colocar em uma etapa...</option>${est.map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></div></div>`).join('')}</div>`:'';
   return aviso+`<div class="panel"><div class="panel-head"><h2>Kanban do funil<small>arraste os cards entre as etapas</small></h2><button class="btn btn-sm" onclick="setCrmTab('config')">Editar etapas</button></div>
-    <div class="kb" style="grid-template-columns:repeat(${est.length},minmax(200px,1fr));overflow-x:auto">${cols}</div></div>`}
+    <div class="kb funil" style="grid-template-columns:repeat(${est.length},1fr)">${cols}</div></div>`}
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
 function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove('over');if(!_crmDrag)return;const l=crmLeadById(_crmDrag);
@@ -2885,7 +2921,9 @@ function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove
         comPropsDoLead(l).forEach(p=>{if(p.status==='rascunho'||p.status==='enviada'){p.status='recusada';persistProposta(p)}})}
       comTarefaPropostaFecha(l);
       const feito=comLimpar(l,motivo,true);
-      render();toast((perdeu?'Perdido: ':'🎉 Fechado: ')+alvo.nome+(feito.length?' · limpei '+feito.join(', '):''))}
+      render();
+      if(!perdeu)festa(l.empresa,+l.ticket||0);
+      toast((perdeu?'Perdido: ':'🎉 Fechado: ')+alvo.nome+(feito.length?' · limpei '+feito.join(', '):''))}
     else{render();toast(ligou?'→ '+alvo.nome+' · follow-up de proposta começou hoje':'→ '+(alvo?alvo.nome:''))}}
   _crmDrag=null}
 function pdPendentes(){return crmLeadsAtivos()
@@ -4165,7 +4203,8 @@ function propSetStatus(v){const p=propAtual();if(!p)return;
  const l=comLeadDe(p);p.status=v;
  if(v==='aceita'&&l){if(+p.mensalidade)l.ticket=+p.mensalidade;persistCrmLead(l);
    comMoverTipo(l,'ganho','proposta '+p.numero+' aceita');
-   const f=comLimpar(l,'',true);toast('Proposta aceita · cliente fechado'+(f.length?' · limpei '+f.join(', '):''))}
+   const f=comLimpar(l,'',true);festa(l.empresa,+p.mensalidade||+l.ticket||0);
+   toast('Proposta aceita · cliente fechado'+(f.length?' · limpei '+f.join(', '):''))}
  else if(v==='recusada'&&l){const m=(prompt('Por que o cliente recusou? (uma linha)')||'').trim();
    comMoverTipo(l,'perdido','proposta '+p.numero+' recusada'+(m?' · '+m:''));
    const f=comLimpar(l,m,true);toast('Registrado como perdido'+(f.length?' · limpei '+f.join(', '):''))}
@@ -4688,6 +4727,30 @@ function comLimpar(l,motivo,silencioso){
  if(!silencioso){render();toast(feito.length?'Limpei: '+feito.join(', '):'Não havia nada pendente')}
  return feito}
 
+
+/* ===== festinha de cliente fechado ===== */
+const FESTA_CORES=['#d4a840','#f2c94c','#3ea06b','#06b6d4','#8a7cf2','#ec4899','#ffffff'];
+function festa(nome,valor){
+ const el=gEl('festa');if(!el)return;
+ const reduz=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+ const n=reduz?0:90;
+ let html='';
+ for(let i=0;i<n;i++){
+  const cor=FESTA_CORES[i%FESTA_CORES.length];
+  const esq=Math.random()*100;
+  const dx=(Math.random()*40-20).toFixed(1);
+  const rot=(Math.random()*1080-540).toFixed(0);
+  const dur=(2.2+Math.random()*1.6).toFixed(2);
+  const atraso=(Math.random()*.9).toFixed(2);
+  const forma=i%3===0?'r':i%3===1?'f':'';
+  html+=`<i class="cf ${forma}" style="left:${esq.toFixed(1)}%;background:${cor};
+    --dx:${dx}vw;--rot:${rot}deg;animation-duration:${dur}s;animation-delay:${atraso}s"></i>`}
+ html+=`<div class="msg"><span class="em">🎉</span><b>${esc(nome||'Cliente fechado')}</b>
+   <span>${valor?brl(valor)+' por mês entram na casa':'mais um cliente na casa'}</span></div>`;
+ el.innerHTML=html;el.classList.add('on');
+ clearTimeout(festa._t);
+ festa._t=setTimeout(()=>{el.classList.remove('on');el.innerHTML=''},reduz?2200:4200)}
+
 function comFecharGanho(id){const l=crmLeadById(id);if(!l)return;
  const alvo=comEtapaTipo('ganho');
  if(!alvo)return toast('Não existe etapa de ganho no funil');
@@ -4696,6 +4759,7 @@ function comFecharGanho(id){const l=crmLeadById(id);if(!l)return;
  comMover(l,alvo,'fechado');
  const feito=comLimpar(l,'',true);
  comFichaTab='fechamento';render();
+ festa(l.empresa,+l.ticket||0);
  toast('Cliente fechado'+(feito.length?' · limpei '+feito.join(', '):''));
  if(!onbDoLead(l)&&alive(DB.onbModelo).length&&confirm('Iniciar a implantação de '+l.empresa+' agora?\n\nO cadastro, o perfil e o prazo da proposta são reaproveitados.'))comIniciarImplantacao(l.id)}
 
