@@ -205,6 +205,24 @@ a.btn{text-decoration:none;cursor:pointer}
 .kb-card.late{border-left-color:var(--neg)}
 .kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
+/* ---- assinatura eletronica ---- */
+.ass-sg{display:grid;grid-template-columns:1.15fr 1.35fr .95fr .85fr auto auto;gap:6px;align-items:center;
+  padding:7px 0;border-top:1px solid var(--line)}
+.ass-sg:first-of-type{border-top:0}
+.ass-sg input{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+  padding:7px 9px;border-radius:8px;font-size:12px;min-width:0;width:100%}
+.ass-sg input:disabled{opacity:.62;cursor:default}
+.ass-sg .sgst{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.ass-aviso{border:1px solid var(--line);border-left:3px solid var(--acc);background:var(--panel2);
+  border-radius:10px;padding:11px 13px;font-size:12px;line-height:1.65;color:var(--dim);margin-bottom:11px}
+.ass-aviso b{color:var(--txt)}
+.ass-aviso code{background:var(--bg);border:1px solid var(--line);border-radius:5px;
+  padding:1px 5px;font-size:11px;color:var(--acc);word-break:break-all}
+.ass-link{display:flex;gap:7px;align-items:center;flex-wrap:wrap;background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:10px;font-size:12px}
+.ass-link .u{flex:1;min-width:120px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:900px){.ass-sg{grid-template-columns:1fr 1fr;gap:5px}
+  .ass-sg .sgst{grid-column:1/2}}
 /* ---- festinha de cliente fechado ---- */
 #festa{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;display:none}
 #festa.on{display:block}
@@ -1134,7 +1152,7 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
+  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
@@ -1170,7 +1188,8 @@ async function loadAll(){
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
     crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
-    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',deletedAt:fromISO(p.deleted_at)})),
+    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',assinaturaProvedor:p.assinatura_provedor||'',assinaturaDocId:p.assinatura_doc_id||'',assinaturaUrl:p.assinatura_url||'',assinaturaStatus:p.assinatura_status||'nao_enviado',assinaturaEnviadaEm:p.assinatura_enviada_em||'',assinadaEm:p.assinada_em||'',arquivoAssinadoUrl:p.arquivo_assinado_url||'',deletedAt:fromISO(p.deleted_at)})),
+    crmSigners:(SG&&SG.data?SG.data:[]).map(x=>({id:x.id,propostaId:x.proposta_id||'',nome:x.nome||'',email:x.email||'',telefone:x.telefone||'',cpf:x.cpf||'',papel:x.papel||'',externoId:x.externo_id||'',url:x.url||'',ordem:x.ordem||0,status:x.status||'pendente',assinadoEm:x.assinado_em||''})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
     crmOrigens:(CX.data||[]).filter(x=>x.tipo==='origem').sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(x=>x.valor),
@@ -3861,7 +3880,7 @@ function persistProposta(p){up('crm_propostas',{id:p.id,lead_id:p.leadId||null,p
  validade_dias:p.validadeDias||30,empresa:p.empresa||null,contato:p.contato||null,cargo:p.cargo||null,email:p.email||null,telefone:p.telefone||null,
  cnpj:p.cnpj||null,segmento:p.segmento||null,necessidade:p.necessidade||null,plano:p.plano||'inter',mensalidade:+p.mensalidade||0,
  implantacao:+p.implantacao||0,perfil_impl:p.perfilImpl||'B',escopo:p.escopo||[],beneficios:p.beneficios||[],condicoes:p.condicoes||{},
- numeros:p.numeros||{},transcricao:p.transcricao||null,enviada_em:p.enviadaEm||null,versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
+ numeros:p.numeros||{},transcricao:p.transcricao||null,enviada_em:p.enviadaEm||null,versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||null,assinatura_provedor:p.assinaturaProvedor||null,assinatura_doc_id:p.assinaturaDocId||null,assinatura_url:p.assinaturaUrl||null,assinatura_status:p.assinaturaStatus||'nao_enviado',assinatura_enviada_em:p.assinaturaEnviadaEm||null,assinada_em:p.assinadaEm||null,arquivo_assinado_url:p.arquivoAssinadoUrl||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
 
 /* perfil de implantação sugerido pelo tamanho e pela complexidade da operação */
 function propPerfilSugerido(c,k){if(!c)return 'B';
@@ -3903,7 +3922,9 @@ function propNova(c,lead){
     perfil:d&&d.completo?{nome:d.perfil.nome,icone:d.perfil.icone,resumo:d.perfil.resumo,risco:d.perfil.risco,servico:d.perfil.servico}:null,
     areas:as,planos:{basico:k.basico,inter:k.inter,avancado:k.avancado,implantacao:k.implantacao},
     dor:c?c.dorFrase||'':''}:{},
-  status:'rascunho',obs:'',deletedAt:null};
+  status:'rascunho',obs:'',assinaturaProvedor:'',assinaturaDocId:'',assinaturaUrl:'',
+  assinaturaStatus:'nao_enviado',assinaturaEnviadaEm:'',assinadaEm:'',arquivoAssinadoUrl:'',
+  deletedAt:null};
  DB.crmPropostas.push(p);persistProposta(p);return p}
 
 function propDoPd(){const c=pdAtual();if(!c)return toast('Nenhuma ligação selecionada');
@@ -3921,6 +3942,8 @@ function propDoPd(){const c=pdAtual();if(!c)return toast('Nenhuma ligação sele
 function propDuplicar(id){const o=propById(id);if(!o)return;
  const p=JSON.parse(JSON.stringify(o));
  p.id=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));p.numero=propNumero();p.data=todayKey();p.status='rascunho';p.deletedAt=null;
+ p.assinaturaProvedor='';p.assinaturaDocId='';p.assinaturaUrl='';p.assinaturaStatus='nao_enviado';
+ p.assinaturaEnviadaEm='';p.assinadaEm='';p.arquivoAssinadoUrl='';
  DB.crmPropostas.push(p);persistProposta(p);propSelId=p.id;propTab='editor';render();toast('Proposta duplicada como '+p.numero)}
 function propExcluir(id){const p=propById(id);if(!p)return;
  if(!confirm('Mandar a proposta '+p.numero+' para os excluídos?'))return;
@@ -4548,13 +4571,188 @@ function comFichaProp(l,c,p){
    <button class="btn btn-sm btn-ghost" onclick="propExcluir(propSelId)">Excluir esta proposta</button></div>`;
  const abas=[['editor','Editor'],['doc','Documento']];
  const body=(comPropTab==='doc'?viewPropDoc:viewPropEditor)();
- return propTrilhoHTML(propAtual()||ps[ps.length-1],l)+comTabs(abas,comPropTab,'setComPropTab')+barra+body}
+ const pa=propAtual()||ps[ps.length-1];
+ return propTrilhoHTML(pa,l)+assPainelHTML(pa,l)+comTabs(abas,comPropTab,'setComPropTab')+barra+body}
+
+
+/* ===================================================================
+   Assinatura eletronica da proposta.
+   A chave do provedor mora numa funcao do Supabase, nunca aqui.
+   Funcao "assinatura" envia e consulta; "assinatura-webhook" recebe o retorno.
+   =================================================================== */
+const ASS_STATUS={
+ nao_enviado:['Não enviado','var(--mut)'],
+ enviado:['Aguardando assinatura','var(--acc)'],
+ visualizado:['Cliente abriu o documento','var(--acc)'],
+ assinado_parcial:['Assinado em parte','var(--acc)'],
+ assinado:['Assinado','var(--pos)'],
+ recusado:['Recusado','var(--neg)'],
+ expirado:['Expirado','var(--neg)'],
+ cancelado:['Cancelado','var(--neg)']};
+const assLabel=k=>(ASS_STATUS[k]||ASS_STATUS.nao_enviado)[0];
+const assCor=k=>(ASS_STATUS[k]||ASS_STATUS.nao_enviado)[1];
+const assAssinada=p=>!!p&&p.assinaturaStatus==='assinado';
+const assEmCurso=p=>!!p&&!!p.assinaturaDocId&&['enviado','visualizado','assinado_parcial'].indexOf(p.assinaturaStatus)>=0;
+const assSigners=p=>p?(DB.crmSigners||[]).filter(x=>x.propostaId===p.id).sort((a,b)=>(a.ordem||0)-(b.ordem||0)):[];
+/* texto virando literal de JS dentro de um atributo HTML: as aspas viram entidade */
+const jsTxt=v=>esc(JSON.stringify(String(v==null?'':v)));
+
+let _assCfg=null, _assBusy='';
+function persistSigner(x){up('crm_signers',{id:x.id,proposta_id:x.propostaId,nome:x.nome||null,email:x.email||null,
+ telefone:x.telefone||null,cpf:x.cpf||null,papel:x.papel||null,externo_id:x.externoId||null,url:x.url||null,
+ ordem:x.ordem||0,status:x.status||'pendente',assinado_em:x.assinadoEm||null})}
+let _sgTimer={};
+function assSet(id,campo,v){const x=(DB.crmSigners||[]).find(y=>y.id===id);if(!x)return;
+ x[campo]=v;clearTimeout(_sgTimer[id]);_sgTimer[id]=setTimeout(()=>persistSigner(x),600)}
+function assAdd(pid,base){const p=propById(pid);if(!p)return;
+ const x={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),propostaId:pid,
+  nome:(base&&base.nome)||'',email:(base&&base.email)||'',telefone:(base&&base.telefone)||'',
+  cpf:(base&&base.cpf)||'',papel:(base&&base.papel)||'',externoId:'',url:'',
+  ordem:assSigners(p).length,status:'pendente',assinadoEm:''};
+ (DB.crmSigners=DB.crmSigners||[]).push(x);persistSigner(x);render()}
+function assDel(id){const i=(DB.crmSigners||[]).findIndex(y=>y.id===id);if(i<0)return;
+ DB.crmSigners.splice(i,1);render();
+ sb.from('crm_signers').delete().eq('id',id).then(({error})=>pErr(error,'crm_signers'))}
+
+/* pergunta a funcao se o provedor ja esta ligado */
+async function assChecar(silencioso){
+ if(!sb)return;
+ try{const {data,error}=await sb.functions.invoke('assinatura',{body:{acao:'status'}});
+  if(error)throw error;
+  _assCfg=data||{configurado:false};
+  if(!silencioso)toast(_assCfg.configurado?'Assinador pronto · provedor '+_assCfg.provedor:'O assinador ainda não tem a chave do provedor');
+  render()}
+ catch(e){_assCfg={provedor:'zapsign',configurado:false,falhou:true};if(!silencioso)toast('Não consegui falar com o assinador');render()}}
+
+async function assErroDetalhe(error){try{const j=await error.context.json();return j.detalhe||j.erro||''}catch(e){return ''}}
+
+async function assEnviar(){
+ const p=propAtual();if(!p)return;
+ const sg=assSigners(p);
+ if(!sg.length)return toast('Adicione quem vai assinar antes de enviar');
+ if(sg.some(x=>!x.nome.trim()))return toast('Todo signatário precisa de nome');
+ if(sg.some(x=>!x.email.trim()&&!x.telefone.trim()))return toast('Cada signatário precisa de e-mail ou telefone');
+ if(p.assinaturaDocId&&!confirm('Já existe um documento em assinatura. Enviar de novo cria outro. Continuar?'))return;
+ _assBusy='enviar';render();
+ try{
+  const {data,error}=await sb.functions.invoke('assinatura',{body:{acao:'enviar',
+   proposta:{titulo:'Proposta '+p.numero+(p.empresa?' · '+p.empresa:''),numero:p.numero,html:propDocHTML(p)},
+   signatarios:sg.map(x=>({nome:x.nome,email:x.email,telefone:x.telefone,cpf:x.cpf,papel:x.papel}))}});
+  if(error){const d=await assErroDetalhe(error);_assBusy='';render();
+   return toast('Não deu para enviar'+(d?': '+d:' · confira a chave do provedor'))}
+  p.assinaturaProvedor=data.provedor||'';p.assinaturaDocId=data.docId||'';p.assinaturaUrl=data.url||'';
+  p.assinaturaStatus='enviado';p.assinaturaEnviadaEm=new Date().toISOString();
+  (data.signatarios||[]).forEach((r,i)=>{const x=sg[i];if(!x)return;
+   x.externoId=r.externoId||'';x.url=r.url||'';x.status='pendente';persistSigner(x)});
+  persistProposta(p);
+  const l=p.leadId?crmLeadById(p.leadId):null;
+  if(l)comEvento(l,'assinatura_enviada',{detalhe:'proposta '+p.numero+' enviada para assinatura'});
+  _assBusy='';
+  if(p.status==='rascunho')propMarcarEnviada();else render();
+  toast('Documento enviado para assinatura')}
+ catch(e){_assBusy='';render();toast('Falhou o envio para assinatura')}}
+
+async function assConsultar(){
+ const p=propAtual();if(!p||!p.assinaturaDocId)return;
+ _assBusy='consultar';render();
+ try{
+  const {data,error}=await sb.functions.invoke('assinatura',{body:{acao:'consultar',docId:p.assinaturaDocId}});
+  if(error){const d=await assErroDetalhe(error);_assBusy='';render();return toast('Não consegui consultar'+(d?': '+d:''))}
+  const antes=p.assinaturaStatus;
+  if(data.status)p.assinaturaStatus=data.status;
+  if(data.arquivo)p.arquivoAssinadoUrl=data.arquivo;
+  if(p.assinaturaStatus==='assinado'&&!p.assinadaEm)p.assinadaEm=new Date().toISOString();
+  persistProposta(p);_assBusy='';
+  if(p.assinaturaStatus==='assinado'&&antes!=='assinado')return assFechou(p);
+  render();toast('Situação agora: '+assLabel(p.assinaturaStatus))}
+ catch(e){_assBusy='';render();toast('Falhou a consulta')}}
+
+/* assinou: registra, aceita a proposta e fecha o cliente */
+function assFechou(p){
+ const l=p.leadId?crmLeadById(p.leadId):null;
+ if(l)comEvento(l,'assinatura_concluida',{detalhe:'proposta '+p.numero+' assinada'});
+ assSigners(p).forEach(x=>{if(x.status!=='assinado'){x.status='assinado';x.assinadoEm=new Date().toISOString();persistSigner(x)}});
+ if(p.status!=='aceita')propSetStatus('aceita');
+ else{render();festa(p.empresa||(l&&l.empresa)||'',+p.mensalidade||0)}
+ toast('Proposta assinada')}
+
+function assCancelar(){const p=propAtual();if(!p||!p.assinaturaDocId)return;
+ if(!confirm('Soltar esta proposta da assinatura? O documento continua na plataforma, mas a Central para de acompanhar.'))return;
+ p.assinaturaDocId='';p.assinaturaUrl='';p.assinaturaStatus='nao_enviado';p.assinaturaEnviadaEm='';
+ assSigners(p).forEach(x=>{x.externoId='';x.url='';x.status='pendente';x.assinadoEm='';persistSigner(x)});
+ persistProposta(p);render();toast('Assinatura desvinculada')}
+
+function assCopiar(txt){
+ const ok=()=>toast('Link copiado');
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(ok,()=>toast('Copie na mão: '+txt));
+ else{const t=document.createElement('textarea');t.value=txt;document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');ok()}catch(e){toast('Copie na mão: '+txt)}document.body.removeChild(t)}}
+function assWhats(id){const x=(DB.crmSigners||[]).find(y=>y.id===id);if(!x||!x.url)return;
+ const p=propAtual();const tel=(x.telefone||'').replace(/\D/g,'');
+ const txt='Olá '+(x.nome||'')+', segue a proposta da Lidere'+(p?' ('+p.numero+')':'')+' para assinatura: '+x.url;
+ window.open('https://wa.me/'+(tel?(tel.length<=11?'55'+tel:tel):'')+'?text='+encodeURIComponent(txt),'_blank')}
+
+/* painel de assinatura dentro da ficha do cliente */
+function assPainelHTML(p,l){
+ if(!p)return '';
+ if(_assCfg===null){_assCfg=undefined;setTimeout(()=>assChecar(true),80)}
+ const st=p.assinaturaStatus||'nao_enviado';
+ const sg=assSigners(p);
+ const travado=assEmCurso(p)||assAssinada(p);
+ const naoLigado=_assCfg&&_assCfg.configurado===false;
+ const aviso=naoLigado?`<div class="ass-aviso"><b>O assinador ainda não está ligado.</b>
+   Crie a conta na plataforma de assinatura, pegue o token da API e salve no Supabase em
+   <b>Edge Functions &gt; Secrets</b> com o nome <code>ZAPSIGN_TOKEN</code>.
+   No painel da plataforma, aponte o webhook para
+   <code>${esc(SB_URL)}/functions/v1/assinatura-webhook?k=SEU_SEGREDO</code>,
+   usando o mesmo texto que você salvar em <code>ASSINATURA_WEBHOOK_SEGREDO</code>.
+   <br>Enquanto isso não existir, o botão de enviar vai recusar.</div>`:'';
+ const linhaSg=x=>`<div class="ass-sg">
+   <input placeholder="Nome de quem assina" value="${esc(x.nome)}" ${travado?'disabled':''} oninput="assSet('${x.id}','nome',this.value)">
+   <input placeholder="E-mail" value="${esc(x.email)}" ${travado?'disabled':''} oninput="assSet('${x.id}','email',this.value)">
+   <input placeholder="Telefone com DDD" value="${esc(x.telefone)}" ${travado?'disabled':''} oninput="assSet('${x.id}','telefone',this.value)">
+   <input placeholder="CPF" value="${esc(x.cpf)}" ${travado?'disabled':''} oninput="assSet('${x.id}','cpf',this.value)">
+   <span class="sgst" style="color:${x.status==='assinado'?'var(--pos)':'var(--mut)'}">${x.status==='assinado'?'assinou':'pendente'}</span>
+   ${travado
+     ?(x.url?`<button class="iconbtn" title="Mandar o link no WhatsApp" onclick="assWhats('${x.id}')">↗</button>`:'<span></span>')
+     :`<button class="btn btn-sm btn-ghost" title="Tirar da lista" onclick="assDel('${x.id}')">×</button>`}</div>`;
+ const lista=sg.length?sg.map(linhaSg).join('')
+   :`<div class="muted" style="font-size:12px;padding:6px 0">Ninguém na lista ainda. Puxe o contato do cliente ou adicione na mão.</div>`;
+ const botoesLista=travado?'':`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
+   ${l&&l.contato?`<button class="btn btn-sm" onclick="assAdd('${p.id}',{nome:${jsTxt(l.contato)},email:${jsTxt(l.email)},telefone:${jsTxt(l.telefone)},papel:'cliente'})">+ ${esc(l.contato)}</button>`:''}
+   <button class="btn btn-sm" onclick="assAdd('${p.id}')">+ Signatário</button></div>`;
+ const acao=travado
+   ? `<button class="btn btn-sm" ${_assBusy?'disabled':''} onclick="assConsultar()">${_assBusy==='consultar'?'Consultando...':'Atualizar situação'}</button>
+      <button class="btn btn-sm btn-ghost" onclick="assCancelar()">Desvincular</button>`
+   : `<button class="btn btn-gold" ${_assBusy||naoLigado?'disabled':''} onclick="assEnviar()">${_assBusy==='enviar'?'Enviando...':'Enviar para assinatura'}</button>
+      <button class="btn btn-sm btn-ghost" onclick="assChecar()">Testar conexão</button>`;
+ const link=(p.assinaturaUrl&&!assAssinada(p))?`<div class="ass-link">
+   <span class="u">${esc(p.assinaturaUrl)}</span>
+   <button class="btn btn-sm" onclick="assCopiar(${jsTxt(p.assinaturaUrl)})">Copiar link</button>
+   <a class="btn btn-sm btn-ghost" href="${esc(p.assinaturaUrl)}" target="_blank" rel="noopener">Abrir</a></div>`:'';
+ const assinado=(assAssinada(p)&&p.arquivoAssinadoUrl)?`<div class="ass-link">
+   <span class="u">Documento assinado, com o registro de quem assinou e quando.</span>
+   <a class="btn btn-sm btn-gold" href="${esc(p.arquivoAssinadoUrl)}" target="_blank" rel="noopener">Baixar assinado</a></div>`:'';
+ const quando=assAssinada(p)&&p.assinadaEm?' · assinada em '+fmtBR(p.assinadaEm.slice(0,10))
+   :p.assinaturaEnviadaEm?' · enviada em '+fmtBR(p.assinaturaEnviadaEm.slice(0,10)):'';
+ return `<div class="panel" style="margin-bottom:12px">
+   <div class="panel-head"><h2>Assinatura eletrônica<small>${esc(assLabel(st))}${esc(quando)}</small></h2>
+     <span class="chip chip-n" style="color:${assCor(st)};border-color:${assCor(st)}">${esc(assLabel(st))}</span></div>
+   ${aviso}${lista}${botoesLista}
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">${acao}
+     <span class="muted" style="font-size:11.5px">${travado
+       ?'O retorno da plataforma chega sozinho; o botão serve para conferir na hora.'
+       :'O cliente recebe o link, confere a proposta e assina. Assinou, o cliente vira ganho aqui.'}</span></div>
+   ${link}${assinado}</div>`}
 
 /* onde a proposta está e qual é o próximo movimento */
 function propTrilhoHTML(p,l){
- const ordem=['rascunho','enviada','resposta'];
- const atual=p.status==='rascunho'?0:p.status==='enviada'?1:2;
- const rot=['Gerada','Enviada ao cliente',p.status==='aceita'?'Aceita':p.status==='recusada'?'Recusada':'Resposta do cliente'];
+ const ordem=['rascunho','enviada','assinatura','resposta'];
+ const assinou=assAssinada(p);
+ const atual=p.status==='rascunho'?0:(p.status==='enviada'?(assEmCurso(p)?2:1):3);
+ const rot=['Gerada','Enviada ao cliente',
+   assinou?'Assinada':assEmCurso(p)?assLabel(p.assinaturaStatus):'Assinatura',
+   p.status==='aceita'?'Aceita':p.status==='recusada'?'Recusada':'Resposta do cliente'];
  const cor=i=>i<atual?'var(--pos)':i===atual?(p.status==='recusada'?'var(--neg)':p.status==='aceita'?'var(--pos)':'var(--acc)'):'var(--line-f)';
  const passos=ordem.map((k,i)=>`${i?`<span style="color:${cor(i)};font-weight:800;padding:0 4px">→</span>`:''}
    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:9px;
