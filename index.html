@@ -227,17 +227,35 @@ a.btn{text-decoration:none;cursor:pointer}
 /* ---- funil compacto: as 8 etapas cabem na largura da tela ---- */
 .kb.funil{gap:7px}
 .kb.funil .kb-col{padding:0 7px 8px;min-height:120px;min-width:0}
-.kb.funil .kb-h{padding:10px 1px;margin-bottom:7px;font-size:9px;letter-spacing:.8px;gap:5px}
-.kb.funil .kb-h .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb.funil .kb-h{padding:10px 1px;margin-bottom:7px;font-size:9px;letter-spacing:.6px;gap:5px;align-items:flex-start}
+.kb.funil .kb-h .dot{margin-top:3px}
+.kb.funil .kb-h .nm{flex:1;min-width:0;white-space:normal;word-break:break-word;line-height:1.35}
+.kb.funil .kb-h .cnt{margin-top:1px}
 .kb.funil .kb-card{padding:7px 8px;margin-bottom:5px;border-radius:0 7px 7px 0}
-.kb.funil .kb-card .t{font-size:11.5px;line-height:1.3;padding-right:0;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kb.funil .kb-card{overflow:visible}
+.kb.funil .kb-card .t{font-size:11.5px;line-height:1.35;padding-right:0;
+  white-space:normal;overflow-wrap:anywhere}
 .kb.funil .kb-card .d{display:none}
 .kb.funil .kb-card .m{margin-top:5px;gap:4px}
 .kb.funil .kb-card .m .chip,.kb.funil .kb-card .m .pchip{font-size:9.5px;padding:1px 5px}
 .kb.funil .kb-card .acts{position:static;opacity:.45;margin-top:6px;justify-content:flex-end}
 .kb.funil .kb-card:hover .acts{opacity:1}
 .kb.funil .kb-tot{font-size:9.5px;color:var(--mut);font-weight:700;padding:3px 1px}
+/* quadro com o texto inteiro, ao passar o mouse no card */
+.kb-col{overflow:visible}
+.kb-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:60;width:250px;
+  background:var(--panel);border:1px solid var(--acc);border-radius:11px;padding:11px 13px;
+  box-shadow:0 16px 44px rgba(0,0,0,.55);pointer-events:none;text-align:left;white-space:normal}
+.kb-card:hover .kb-pop{display:block;animation:popIn .14s ease-out}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.kb-pop .pn{font-size:13px;font-weight:700;line-height:1.35;margin-bottom:7px;color:var(--txt)}
+.kb-pop .pl{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;
+  padding:3px 0;border-top:1px solid var(--line);color:var(--dim)}
+.kb-pop .pl b{color:var(--txt);font-weight:600;text-align:right}
+.kb-pop .pl:first-of-type{border-top:0}
+.kb.funil .kb-col:nth-last-child(-n+3) .kb-pop{left:auto;right:0}
+@media(max-width:680px){.kb-pop{width:200px}
+  .kb.funil .kb-col:nth-child(even) .kb-pop{left:auto;right:0}}
 @media(max-width:1100px){.kb.funil{grid-template-columns:repeat(4,1fr)!important}}
 @media(max-width:680px){.kb.funil{grid-template-columns:repeat(2,1fr)!important}}
 @media(hover:none){.kb-card .acts{opacity:1}}
@@ -2893,11 +2911,11 @@ function viewCrmKanban(){
   const a=crmLeadsAtivos();
   const cols=est.map(e=>{const leads=a.filter(l=>l.estagioId===e.id);const val=leads.reduce((s,l)=>s+(+l.ticket||0),0);
     const cards=leads.map(l=>{const r=crmRespById(l.responsavelId);const late=l.proximoContato&&l.proximoContato<todayKey();
-      return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')"
-        title="${esc(l.empresa)}${l.contato?' · '+esc(l.contato):''} · ${brl(l.ticket)}">
+      return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')">
         <div class="t">${esc(l.empresa)}</div>
         <div class="m"><span class="chip chip-n">${brl(l.ticket)}</span>${late?'<span class="chip chip-vencido">atraso</span>':''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div>
-        <div class="acts">${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button></div></div>`}).join('')||'';
+        <div class="acts">${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button></div>
+        ${crmCardPop(l,e)}</div>`}).join('')||'';
     return `<div class="kb-col" data-est="${e.id}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="crmDropCol(event,'${e.id}')">
       <div class="kb-h"><span class="dot" style="background:${e.cor}"></span><span class="nm">${esc(e.nome)}</span><span class="cnt">${leads.length}</span></div>${cards}
       ${leads.length?`<div class="kb-tot">${brl(val)}</div>`:''}</div>`}).join('');
@@ -2909,6 +2927,24 @@ function viewCrmKanban(){
         <option value="">Colocar em uma etapa...</option>${est.map(e=>`<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></div></div>`).join('')}</div>`:'';
   return aviso+`<div class="panel"><div class="panel-head"><h2>Kanban do funil<small>arraste os cards entre as etapas</small></h2><button class="btn btn-sm" onclick="setCrmTab('config')">Editar etapas</button></div>
     <div class="kb funil" style="grid-template-columns:repeat(${est.length},1fr)">${cols}</div></div>`}
+
+/* quadro que aparece ao passar o mouse no card do funil, com o texto inteiro */
+function crmCardPop(l,e){
+ const r=crmRespById(l.responsavelId);
+ const p=comPropAtiva(l);
+ const linha=(k,v)=>v?`<div class="pl"><span>${esc(k)}</span><b>${v}</b></div>`:'';
+ const late=l.proximoContato&&l.proximoContato<todayKey();
+ return `<div class="kb-pop"><div class="pn">${esc(l.empresa)}</div>
+  ${linha('Contato',esc(l.contato||'')+(l.cargo?' · '+esc(l.cargo):''))}
+  ${linha('Etapa',esc((e||{}).nome||''))}
+  ${linha('Mensalidade',brl(l.ticket))}
+  ${linha('Responsável',r?esc(r.nome):'')}
+  ${linha('Telefone',esc(l.telefone||''))}
+  ${linha('Origem',esc(l.origem||''))}
+  ${linha('Proposta',p?esc(p.numero)+' · '+esc(propStatusLabel(p.status)):(l.semProposta?'não se aplica':''))}
+  ${l.proximoContato?`<div class="pl"><span>Próximo contato</span><b style="color:${late?'var(--neg)':'var(--txt)'}">${fmtBR(l.proximoContato)}</b></div>`:''}
+  ${linha('Observações',esc(l.obs||''))}</div>`}
+
 let _crmDrag=null;
 function crmDragStart(e,id){_crmDrag=id;e.dataTransfer.setData('text/plain',id)}
 function crmDropCol(e,estId){e.preventDefault();e.currentTarget.classList.remove('over');if(!_crmDrag)return;const l=crmLeadById(_crmDrag);
