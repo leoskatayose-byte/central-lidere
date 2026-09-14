@@ -206,6 +206,23 @@ a.btn{text-decoration:none;cursor:pointer}
 .kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
 /* ---- assinatura eletronica ---- */
+/* ---- conexão do WhatsApp ---- */
+.wa-qr{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.wa-qr .box{background:#fff;padding:13px;border-radius:14px;line-height:0;box-shadow:0 8px 28px rgba(0,0,0,.4)}
+.wa-qr .box img{width:232px;height:232px;display:block;image-rendering:pixelated}
+.wa-qr .lado{flex:1;min-width:230px}
+.wa-pass{margin:0;padding-left:18px;font-size:12.5px;line-height:1.95;color:var(--dim)}
+.wa-pass b{color:var(--txt)}
+.wa-est{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;
+  letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.wa-est .pt{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.wa-cod{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:19px;font-weight:800;
+  letter-spacing:3px;color:var(--acc);background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:9px 13px;display:inline-block;margin-top:9px}
+.wa-risco{border:1px solid var(--line);border-left:3px solid var(--neg);background:var(--panel2);
+  border-radius:10px;padding:11px 13px;font-size:12px;line-height:1.65;color:var(--dim);margin-top:12px}
+.wa-risco b{color:var(--txt)}
+@media(max-width:680px){.wa-qr .box img{width:190px;height:190px}}
 .ass-sg{display:grid;grid-template-columns:1.15fr 1.35fr .95fr .85fr auto auto;gap:6px;align-items:center;
   padding:7px 0;border-top:1px solid var(--line)}
 .ass-sg:first-of-type{border-top:0}
@@ -1305,11 +1322,11 @@ function setAdmTab(t){admTab=t;render()}
 function viewAdmin(){
  const adm=!!(ME&&ME.is_admin);
  const abas=[['equipe','Pessoas',pessoasVivas().length],['excluidos','Excluídos',admLixoQtd()]];
- if(adm){abas.splice(1,0,['funil','Funil e listas'],['mensagens','Mensagens'],['preco','Tabela de preço']);
+ if(adm){abas.splice(1,0,['funil','Funil e listas'],['mensagens','Mensagens'],['preco','Tabela de preço'],['whatsapp','WhatsApp']);
    abas.push(['usuarios','Usuários'])}
- if(!adm&&['funil','mensagens','preco','usuarios'].indexOf(admTab)>=0)admTab='equipe';
+ if(!adm&&['funil','mensagens','preco','usuarios','whatsapp'].indexOf(admTab)>=0)admTab='equipe';
  const body=({equipe:admPessoas,funil:admFunil,mensagens:comAjMsgs,preco:viewPdConfig,
-   excluidos:admLixo,usuarios:admUsuarios}[admTab]||admPessoas)();
+   whatsapp:admWhats,excluidos:admLixo,usuarios:admUsuarios}[admTab]||admPessoas)();
  return comTabs(abas,admTab,'setAdmTab')+body}
 
 function admUsuarios(){return `<div class="panel"><div class="panel-head"><h2>Usuários<small>aprove cadastros e gerencie acessos — vale para o app todo</small></h2></div>
@@ -5783,6 +5800,148 @@ function viewAgenda(){
  const vazio=(!itens.length&&!atr.length&&agOrigemOff.length)
    ?'<div class="tip" style="margin-top:10px">Você escondeu origens nos filtros acima. Clique de novo para trazer de volta.</div>':'';
  return stats+barra+chips+blocoAtr+corpo+vazio}
+
+
+/* ===================================================================
+   Conexão do WhatsApp por QR Code.
+   A página não fala com o WhatsApp: quem mantém a sessão de pé é o
+   provedor (servidor próprio com Evolution API, ou a Z-API). A função
+   "whatsapp" do Supabase guarda a chave e faz a ponte.
+   =================================================================== */
+const WA_ESTADOS={
+ sem_provedor:['Sem provedor','var(--mut)'],
+ desconectado:['Desconectado','var(--mut)'],
+ sem_instancia:['Nunca conectado','var(--mut)'],
+ aguardando_leitura:['Aguardando a leitura do QR','var(--acc)'],
+ conectando:['Conectando','var(--acc)'],
+ celular_offline:['Celular sem internet','var(--neg)'],
+ conectado:['Conectado','var(--pos)'],
+ erro:['Não consegui falar com o provedor','var(--neg)']};
+const waEstLabel=k=>(WA_ESTADOS[k]||WA_ESTADOS.desconectado)[0];
+const waEstCor=k=>(WA_ESTADOS[k]||WA_ESTADOS.desconectado)[1];
+const waFmtNum=n=>{const d=(n||'').replace(/\D/g,'');
+ return d.length>=12?'+'+d.slice(0,2)+' '+d.slice(2,4)+' '+d.slice(4,-4)+'-'+d.slice(-4):(n||'')};
+
+let waCfg=null, waQr='', waCodigo='', waBusy='', waTimer=null, _waTick=0;
+const waTeste={tel:'',txt:'Teste da Central Lidere. Se você recebeu, a conexão está de pé.'};
+
+async function waChamar(acao,extra){
+ const {data,error}=await sb.functions.invoke('whatsapp',{body:Object.assign({acao},extra||{})});
+ if(error){const d=await assErroDetalhe(error);throw new Error(d||'o provedor não respondeu')}
+ return data}
+
+async function waStatus(silencioso){
+ try{waCfg=await waChamar('status')}
+ catch(e){waCfg={provedor:'evolution',configurado:false,conectado:false,estado:'erro',detalhe:String(e.message||e)}}
+ if(waCfg.conectado){waQr='';waCodigo='';waPararRelogio()}
+ render();
+ if(!silencioso)toast(waCfg.conectado?'WhatsApp conectado':waEstLabel(waCfg.estado))}
+
+async function waConectar(){
+ waBusy='conectar';render();
+ try{const d=await waChamar('conectar');
+  waCfg=Object.assign({},waCfg||{},d);waQr=d.qr||'';waCodigo=d.codigo||'';waBusy='';render();
+  if(waQr)waIniciarRelogio();
+  else if(d.conectado)toast('O WhatsApp já estava conectado');
+  else toast('O provedor não devolveu QR agora, tente de novo em alguns segundos')}
+ catch(e){waBusy='';render();toast('Não deu para gerar o QR: '+e.message)}}
+
+/* enquanto o QR está na tela, pergunta de 4 em 4 segundos se já leram */
+function waIniciarRelogio(){waPararRelogio();_waTick=0;
+ waTimer=setInterval(async()=>{
+  if(activeTab!=='admin'||admTab!=='whatsapp')return waPararRelogio();
+  if(++_waTick>30){waPararRelogio();waQr='';render();return toast('O QR Code expirou. Gere outro.')}
+  try{const d=await waChamar('status');
+   if(d.conectado){waCfg=d;waQr='';waCodigo='';waPararRelogio();render();
+    toast('WhatsApp conectado'+(d.numero?' · '+waFmtNum(d.numero):''))}}
+  catch(e){/* falha de rede no meio do pareamento não derruba a tela */}},4000)}
+function waPararRelogio(){if(waTimer){clearInterval(waTimer);waTimer=null}}
+
+async function waDesconectar(){
+ if(!confirm('Desconectar o WhatsApp da Central? O aparelho sai da lista de conectados no seu celular.'))return;
+ waBusy='desconectar';render();
+ try{await waChamar('desconectar');waQr='';waCodigo='';waBusy='';await waStatus(true);toast('WhatsApp desconectado')}
+ catch(e){waBusy='';render();toast('Não deu para desconectar: '+e.message)}}
+
+async function waEnviarTeste(){
+ if(!waTeste.tel.trim())return toast('Informe o telefone com DDD');
+ waBusy='enviar';render();
+ try{await waChamar('enviar',{telefone:waTeste.tel,texto:waTeste.txt||'Teste da Central Lidere.'});
+  waBusy='';render();toast('Mensagem enviada')}
+ catch(e){waBusy='';render();toast('Não enviou: '+e.message)}}
+
+function admWhats(){
+ if(waCfg===null){waCfg=undefined;setTimeout(()=>waStatus(true),80)}
+ const c=waCfg||{};
+ const est=c.estado||(waQr?'aguardando_leitura':'desconectado');
+ const chip=`<span class="wa-est" style="color:${waEstCor(est)}">
+   <span class="pt" style="background:${waEstCor(est)}"></span>${esc(waEstLabel(est))}</span>`;
+
+ if(c.configurado===false){
+  return `<div class="panel"><div class="panel-head"><h2>WhatsApp<small>ainda sem provedor configurado</small></h2>${chip}</div>
+   <div class="empty" style="text-align:left;line-height:1.75">
+    A página do sistema não conversa direto com o WhatsApp: o QR Code abre uma conexão que precisa
+    ficar de pé 24 horas, e isso exige um servidor. A Central já está pronta para os dois caminhos,
+    falta escolher um e guardar a chave em <b>Supabase &gt; Edge Functions &gt; Secrets</b>.
+    <br><br>
+    <b>Servidor próprio (Evolution API)</b> — sem mensalidade de plataforma, só o custo da máquina.
+    Segredos: <code>EVOLUTION_URL</code>, <code>EVOLUTION_KEY</code> e, se quiser,
+    <code>EVOLUTION_INSTANCE</code>. Deixe <code>WHATS_PROVEDOR</code> em <code>evolution</code>.
+    <br><br>
+    <b>Z-API</b> — serviço pronto, com teste grátis. Segredos: <code>ZAPI_INSTANCE</code>,
+    <code>ZAPI_TOKEN</code> e <code>ZAPI_CLIENT_TOKEN</code>. Ponha
+    <code>WHATS_PROVEDOR</code> em <code>zapi</code>.
+    <br><br>
+    <button class="btn btn-sm" onclick="waStatus()">Verificar de novo</button></div>
+   ${waBlocoRisco()}</div>`}
+
+ if(c.conectado){
+  return `<div class="panel"><div class="panel-head"><h2>WhatsApp conectado<small>${esc(c.numero?waFmtNum(c.numero):'provedor '+(c.provedor||''))}</small></h2>${chip}</div>
+   <div class="empty" style="text-align:left">Este aparelho aparece no seu celular em
+    <b>WhatsApp &gt; Aparelhos conectados</b>. Desligar por lá também derruba a conexão aqui.</div>
+   <div class="fgrid" style="margin-top:12px">
+    <div class="field"><label>Telefone para o teste (com DDD)</label>
+     <input value="${esc(waTeste.tel)}" placeholder="43 99999-9999" oninput="waTeste.tel=this.value"></div>
+    <div class="field"><label>Mensagem</label>
+     <input value="${esc(waTeste.txt)}" oninput="waTeste.txt=this.value"></div></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-gold" ${waBusy?'disabled':''} onclick="waEnviarTeste()">${waBusy==='enviar'?'Enviando...':'Enviar mensagem de teste'}</button>
+    <button class="btn btn-sm" onclick="waStatus()">Atualizar</button>
+    <button class="btn btn-sm btn-ghost" ${waBusy?'disabled':''} onclick="waDesconectar()">Desconectar</button></div>
+   ${waBlocoRisco()}</div>`}
+
+ const passos=`<ol class="wa-pass">
+   <li>Abra o <b>WhatsApp</b> no celular do número da Lidere.</li>
+   <li>Toque em <b>Mais opções</b> (ou Ajustes, no iPhone) e depois em <b>Aparelhos conectados</b>.</li>
+   <li>Toque em <b>Conectar um aparelho</b>.</li>
+   <li>Aponte a câmera para este QR Code.</li>
+ </ol>`;
+
+ return `<div class="panel"><div class="panel-head"><h2>Conectar o WhatsApp<small>provedor ${esc(c.provedor||'')} · o mesmo pareamento do WhatsApp Web</small></h2>${chip}</div>
+  ${waQr?`<div class="wa-qr">
+    <div class="box"><img src="${esc(waQr)}" alt="QR Code para conectar o WhatsApp"></div>
+    <div class="lado">${passos}
+     ${waCodigo?`<div>ou digite o código no celular:<div class="wa-cod">${esc(waCodigo)}</div></div>`:''}
+     <div class="muted" style="font-size:11.5px;margin-top:11px">
+      Estou conferindo sozinho a cada 4 segundos. Assim que você ler, esta tela muda.
+      O código expira em cerca de dois minutos.</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
+      <button class="btn btn-sm" ${waBusy?'disabled':''} onclick="waConectar()">Gerar outro QR</button>
+      <button class="btn btn-sm btn-ghost" onclick="waQr='';waPararRelogio();render()">Cancelar</button></div></div></div>`
+   :`<div class="empty" style="text-align:left;line-height:1.75">
+     ${esc(c.detalhe||'')||'O pareamento é o mesmo do WhatsApp Web: você lê um QR Code com o celular e o sistema passa a enviar e receber por esse número.'}
+     <br><br><button class="btn btn-gold" ${waBusy?'disabled':''} onclick="waConectar()">${waBusy==='conectar'?'Gerando o QR...':'Gerar QR Code'}</button>
+     <button class="btn btn-sm" onclick="waStatus()">Atualizar situação</button></div>`}
+  ${waBlocoRisco()}</div>`}
+
+function waBlocoRisco(){return `<div class="wa-risco">
+  <b>Antes de ler o código com o número principal da Lidere.</b>
+  Conexão por QR Code não é a API oficial da Meta: é engenharia reversa, e o número pode ser banido.
+  O que mais pesa para banir não é o total de mensagens, é a quantidade de <b>destinatários novos</b>,
+  que é justamente o desenho da cadência de prospecção fria.
+  Conectar e mandar uma mensagem de teste para você mesmo é baixo risco. Disparar os 7 toques
+  para uma lista fria a partir do número da casa é o cenário que derruba número.
+  Se for automatizar a prospecção, use um chip separado.</div>`}
 
 /* ===== Excluídos ===== */
 /* ===== Backup ===== */
