@@ -246,6 +246,23 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
+/* ---- arquivos do cliente ---- */
+.arq-l{display:flex;gap:11px;align-items:flex-start;border-top:1px solid var(--line);padding:11px 4px}
+.arq-l:first-of-type{border-top:0}
+.arq-l .ic{width:38px;height:44px;border-radius:7px;border:1px solid var(--line);flex:0 0 38px;
+  display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:800;
+  letter-spacing:.4px;background:var(--panel2)}
+.arq-l .tx{flex:1;min-width:0}
+.arq-l .tx b{font-size:12.5px;font-weight:600;display:block;line-height:1.4;overflow-wrap:anywhere}
+.arq-l .tx i{font-size:11px;color:var(--mut);font-style:normal;display:block;margin-top:3px;line-height:1.5}
+.arq-l .ac{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start}
+@media(max-width:680px){.arq-l{flex-wrap:wrap}.arq-l .ac{width:100%;justify-content:flex-start}}
+.arq-drop{border:1px dashed var(--line-f);border-radius:12px;padding:16px;text-align:center;
+  font-size:12px;color:var(--mut);line-height:1.6;margin-bottom:12px}
+.arq-drop.sobre{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--txt)}
+.arq-file{display:flex;gap:9px;align-items:center;background:var(--panel2);border:1px solid var(--line);
+  border-radius:9px;padding:9px 11px;font-size:12px;margin-top:7px}
+.arq-file .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ---- logo do cliente ---- */
 .cli-av{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;
   overflow:hidden;background:#fff;flex:0 0 auto;line-height:0}
@@ -771,6 +788,37 @@ tbody tr:hover{background:var(--panel2)}
 </div></div>
 
 <!-- ===== Modal Tarefa (Pendências) ===== -->
+
+
+<!-- ===== Modal Arquivo do cliente ===== -->
+<div class="overlay" id="ovArqCli"><div class="modal">
+  <div class="modal-head"><h3 id="arqTitle">Novo documento</h3><button class="modal-x" onclick="cliArqCancelar()">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="aq_id"><input type="hidden" id="aq_cliente"><input type="hidden" id="aq_caminho">
+    <input type="hidden" id="aq_nome"><input type="hidden" id="aq_tipo"><input type="hidden" id="aq_tam">
+    <div class="field"><label>Arquivo *</label><div id="aq_file_box"></div>
+      <input type="file" id="aq_file" style="display:none" onchange="cliArqEscolheu(this)"></div>
+    <div class="fgrid">
+      <div class="field"><label>Nome *</label><input id="aq_titulo" placeholder="ex: Contrato de prestação de serviços 2026"></div>
+      <div class="field"><label>Tipo</label><select id="aq_cat" onchange="cliArqCampos()"></select></div>
+    </div>
+    <div class="fgrid3">
+      <div class="field"><label id="aq_lbl_data">Data do documento</label><input id="aq_data" type="date"></div>
+      <div class="field"><label>Competência</label><input id="aq_comp" placeholder="2026-09"></div>
+      <div class="field"><label>Valor (opcional)</label><input id="aq_valor" type="number" step="0.01" placeholder="0,00"></div>
+    </div>
+    <div class="fgrid" id="aq_vig_box">
+      <div class="field"><label>Vigência começa</label><input id="aq_vini" type="date"></div>
+      <div class="field"><label>Vigência termina</label><input id="aq_vfim" type="date"></div>
+    </div>
+    <div class="field" id="aq_pend_box"><label>Resolve alguma pendência deste cliente?</label>
+      <select id="aq_pend"></select>
+      <div class="muted" style="font-size:11px;margin-top:5px">Ao salvar, a pendência escolhida é marcada como resolvida.</div></div>
+    <div class="field"><label>Observações</label><textarea id="aq_obs" rows="2" placeholder="o que precisa lembrar sobre este arquivo"></textarea></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="cliArqCancelar()">Cancelar</button><button class="btn btn-gold" onclick="cliArqSalvar()">Salvar</button></div>
+</div></div>
+<input type="file" id="aq_lote" multiple style="display:none" onchange="cliArqLote(this)">
 
 <!-- ===== Modal Cliente da carteira ===== -->
 <div class="overlay" id="ovCliente"><div class="modal">
@@ -1359,7 +1407,7 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
+  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,CA2,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('cliente_arquivos'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
@@ -1405,6 +1453,12 @@ async function loadAll(){
       titulo:p.titulo||'',detalhe:p.detalhe||'',valor:Number(p.valor)||0,competencia:p.competencia||'',
       prazo:p.prazo||'',prioridade:p.prioridade||'media',status:p.status||'aberta',
       responsavelId:p.responsavel_id||'',resolvidoEm:p.resolvido_em||'',deletedAt:fromISO(p.deleted_at)})),
+    cliArq:(CA2&&CA2.data?CA2.data:[]).map(a=>({id:a.id,clienteId:a.cliente_id||'',categoria:a.categoria||'documento',
+      titulo:a.titulo||'',caminho:a.caminho||'',nomeArquivo:a.nome_arquivo||'',tipo:a.tipo||'',
+      tamanho:Number(a.tamanho)||0,dataRef:a.data_ref||'',vigenciaIni:a.vigencia_ini||'',
+      vigenciaFim:a.vigencia_fim||'',valor:Number(a.valor)||0,competencia:a.competencia||'',
+      obs:a.obs||'',pendenciaId:a.pendencia_id||'',criadoEm:a.criado_em||'',
+      deletedAt:fromISO(a.deleted_at)})),
     crmSigners:(SG&&SG.data?SG.data:[]).map(x=>({id:x.id,propostaId:x.proposta_id||'',nome:x.nome||'',email:x.email||'',telefone:x.telefone||'',cpf:x.cpf||'',papel:x.papel||'',externoId:x.externo_id||'',url:x.url||'',ordem:x.ordem||0,status:x.status||'pendente',assinadoEm:x.assinado_em||''})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
@@ -1612,6 +1666,11 @@ function admLixoItens(){
  DB.onbClientes.filter(x=>x.deletedAt).forEach(c=>out.push({area:'Implantação',titulo:c.nome,
    meta:'cliente · perfil '+esc(c.perfil||'')+' · '+c.etapas.length+' etapa(s)',
    acoes:`<button class="btn btn-sm" onclick="restCliente('${c.id}')">Restaurar</button>`+(ME&&ME.is_admin?`<button class="iconbtn del" onclick="purgeCliente('${c.id}')">🗑</button>`:'')}));
+ alive(DB.cliArq||[]);
+ (DB.cliArq||[]).filter(x=>x.deletedAt).forEach(a=>{const c=cliById(a.clienteId);
+   out.push({area:'Clientes',titulo:a.titulo,
+     meta:'arquivo · '+esc(arqCat(a.categoria).nome)+(c?' · '+esc(c.nome):''),
+     acoes:'<span class="muted" style="font-size:11px">o arquivo já saiu do armazenamento</span>'})});
  (DB.clientes||[]).filter(x=>x.deletedAt).forEach(c=>out.push({area:'Clientes',titulo:c.nome,
    meta:'cliente da carteira'+(c.honorario?' · '+brl(c.honorario)+'/mês':''),
    acoes:`<button class="btn btn-sm" onclick="cliRestaurar('${c.id}')">Restaurar</button>`}));
@@ -4536,8 +4595,13 @@ function pgActsHTML(){
  if(activeTab==='comCli')return '<button class="btn btn-gold" onclick="comCliTab=\'cadastrar\';render()">+ Novo cliente</button>';
  if(activeTab==='comFicha')return '<button class="btn" onclick="go(\'comCli\')">← Todos os leads</button>';
  if(activeTab==='carteira')return '<button class="btn btn-gold" onclick="cliAbrirModal()">+ Cliente</button>';
- if(activeTab==='cliFicha')return '<button class="btn btn-gold" onclick="cliPendModal(null,cliFichaId)">+ Pendência</button>'
-   +'<button class="btn" onclick="go(\'carteira\')">← Carteira</button>';
+ if(activeTab==='cliFicha'){
+  const novo=cliFichaTab==='documentos'
+    ? '<button class="btn btn-gold" onclick="cliArqModal(null,cliFichaId,\'documentos\')">+ Documento</button>'
+    : cliFichaTab==='comprovantes'
+    ? '<button class="btn btn-gold" onclick="cliArqModal(null,cliFichaId,\'comprovantes\')">+ Comprovante</button>'
+    : '<button class="btn btn-gold" onclick="cliPendModal(null,cliFichaId)">+ Pendência</button>';
+  return novo+'<button class="btn" onclick="go(\'carteira\')">← Carteira</button>'}
  return ''}
 function comFichaSub(l){const e=crmEstById(l.estagioId),c=comPdDoLead(l),p=comPropAtiva(l);
  const partes=[e?e.nome:'sem etapa'];
@@ -5802,6 +5866,14 @@ function agendaItens(de,ate){
       cliente:c?c.nome:'',resp:p.responsavelId?respName(p.responsavelId):'',
       prioridade:p.prioridade||'media',feito:p.status==='resolvida',valor:+p.valor||0,
       abrir:`cliAbrir('${p.clienteId}')`})});
+  /* 7b. contrato chegando ao fim da vigência */
+  alive(DB.cliArq||[]).forEach(a=>{
+    if(arqCat(a.categoria).aba!=='documentos'||!a.vigenciaFim)return;
+    if(a.vigenciaFim<de||a.vigenciaFim>ate)return;
+    const c=cliById(a.clienteId);
+    add({dk:a.vigenciaFim,hora:'',origem:'cliente',tipo:'Fim de vigência',
+      titulo:a.titulo+' termina',cliente:c?c.nome:'',resp:'',prioridade:'alta',
+      feito:false,valor:+a.valor||0,abrir:`cliAbrirAba('${a.clienteId}','documentos')`})});
   /* 8. etapas de implantação */
   alive(DB.onbClientes).forEach(c=>c.etapas.forEach(e=>{
     if(!e.prazo||e.prazo<de||e.prazo>ate||!onbAplic(e))return;
@@ -6166,6 +6238,257 @@ function waBlocoRisco(){return `<div class="wa-risco">
 
 
 
+
+/* ===================================================================
+   Arquivos do cliente: contrato de um lado, comprovante do outro.
+   O arquivo vai para o bucket "documentos", que é FECHADO: só sai de
+   lá por link assinado com uma hora de validade.
+   =================================================================== */
+const ARQ_CATS=[
+ {id:'contrato',aba:'documentos',nome:'Contrato',cor:'var(--acc)',vig:true},
+ {id:'aditivo',aba:'documentos',nome:'Aditivo de contrato',cor:'var(--acc)',vig:true},
+ {id:'procuracao',aba:'documentos',nome:'Procuração',cor:'#8a7cf2',vig:true},
+ {id:'contrato_social',aba:'documentos',nome:'Contrato social e alterações',cor:'#ec4899'},
+ {id:'documento',aba:'documentos',nome:'Outro documento',cor:'var(--mut)'},
+ {id:'comprovante',aba:'comprovantes',nome:'Comprovante de pagamento',cor:'#06b6d4'},
+ {id:'nota',aba:'comprovantes',nome:'Nota fiscal',cor:'var(--meta)'},
+ {id:'extrato',aba:'comprovantes',nome:'Extrato bancário',cor:'var(--pos)'},
+ {id:'recibo',aba:'comprovantes',nome:'Recibo',cor:'#f59e0b'}];
+const arqCat=id=>ARQ_CATS.find(x=>x.id===id)||ARQ_CATS[4];
+const ARQ_MAX=20*1024*1024;
+const cliArqDe=(cid,aba)=>alive(DB.cliArq||[])
+ .filter(a=>a.clienteId===cid&&(!aba||arqCat(a.categoria).aba===aba))
+ .sort((a,b)=>String(b.dataRef||b.criadoEm||'').localeCompare(String(a.dataRef||a.criadoEm||'')));
+
+function arqTam(n){n=+n||0;
+ if(n>=1048576)return (n/1048576).toFixed(1).replace('.',',')+' MB';
+ if(n>=1024)return Math.round(n/1024)+' KB';
+ return n+' B'}
+function arqEtiqueta(a){const t=(a.tipo||'')+' '+(a.nomeArquivo||'');
+ if(/pdf/i.test(t))return {t:'PDF',c:'#ef4444'};
+ if(/image|png|jpe?g|webp|heic/i.test(t))return {t:'IMG',c:'#06b6d4'};
+ if(/sheet|excel|csv/i.test(t))return {t:'XLS',c:'#3ea06b'};
+ if(/word|document/i.test(t))return {t:'DOC',c:'#8a7cf2'};
+ if(/xml/i.test(t))return {t:'XML',c:'#f59e0b'};
+ return {t:'ARQ',c:'var(--mut)'}}
+
+function persistCliArq(a){up('cliente_arquivos',{id:a.id,cliente_id:a.clienteId,categoria:a.categoria||'documento',
+ titulo:a.titulo,caminho:a.caminho,nome_arquivo:a.nomeArquivo||null,tipo:a.tipo||null,tamanho:+a.tamanho||0,
+ data_ref:a.dataRef||null,vigencia_ini:a.vigenciaIni||null,vigencia_fim:a.vigenciaFim||null,
+ valor:+a.valor||0,competencia:a.competencia||null,obs:a.obs||null,pendencia_id:a.pendenciaId||null,
+ criado_por:ME?ME.id:null,updated_at:new Date().toISOString(),deleted_at:toISO(a.deletedAt)})}
+
+function arqRecusa(f){
+ if(!f)return 'escolha um arquivo';
+ if(f.size>ARQ_MAX)return 'o arquivo passa de 20 MB';
+ if(f.size===0)return 'o arquivo está vazio';
+ return ''}
+async function cliArqSubir(file,cid){
+ const ext=((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,8)||'bin';
+ const caminho=cid+'/'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36))+'.'+ext;
+ const {error}=await sb.storage.from('documentos').upload(caminho,file,
+   {contentType:file.type||'application/octet-stream',upsert:false});
+ if(error)throw error;
+ return caminho}
+function cliArqApagarArquivo(caminho){
+ if(caminho&&sb)sb.storage.from('documentos').remove([caminho]).then(()=>{},()=>{})}
+
+/* o bucket é fechado: para ver o arquivo, um link que vale uma hora */
+async function cliArqAbrir(id,baixar){
+ const a=alive(DB.cliArq||[]).find(x=>x.id===id);if(!a)return;
+ const janela=baixar?null:window.open('','_blank');
+ try{
+  const opc=baixar?{download:a.nomeArquivo||true}:{};
+  const {data,error}=await sb.storage.from('documentos').createSignedUrl(a.caminho,3600,opc);
+  if(error||!data||!data.signedUrl)throw error||new Error('não consegui gerar o link');
+  if(janela)janela.location=data.signedUrl;else window.open(data.signedUrl,'_blank','noopener');
+ }catch(e){if(janela)janela.close();toast('Não consegui abrir: '+((e&&e.message)||e))}}
+
+function cliArqExcluir(id){
+ const a=alive(DB.cliArq||[]).find(x=>x.id===id);if(!a)return;
+ if(!confirm('Excluir "'+a.titulo+'"? O arquivo sai do sistema.'))return;
+ a.deletedAt=Date.now();persistCliArq(a);cliArqApagarArquivo(a.caminho);
+ render();toast('Arquivo excluído')}
+
+/* ---- modal ---- */
+let _arqAba='documentos', _arqNovoCaminho='';
+function cliArqModal(id,cid,aba){
+ const a=id?alive(DB.cliArq||[]).find(x=>x.id===id):null;
+ _arqAba=a?arqCat(a.categoria).aba:(aba||'documentos');
+ _arqNovoCaminho='';
+ const cliente=a?a.clienteId:(cid||cliFichaId);
+ gEl('arqTitle').textContent=a?'Editar arquivo':(_arqAba==='documentos'?'Novo documento':'Novo comprovante');
+ gEl('aq_id').value=a?a.id:'';
+ gEl('aq_cliente').value=cliente;
+ gEl('aq_caminho').value=a?a.caminho:'';
+ gEl('aq_nome').value=a?a.nomeArquivo:'';
+ gEl('aq_tipo').value=a?a.tipo:'';
+ gEl('aq_tam').value=a?a.tamanho:'';
+ gEl('aq_cat').innerHTML=ARQ_CATS.filter(x=>x.aba===_arqAba)
+   .map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+ gEl('aq_cat').value=a?a.categoria:(_arqAba==='documentos'?'contrato':'comprovante');
+ const ab=cliPendAbertas(cliente);
+ gEl('aq_pend').innerHTML='<option value="">— nenhuma —</option>'+
+   ab.map(p=>`<option value="${p.id}">${esc(cliTipo(p.tipo).curto)} · ${esc(p.titulo)}</option>`).join('');
+ gEl('aq_pend').value=a?(a.pendenciaId||''):'';
+ gEl('aq_pend_box').style.display=ab.length?'':'none';
+ const v=(k,val)=>gEl(k).value=val==null?'':val;
+ v('aq_titulo',a?a.titulo:'');
+ v('aq_data',a?a.dataRef:todayKey());
+ v('aq_valor',a&&a.valor?a.valor:'');
+ v('aq_comp',a?a.competencia:monthKey(new Date()));
+ v('aq_vini',a?a.vigenciaIni:'');
+ v('aq_vfim',a?a.vigenciaFim:'');
+ v('aq_obs',a?a.obs:'');
+ cliArqCampos();cliArqMostraArquivo();
+ showModal('ovArqCli');setTimeout(()=>gEl('aq_titulo').focus(),60)}
+
+function cliArqCampos(){
+ const cat=arqCat(gEl('aq_cat').value);
+ gEl('aq_vig_box').style.display=cat.vig?'':'none';
+ gEl('aq_lbl_data').textContent=cat.vig?'Assinado em':'Data do documento'}
+
+function cliArqMostraArquivo(){
+ const box=gEl('aq_file_box'),nome=gEl('aq_nome').value,tam=+gEl('aq_tam').value||0;
+ if(!box)return;
+ box.innerHTML=gEl('aq_caminho').value
+  ? `<div class="arq-file"><span class="nm">${esc(nome||'arquivo enviado')}</span>
+     <span class="muted">${tam?esc(arqTam(tam)):''}</span>
+     <button type="button" class="btn btn-sm btn-ghost" onclick="cliArqTrocar()">Trocar</button></div>`
+  : `<div class="arq-drop" id="aq_drop" ondragover="event.preventDefault();this.classList.add('sobre')"
+       ondragleave="this.classList.remove('sobre')" ondrop="cliArqSolto(event)">
+      Arraste o arquivo aqui ou
+      <button type="button" class="btn btn-sm" onclick="gEl('aq_file').click()">escolha no computador</button>
+      <div style="font-size:11px;margin-top:6px">PDF, imagem, Word, Excel, CSV ou XML. Até 20 MB.</div></div>`}
+
+function cliArqTrocar(){
+ const antigo=gEl('aq_caminho').value;
+ if(antigo&&antigo===_arqNovoCaminho)cliArqApagarArquivo(antigo);
+ gEl('aq_caminho').value='';gEl('aq_nome').value='';gEl('aq_tipo').value='';gEl('aq_tam').value='';
+ _arqNovoCaminho='';cliArqMostraArquivo()}
+
+function cliArqSolto(e){e.preventDefault();e.currentTarget.classList.remove('sobre');
+ const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+ if(f)cliArqPegou(f)}
+function cliArqEscolheu(inp){const f=inp&&inp.files&&inp.files[0];if(inp)inp.value='';if(f)cliArqPegou(f)}
+
+async function cliArqPegou(f){
+ const erro=arqRecusa(f);if(erro)return toast('Não deu: '+erro);
+ const box=gEl('aq_file_box');
+ if(box)box.innerHTML='<div class="arq-file"><span class="nm">Enviando '+esc(f.name)+'...</span></div>';
+ try{
+  const caminho=await cliArqSubir(f,gEl('aq_cliente').value);
+  _arqNovoCaminho=caminho;
+  gEl('aq_caminho').value=caminho;gEl('aq_nome').value=f.name;
+  gEl('aq_tipo').value=f.type||'';gEl('aq_tam').value=f.size;
+  if(!gEl('aq_titulo').value.trim())gEl('aq_titulo').value=String(f.name).replace(/\.[^.]+$/,'');
+  cliArqMostraArquivo()}
+ catch(e){cliArqMostraArquivo();toast('Não consegui enviar: '+((e&&e.message)||e))}}
+
+function cliArqSalvar(){
+ const titulo=gEl('aq_titulo').value.trim();if(!titulo)return toast('Dê um nome ao arquivo');
+ const caminho=gEl('aq_caminho').value;if(!caminho)return toast('Envie o arquivo antes de salvar');
+ const g=k=>gEl(k).value;
+ const dados={clienteId:g('aq_cliente'),categoria:g('aq_cat'),titulo,caminho,
+  nomeArquivo:g('aq_nome'),tipo:g('aq_tipo'),tamanho:+g('aq_tam')||0,
+  dataRef:g('aq_data'),vigenciaIni:g('aq_vini'),vigenciaFim:g('aq_vfim'),
+  valor:+g('aq_valor')||0,competencia:g('aq_comp'),obs:g('aq_obs').trim(),pendenciaId:g('aq_pend')};
+ const id=g('aq_id');let a;
+ if(id){a=alive(DB.cliArq||[]).find(x=>x.id===id);
+  if(a.caminho&&a.caminho!==caminho)cliArqApagarArquivo(a.caminho);
+  Object.assign(a,dados)}
+ else{a=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+   criadoEm:new Date().toISOString(),deletedAt:null},dados);
+  (DB.cliArq=DB.cliArq||[]).push(a)}
+ persistCliArq(a);
+ let extra='';
+ if(a.pendenciaId){const p=alive(DB.cliPend||[]).find(x=>x.id===a.pendenciaId);
+  if(p&&p.status!=='resolvida'){p.status='resolvida';p.resolvidoEm=new Date().toISOString();
+   persistCliPend(p);extra=' · pendência resolvida'}}
+ _arqNovoCaminho='';closeModal('ovArqCli');render();
+ toast((id?'Arquivo atualizado':'Arquivo guardado')+extra)}
+
+function cliArqCancelar(){
+ if(_arqNovoCaminho&&gEl('aq_caminho').value===_arqNovoCaminho)cliArqApagarArquivo(_arqNovoCaminho);
+ _arqNovoCaminho='';closeModal('ovArqCli')}
+
+/* ---- envio em lote, para o dia de subir 12 comprovantes ---- */
+async function cliArqLote(inp){
+ const arquivos=[].slice.call((inp&&inp.files)||[]);if(inp)inp.value='';
+ if(!arquivos.length)return;
+ const cid=cliFichaId;
+ toast('Enviando '+arquivos.length+' arquivo(s)...');
+ let ok=0,falhou=[];
+ for(let i=0;i<arquivos.length;i++){const f=arquivos[i];
+  const erro=arqRecusa(f);
+  if(erro){falhou.push(f.name);continue}
+  try{const caminho=await cliArqSubir(f,cid);
+   const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+i),clienteId:cid,
+    categoria:'comprovante',titulo:String(f.name).replace(/\.[^.]+$/,''),caminho,nomeArquivo:f.name,
+    tipo:f.type||'',tamanho:f.size,dataRef:todayKey(),vigenciaIni:'',vigenciaFim:'',valor:0,
+    competencia:monthKey(new Date()),obs:'',pendenciaId:'',criadoEm:new Date().toISOString(),deletedAt:null};
+   (DB.cliArq=DB.cliArq||[]).push(a);persistCliArq(a);ok++}
+  catch(e){falhou.push(f.name)}}
+ render();
+ toast(ok+' de '+arquivos.length+' enviado(s)'+(falhou.length?' · recusados: '+falhou.slice(0,3).join(', '):''))}
+
+/* ---- linha e telas ---- */
+function cliArqLinha(a){
+ const cat=arqCat(a.categoria),et=arqEtiqueta(a),hoje=todayKey();
+ const venceu=a.vigenciaFim&&a.vigenciaFim<hoje;
+ const perto=a.vigenciaFim&&!venceu&&a.vigenciaFim<=addDias(hoje,60);
+ const meta=[a.dataRef?(cat.vig?'assinado em ':'')+fmtBR(a.dataRef):'',
+   a.competencia&&!cat.vig?'comp. '+esc(a.competencia):'',
+   a.valor?brl(a.valor):'',
+   (a.vigenciaIni||a.vigenciaFim)?'vigência '+(fmtBR(a.vigenciaIni)||'?')+' a '+(fmtBR(a.vigenciaFim)||'indeterminada'):'',
+   a.tamanho?arqTam(a.tamanho):''].filter(Boolean).join(' · ');
+ return `<div class="arq-l">
+   <span class="ic" style="color:${et.c};border-color:${et.c}">${et.t}</span>
+   <span class="tx"><b>${esc(a.titulo)}</b>
+     <i><span style="color:${cat.cor}">${esc(cat.nome)}</span>${meta?' · '+meta:''}${a.obs?'<br>'+esc(a.obs):''}</i></span>
+   <span class="ac">
+     ${venceu?'<span class="chip chip-vencido">vigência vencida</span>':perto?`<span class="chip chip-avencer">vence em ${fmtBR(a.vigenciaFim)}</span>`:''}
+     <button class="btn btn-sm btn-gold" onclick="cliArqAbrir('${a.id}')">Abrir</button>
+     <button class="iconbtn" title="Baixar" onclick="cliArqAbrir('${a.id}',true)">↓</button>
+     <button class="iconbtn" title="Editar" onclick="cliArqModal('${a.id}')">✎</button>
+     <button class="iconbtn del" title="Excluir" onclick="cliArqExcluir('${a.id}')">🗑</button></span></div>`}
+
+function cliFichaDocs(c){
+ const lista=cliArqDe(c.id,'documentos');
+ const porCat=ARQ_CATS.filter(x=>x.aba==='documentos').map(cat=>{
+   const seg=lista.filter(a=>a.categoria===cat.id);if(!seg.length)return '';
+   return `<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:${cat.cor};font-weight:800;margin:16px 0 6px">${esc(cat.nome)} (${seg.length})</div>`
+     +seg.map(cliArqLinha).join('')}).join('');
+ const vig=lista.filter(a=>a.categoria==='contrato'&&a.vigenciaFim);
+ const aviso=vig.filter(a=>a.vigenciaFim<addDias(todayKey(),60));
+ return `<div class="panel"><div class="panel-head"><h2>Documentos<small>contrato, aditivo, procuração e o que mais precisar ficar guardado</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="cliArqModal(null,'${c.id}','documentos')">+ Documento</button></div>
+  ${aviso.length?`<div class="tip">Atenção: ${aviso.length} contrato(s) com vigência vencida ou acabando nos próximos 60 dias. A data também aparece na Agenda.</div>`:''}
+  ${porCat||`<div class="empty" style="text-align:left">Nenhum documento guardado ainda.<br>
+    O contrato assinado, o aditivo e a procuração ficam aqui, e só saem por link com uma hora de validade.<br><br>
+    <button class="btn btn-gold" onclick="cliArqModal(null,'${c.id}','documentos')">Adicionar o primeiro</button></div>`}</div>`}
+
+function cliFichaCompr(c){
+ const lista=cliArqDe(c.id,'comprovantes');
+ const porComp={};lista.forEach(a=>{const k=a.competencia||(a.dataRef||'').slice(0,7)||'sem competência';
+   (porComp[k]=porComp[k]||[]).push(a)});
+ const meses=Object.keys(porComp).sort((a,b)=>a==='sem competência'?1:b==='sem competência'?-1:b.localeCompare(a));
+ const total=lista.reduce((t,a)=>t+(+a.valor||0),0);
+ const blocos=meses.map(k=>{const seg=porComp[k];
+   const soma=seg.reduce((t,a)=>t+(+a.valor||0),0);
+   const rot=/^\d{4}-\d{2}$/.test(k)?mesExtenso(parseK(k+'-01')):k;
+   return `<div style="display:flex;align-items:baseline;gap:8px;margin:16px 0 6px">
+     <span style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800">${esc(rot)}</span>
+     <span class="muted" style="font-size:11px;flex:1">${seg.length} arquivo(s)${soma?' · '+brl(soma):''}</span></div>`
+    +seg.map(cliArqLinha).join('')}).join('');
+ return `<div class="panel"><div class="panel-head"><h2>Comprovantes<small>${lista.length} arquivo(s)${total?' · '+brl(total)+' somados':''}</small></h2>
+   <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <button class="btn btn-sm" onclick="gEl('aq_lote').click()">Enviar vários</button>
+    <button class="btn btn-sm btn-gold" onclick="cliArqModal(null,'${c.id}','comprovantes')">+ Comprovante</button></div></div>
+  <div class="empty" style="text-align:left;margin-bottom:12px">Comprovante de pagamento, nota, extrato e recibo, separados por competência.
+   Em <b>Enviar vários</b> dá para mandar a pasta inteira de uma vez: cada arquivo vira uma linha com o nome dele, e você ajusta depois.</div>
+  ${blocos||'<div class="empty">Nenhum comprovante guardado ainda.</div>'}</div>`}
+
 /* ===== Logo do cliente =====
    A imagem vai para o bucket "logos" do Supabase e o cliente guarda só a URL.
    Reduzo para 320px antes de subir: logo não precisa de mais que isso. */
@@ -6291,9 +6614,11 @@ function persistCliPend(p){up('cliente_pendencias',{id:p.id,cliente_id:p.cliente
  updated_at:new Date().toISOString(),resolvido_em:p.resolvidoEm||null,deleted_at:toISO(p.deletedAt)})}
 
 /* ---- cliente: criar, editar, abrir ---- */
-let cliFichaId='', cliTab='carteira', cliFiltro={q:'',saude:'',resp:''};
+let cliFichaId='', cliTab='carteira', cliFichaTab='resumo', cliFiltro={q:'',saude:'',resp:''};
 function setCliTab(t){cliTab=t;render()}
-function cliAbrir(id){cliFichaId=id;activeTab='cliFicha';render();window.scrollTo({top:0,behavior:'smooth'})}
+function setCliFichaTab(t){cliFichaTab=t;render()}
+function cliAbrir(id){cliFichaId=id;cliFichaTab='resumo';activeTab='cliFicha';render();window.scrollTo({top:0,behavior:'smooth'})}
+function cliAbrirAba(id,aba){cliFichaId=id;cliFichaTab=aba;activeTab='cliFicha';render();window.scrollTo({top:0,behavior:'smooth'})}
 
 function cliAbrirModal(id,base){
  const c=id?cliById(id):null;
@@ -6343,6 +6668,7 @@ function cliExcluir(id){const c=cliById(id);if(!c)return;
  c.deletedAt=Date.now();persistCliente(c);
  if(c.logoUrl)cliLogoApagarArquivo(c.logoUrl);
  cliPendDe(id).forEach(p=>{p.deletedAt=Date.now();persistCliPend(p)});
+ cliArqDe(id).forEach(a=>{a.deletedAt=Date.now();persistCliArq(a);cliArqApagarArquivo(a.caminho)});
  if(cliFichaId===id){cliFichaId='';activeTab='carteira'}
  render();toast('Movido para Excluídos')}
 function cliRestaurar(id){const c=(DB.clientes||[]).find(x=>x.id===id);if(!c)return;
@@ -6553,6 +6879,9 @@ function viewCliFicha(){
  const wa=waHref(c.telefone,'');
  const lead=c.leadId?crmLeadById(c.leadId):null;
  const onb=c.onbId?alive(DB.onbClientes).find(x=>x.id===c.onbId):null;
+ const abas=[['resumo','Resumo'],['pendencias','Pendências',cliPendAbertas(c.id).length],
+   ['documentos','Documentos',cliArqDe(c.id,'documentos').length],
+   ['comprovantes','Comprovantes',cliArqDe(c.id,'comprovantes').length]];
  const cabec=`<div class="grid2">
   <div class="panel"><div class="panel-head"><h2>Cadastro<small>quem é e como falar com ele</small></h2>
     <button class="btn btn-sm" onclick="cliAbrirModal('${c.id}')">Editar</button></div>
@@ -6584,7 +6913,11 @@ function viewCliFicha(){
    ${porTipo||'<div class="empty">Nada pendente com este cliente.</div>'}
    ${feitas.length?`<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:20px 0 6px">Resolvidas</div>`
      +feitas.map(p=>cliLinhaPend(p,false)).join(''):''}</div>`;
- return cabec+bloco}
+ const corpo=cliFichaTab==='pendencias'?bloco
+   :cliFichaTab==='documentos'?cliFichaDocs(c)
+   :cliFichaTab==='comprovantes'?cliFichaCompr(c)
+   :cabec+bloco;
+ return comTabs(abas,cliFichaTab,'setCliFichaTab')+corpo}
 
 /* ===== Excluídos ===== */
 /* ===== Backup ===== */
