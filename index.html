@@ -206,6 +206,26 @@ a.btn{text-decoration:none;cursor:pointer}
 .kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
 /* ---- assinatura eletronica ---- */
+/* ---- carteira de clientes ---- */
+.cli-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
+.cli-c{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
+  cursor:pointer;text-align:left;width:100%;font:inherit;color:var(--txt);border-left-width:3px}
+.cli-c:hover{background:var(--raise)}
+.cli-c .nm{font-size:13.5px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.cli-c .sb{font-size:11px;color:var(--mut);margin-top:2px}
+.cli-c .tg{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.cli-tag{font-size:9.5px;font-weight:800;letter-spacing:.3px;padding:2px 7px;border-radius:999px;
+  border:1px solid currentColor;white-space:nowrap}
+.cli-p{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
+  border-top:1px solid var(--line);padding:10px 4px}
+.cli-p:first-of-type{border-top:0}
+.cli-p .bo{width:3px;align-self:stretch;border-radius:2px;flex:0 0 3px;min-height:30px}
+.cli-p .tx{flex:1;min-width:0}
+.cli-p .tx b{font-size:12.5px;font-weight:600;display:block;line-height:1.4;overflow-wrap:anywhere}
+.cli-p .tx i{font-size:11px;color:var(--mut);font-style:normal;display:block;margin-top:2px;line-height:1.45}
+.cli-p.ok .tx b{text-decoration:line-through;opacity:.5}
+.cli-p .ac{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:680px){.cli-p{flex-wrap:wrap}.cli-p .ac{width:100%;justify-content:flex-start}}
 /* ---- conexão do WhatsApp ---- */
 .wa-qr{display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .wa-qr .box{background:#fff;padding:13px;border-radius:14px;line-height:0;box-shadow:0 8px 28px rgba(0,0,0,.4)}
@@ -700,6 +720,60 @@ tbody tr:hover{background:var(--panel2)}
 </div></div>
 
 <!-- ===== Modal Tarefa (Pendências) ===== -->
+
+<!-- ===== Modal Cliente da carteira ===== -->
+<div class="overlay" id="ovCliente"><div class="modal">
+  <div class="modal-head"><h3 id="cliTitle">Novo cliente</h3><button class="modal-x" onclick="closeModal('ovCliente')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="cl_id"><input type="hidden" id="cl_lead"><input type="hidden" id="cl_onb">
+    <div class="fgrid">
+      <div class="field"><label>Nome do cliente *</label><input id="cl_nome" placeholder="razão social ou nome fantasia"></div>
+      <div class="field"><label>CNPJ</label><input id="cl_cnpj" placeholder="00.000.000/0001-00"></div>
+    </div>
+    <div class="fgrid3">
+      <div class="field"><label>Contato</label><input id="cl_contato" placeholder="quem responde no dia a dia"></div>
+      <div class="field"><label>Telefone</label><input id="cl_tel" placeholder="(43) 99999-9999"></div>
+      <div class="field"><label>E-mail</label><input id="cl_email" type="email"></div>
+    </div>
+    <div class="fgrid3">
+      <div class="field"><label>Responsável</label><select id="cl_resp"></select></div>
+      <div class="field"><label>Honorário (R$/mês)</label><input id="cl_hon" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Fecha todo dia</label><input id="cl_dia" type="number" min="1" max="28" value="10"></div>
+    </div>
+    <div class="fgrid">
+      <div class="field"><label>Cliente desde</label><input id="cl_inicio" type="date"></div>
+      <div class="field"><label>Status</label><select id="cl_status"></select></div>
+    </div>
+    <div class="field"><label>Observações</label><textarea id="cl_obs" rows="3" placeholder="particularidades da operação, combinados, o que não pode esquecer"></textarea></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovCliente')">Cancelar</button><button class="btn btn-gold" onclick="cliSalvar()">Salvar</button></div>
+</div></div>
+
+<!-- ===== Modal Pendência do cliente ===== -->
+<div class="overlay" id="ovPendCli"><div class="modal">
+  <div class="modal-head"><h3 id="pcTitle">Nova pendência</h3><button class="modal-x" onclick="closeModal('ovPendCli')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="pc_id">
+    <div class="fgrid">
+      <div class="field"><label>Cliente *</label><select id="pc_cliente"></select></div>
+      <div class="field"><label>Tipo</label><select id="pc_tipo" onchange="cliPendDica()"></select>
+        <div class="muted" id="pc_dica" style="font-size:11px;margin-top:5px;line-height:1.45"></div></div>
+    </div>
+    <div class="field"><label>O que está pendente *</label><input id="pc_titulo" placeholder="ex: 3 lançamentos no Bradesco sem identificação"></div>
+    <div class="field"><label>Detalhe</label><textarea id="pc_detalhe" rows="3" placeholder="datas, valores, com quem falar, o que já foi tentado"></textarea></div>
+    <div class="fgrid3">
+      <div class="field"><label>Competência</label><input id="pc_comp" placeholder="2026-09"></div>
+      <div class="field"><label>Prazo</label><input id="pc_prazo" type="date"></div>
+      <div class="field"><label>Valor (opcional)</label><input id="pc_valor" type="number" step="0.01" placeholder="0,00"></div>
+    </div>
+    <div class="fgrid3">
+      <div class="field"><label>Prioridade</label><select id="pc_pri"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
+      <div class="field"><label>Responsável</label><select id="pc_resp"></select></div>
+      <div class="field"><label>Situação</label><select id="pc_status"></select></div>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovPendCli')">Cancelar</button><button class="btn btn-gold" onclick="cliPendSalvar()">Salvar</button></div>
+</div></div>
 <div class="overlay" id="ovTask"><div class="modal">
   <div class="modal-head"><h3 id="taskTitle">Nova tarefa</h3><button class="modal-x" onclick="closeModal('ovTask')">×</button></div>
   <div class="modal-body">
@@ -1218,7 +1292,7 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
+  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
@@ -1255,6 +1329,15 @@ async function loadAll(){
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
     crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
     crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',assinaturaProvedor:p.assinatura_provedor||'',assinaturaDocId:p.assinatura_doc_id||'',assinaturaUrl:p.assinatura_url||'',assinaturaStatus:p.assinatura_status||'nao_enviado',assinaturaEnviadaEm:p.assinatura_enviada_em||'',assinadaEm:p.assinada_em||'',arquivoAssinadoUrl:p.arquivo_assinado_url||'',deletedAt:fromISO(p.deleted_at)})),
+    clientes:(CC&&CC.data?CC.data:[]).map(c=>({id:c.id,nome:c.nome||'',cnpj:c.cnpj||'',
+      leadId:c.lead_id||'',onbId:c.onb_id||'',responsavelId:c.responsavel_id||'',status:c.status||'ativo',
+      honorario:Number(c.honorario)||0,diaFechamento:c.dia_fechamento||10,inicio:c.inicio||'',
+      contato:c.contato||'',telefone:c.telefone||'',email:c.email||'',obs:c.obs||'',
+      deletedAt:fromISO(c.deleted_at)})),
+    cliPend:(CQ&&CQ.data?CQ.data:[]).map(p=>({id:p.id,clienteId:p.cliente_id||'',tipo:p.tipo||'outro',
+      titulo:p.titulo||'',detalhe:p.detalhe||'',valor:Number(p.valor)||0,competencia:p.competencia||'',
+      prazo:p.prazo||'',prioridade:p.prioridade||'media',status:p.status||'aberta',
+      responsavelId:p.responsavel_id||'',resolvidoEm:p.resolvido_em||'',deletedAt:fromISO(p.deleted_at)})),
     crmSigners:(SG&&SG.data?SG.data:[]).map(x=>({id:x.id,propostaId:x.proposta_id||'',nome:x.nome||'',email:x.email||'',telefone:x.telefone||'',cpf:x.cpf||'',papel:x.papel||'',externoId:x.externo_id||'',url:x.url||'',ordem:x.ordem||0,status:x.status||'pendente',assinadoEm:x.assinado_em||''})),
     crmAtividades:(CA.data||[]).map(a=>({id:a.id,leadId:a.lead_id,data:a.data||'',tipo:a.tipo||'',proximaAcao:a.proxima_acao||'',dataProxima:a.data_proxima||'',obs:a.obs||'',deletedAt:fromISO(a.deleted_at)})),
     crmMetas:(CM.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(m=>({id:m.id,indicador:m.indicador,meta:+m.meta||0,metrica:m.metrica||'manual',realizado:+m.realizado||0,moeda:!!m.moeda,ordem:m.ordem||0,deletedAt:fromISO(m.deleted_at)})),
@@ -1462,6 +1545,9 @@ function admLixoItens(){
  DB.onbClientes.filter(x=>x.deletedAt).forEach(c=>out.push({area:'Implantação',titulo:c.nome,
    meta:'cliente · perfil '+esc(c.perfil||'')+' · '+c.etapas.length+' etapa(s)',
    acoes:`<button class="btn btn-sm" onclick="restCliente('${c.id}')">Restaurar</button>`+(ME&&ME.is_admin?`<button class="iconbtn del" onclick="purgeCliente('${c.id}')">🗑</button>`:'')}));
+ (DB.clientes||[]).filter(x=>x.deletedAt).forEach(c=>out.push({area:'Clientes',titulo:c.nome,
+   meta:'cliente da carteira'+(c.honorario?' · '+brl(c.honorario)+'/mês':''),
+   acoes:`<button class="btn btn-sm" onclick="cliRestaurar('${c.id}')">Restaurar</button>`}));
  (DB.pnTarefas||[]).filter(x=>x.deletedAt).forEach(t=>out.push({area:'Plano de Negócio',titulo:t.titulo,
    meta:'tarefa · '+esc((pnAreaById(t.areaId)||{}).nome||''),
    acoes:`<button class="btn btn-sm" onclick="restorePnTarefa('${t.id}')">Restaurar</button>`+(ME&&ME.is_admin?`<button class="iconbtn del" onclick="purgePnTarefa('${t.id}')">🗑</button>`:'')}));
@@ -1469,7 +1555,7 @@ function admLixoItens(){
 function admLixoQtd(){return admLixoItens().length||null}
 function admLixo(){
  const itens=admLixoItens();
- const areas=['Pendências','Rotinas','Comercial','Implantação','Plano de Negócio'];
+ const areas=['Pendências','Rotinas','Comercial','Clientes','Implantação','Plano de Negócio'];
  const blocos=areas.map(a=>{const seg=itens.filter(x=>x.area===a);if(!seg.length)return '';
    return `<div class="panel"><div class="panel-head"><h2>${a}<small>${seg.length} item(ns)</small></h2></div>
     ${seg.map(x=>`<div class="row"><div class="row-body"><div class="row-title">${esc(x.titulo)}</div><div class="row-meta">${esc(x.meta)}</div></div>
@@ -1516,14 +1602,16 @@ const IC={
  comMetas:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
  comAjustes:'<circle cx="12" cy="12" r="3"/><path d="M12 2.6v2.6M12 18.8v2.6M21.4 12h-2.6M5.2 12H2.6M18.6 5.4l-1.9 1.9M7.3 16.7l-1.9 1.9M18.6 18.6l-1.9-1.9M7.3 7.3L5.4 5.4"/>',
  comFicha:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
- admin:'<path d="M4 19h16M4 19l1.4-8.6L9 14l3-8 3 8 3.6-3.6L20 19"/>'
+ admin:'<path d="M4 19h16M4 19l1.4-8.6L9 14l3-8 3 8 3.6-3.6L20 19"/>',
+ carteira:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5.2A2.2 2.2 0 0111.2 3h1.6A2.2 2.2 0 0115 5.2V7"/><path d="M3 12.5h18"/>',
+ cliFicha:'<circle cx="12" cy="8" r="3.4"/><path d="M5 20a7 7 0 0114 0"/>'
 };
 const svgIc=k=>'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(IC[k]||'')+'</svg>';
 function NAV(){const base=[
   {g:'Visão geral',its:[['home','Painel']]},
-  {g:'Dia a dia',its:[['pend','Pendências'],['cal','Calendário']]},
-  {g:'Operação',its:[['agenda','Agenda'],['rotinas','Rotinas'],['onb','Implantação']]},
-  {g:'Comercial',its:[['comPainel','Painel'],['comCli','Clientes'],['comFunil','Funil']]},
+  {g:'Dia a dia',its:[['pend','Pendências'],['agenda','Agenda']]},
+  {g:'Operação',its:[['carteira','Clientes'],['rotinas','Rotinas'],['onb','Implantação']]},
+  {g:'Comercial',its:[['comPainel','Painel'],['comCli','Leads'],['comFunil','Funil']]},
   {g:'Financeiro',its:[['contas','Contas a Pagar']]},
   {g:'Planejamento',its:[['plano','Plano de Negócio']]},
   {g:'Sistema',its:[['admin','Administração']]}
@@ -1532,14 +1620,15 @@ function NAV(){const base=[
 const SECAO={
   home:['Painel','Visão geral do que importa hoje, em todas as áreas'],
   pend:['Pendências','Kanban da equipe — arraste entre as colunas'],
-  cal:['Calendário','Avulsas, rotinas, feriados e contas a pagar — tudo o que tem em cada dia'],
-  agenda:['Agenda','O que vence hoje e nos próximos dias, juntando as seis origens'],
+  agenda:['Agenda','Dia, semana, mês e próximos 30 dias, com tudo o que tem data'],
+  carteira:['Clientes','A carteira ativa e o que está pendente em cada cliente'],
+  cliFicha:['Cliente','Ficha do cliente'],
   rotinas:['Rotinas','Mensais, semanais e diárias — o que se repete'],
 
   onb:['Implantação','Checklist de onboarding de clientes, por fase'],
   comPainel:['Comercial','O que precisa de ação hoje, funil, conversão e metas'],
   comFunil:['Funil','Arraste o cliente entre as etapas; a etapa decide a régua de mensagens'],
-  comCli:['Clientes','Um cadastro por cliente: dados, pré-diagnóstico, proposta e histórico'],
+  comCli:['Leads','Um cadastro por lead: dados, pré-diagnóstico, proposta e histórico'],
   comFicha:['Cliente','Ficha completa'],
   contas:['Contas a Pagar','Vencimentos, pagamentos e fluxo por empresa'],
   plano:['Plano de Negócio','Roteiro de 100 tarefas em 6 áreas, equipe e portfólio'],
@@ -1553,7 +1642,8 @@ function tabCount(id){
   if(id==='plano')return alive(DB.pnTarefas).filter(t=>t.status!=='concluido'&&t.dataPlanejada&&t.dataPlanejada<todayKey()).length||null;
   if(id==='comFunil')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
   if(id==='comCli')return crmLeadsAtivos().length||null;
-  if(id==='agenda')return agPendentes()||null
+  if(id==='agenda')return agPendentes()||null;
+  if(id==='carteira')return cliPendCobrando().length||null;
   return null}
 function renderNav(){
   gEl('nav').innerHTML=NAV().map(g=>`<div class="nav-g"><b>${g.g}</b>${
@@ -1564,16 +1654,21 @@ function toggleMenu(v){const el=gEl('side'),sc=gEl('scrim');const abrir=v===unde
   el.classList.toggle('open',abrir);sc.classList.toggle('on',abrir)}
 let activeTab='home';
 const GO_ALIAS={crm:'comFunil',prediag:'comCli',prop:'comCli'};
-function go(id){activeTab=GO_ALIAS[id]||id;toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
+function go(id){
+  if(id==='cal'){activeTab='agenda';agModo='mes';agRef=todayKey()}
+  else activeTab=GO_ALIAS[id]||id;
+  toggleMenu(false);render();window.scrollTo({top:0,behavior:'smooth'})}
 function render(){
   const [t,sub]=SECAO[activeTab]||['',''];
   gEl('pgTitle').childNodes[0].nodeValue=t;gEl('pgSub').textContent=sub;
   if(activeTab==='comFicha'){const _l=crmLeadById(comFichaId);
     if(_l){gEl('pgTitle').childNodes[0].nodeValue=_l.empresa||'Cliente';gEl('pgSub').textContent=comFichaSub(_l)}}
+  if(activeTab==='cliFicha'){const _c=cliById(cliFichaId);
+    if(_c){gEl('pgTitle').childNodes[0].nodeValue=_c.nome||'Cliente';gEl('pgSub').textContent=cliSub(_c)}}
   gEl('pgActs').innerHTML=pgActsHTML();
   renderNav();renderTemas();
   {const b=gEl('btnBackup');if(b)b.style.display=(ME&&ME.is_admin)?'':'none'}
-  const V={home:viewHome,pend:viewPend,cal:viewCalendar,agenda:viewAgenda,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
+  const V={home:viewHome,pend:viewPend,agenda:viewAgenda,carteira:viewCarteira,cliFicha:viewCliFicha,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
   if(activeTab==='admin'&&admTab==='usuarios')setTimeout(loadAdmin,0)}
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
@@ -1911,8 +2006,7 @@ function saveTask(){
   persistAvulsa(a);closeModal('ovTask');render();toast('Salvo')}
 
 /* ===== Calendário ===== */
-let calRef=new Date(), calSel=null;
-function stepCal(n){calRef=new Date(calRef.getFullYear(),calRef.getMonth()+n,1);render()}
+let calSel=null;
 function mensaisOnDate(dt){
   const out=[],seen={},y=dt.getFullYear(),m=dt.getMonth();
   [-1,0,1].forEach(off=>{const r=new Date(y,m+off,1),yy=r.getFullYear(),mm=r.getMonth();
@@ -1925,38 +2019,6 @@ function holidayName(dt){const y=dt.getFullYear(),k=iso(dt);const n=feriadosNaci
 const CONTAS_COR='#06b6d4';
 const CRM_CAL_COR='#ec4899';
 function crmOnDate(dt){return crmLeadsAtivos().filter(l=>l.proximoContato===iso(dt))}
-function viewCalendar(){
-  const y=calRef.getFullYear(),mo=calRef.getMonth();const first=new Date(y,mo,1);const startDow=(first.getDay()+6)%7;const dim=daysInMonth(y,mo);const todayK=todayKey();
-  const prev=new Date(y,mo,0),prevDim=prev.getDate();
-  const cpList=cpContasDoMes(calRef);const cpByDay={};
-  cpList.forEach(x=>{if(x.eff.getMonth()===mo){const d=x.eff.getDate();(cpByDay[d]=cpByDay[d]||[]).push(x)}});
-  const crmByDay={};
-  crmLeadsAtivos().forEach(l=>{if(!l.proximoContato)return;const pd=parseK(l.proximoContato);if(pd.getFullYear()===y&&pd.getMonth()===mo){const d=pd.getDate();(crmByDay[d]=crmByDay[d]||[]).push(l)}});
-  let cells='';
-  for(let i=startDow-1;i>=0;i--)cells+=`<div class="d out"><span class="n">${prevDim-i}</span></div>`;
-  for(let d=1;d<=dim;d++){
-    const dt=new Date(y,mo,d);const dk=iso(dt);
-    const av=avulsasOnDate(dt).filter(a=>a.status!=='feito').length,men=mensaisOnDate(dt).length,sem=semanaisOnDate(dt).length,dia=diariasOnDate(dt).length;
-    const onbArr=onbEtapasOnDate(dt),cadArr=cadToquesOnDate(dt);
-    const cpArr=cpByDay[d]||[];const cpSoma=cpArr.reduce((s,x)=>s+x.c.valor,0);const cpVe=cpArr.some(x=>x.st==='vencido');
-    const crmArr=crmByDay[d]||[];
-    const total=av+men+sem+dia+cpArr.length+crmArr.length+onbArr.length+cadArr.length;const hol=holidayName(dt);
-    const dots=[av&&'<i style="background:var(--acc)"></i>',men&&'<i style="background:var(--meta)"></i>',sem&&'<i style="background:#8a7cf2"></i>',dia&&'<i style="background:var(--pos)"></i>',cpArr.length&&`<i style="background:${CONTAS_COR}"></i>`,crmArr.length&&`<i style="background:${CRM_CAL_COR}"></i>`,onbArr.length&&`<i style="background:${ONB_CAL_COR}"></i>`,cadArr.length&&`<i style="background:${CAD_CAL_COR}"></i>`].filter(Boolean).join('');
-    cells+=`<div class="d ${dk===todayK?'hoje':''} ${!isDiaUtil(dt)?'nu':''} ${hol?'hol':''} ${calSel===dk?'sel':''}" onclick="calSel='${dk}';render()">
-      <span class="n">${d}</span>${total?`<span class="cnt">${total}</span>`:''}
-      <div class="dots">${dots}</div>${cpSoma?`<div class="val" style="color:${cpVe?'var(--neg)':CONTAS_COR}">${brl(cpSoma)}</div>`:''}${hol?`<div class="hol-lab">${esc(hol)}</div>`:''}</div>`;
-  }
-  const after=42-(startDow+dim);for(let d=1;d<=after;d++)cells+=`<div class="d out"><span class="n">${d}</span></div>`;
-  const mn=calRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const sw=(cor,lab)=>`<span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:5px"></i>${lab}</span>`;
-  const legend=`<div class="row-meta" style="margin-bottom:12px;font-size:12px">
-    ${sw('var(--acc)','Avulsas')} · ${sw('var(--meta)','Mensais')} · ${sw('#8a7cf2','Semanais')} · ${sw('var(--pos)','Diárias')} · ${sw(CONTAS_COR,'Contas a Pagar')} · ${sw(CRM_CAL_COR,'CRM')} · ${sw(ONB_CAL_COR,'Implantação')} · ${sw(CAD_CAL_COR,'Cadência')}</div>
-    <div class="tip" style="margin-bottom:12px">A mesma informação por dia, por semana ou nos próximos 30 dias está em <b>Operação → Agenda</b>.</div>`;
-  return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${mn}</h2>
-    <button class="btn btn-sm" onclick="stepCal(-1)">‹</button><button class="btn btn-sm" onclick="calRef=new Date();render()">Hoje</button><button class="btn btn-sm" onclick="stepCal(1)">›</button></div>
-    ${legend}
-    <div class="split2"><div class="cal">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(d=>`<div class="hd">${d}</div>`).join('')}${cells}</div>
-    <div>${calSel?calDayHTML(calSel):'<div class="empty">Clique num dia para ver o que tem.</div>'}</div></div></div>`}
 function calDayHTML(dk){
   const dt=parseK(dk);const util=isDiaUtil(dt),hol=holidayName(dt);
   const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[dk]||{};
@@ -1976,13 +2038,27 @@ function calDayHTML(dk){
     return `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="openConta('${x.c.id}')"><div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(x.c.fornecedor)}</div>
       <div class="row-meta"><span class="chip chip-n" style="color:${cpGrupoCor(x.c.grupoId)}">${esc(cpGrupoNome(x.c.grupoId))}</span>${stChip}</div></div>
       <div style="font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px">${brl(x.c.valor)}</div></div>`}).join('')}
+  const cad=cadToquesOnDate(dt), onbE=onbEtapasOnDate(dt);
+  const cliP=alive(DB.cliPend||[]).filter(p=>p.prazo===dk&&p.status!=='resolvida');
+  if(cliP.length){h+=sec('Clientes · pendências',cliP.length)+cliP.map(p=>{const c=cliById(p.clienteId),t=cliTipo(p.tipo);
+    return `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="cliAbrir('${p.clienteId}')"><div class="row-body">
+      <div class="row-title" style="font-size:12.5px">${esc(p.titulo)}</div>
+      <div class="row-meta"><span class="chip chip-n" style="color:${t.cor}">${esc(t.curto)}</span>${c?`<span class="chip chip-n">${esc(c.nome)}</span>`:''}${p.status==='aguardando'?'<span class="chip chip-avencer">com o cliente</span>':''}</div></div></div>`}).join('')}
   if(crm.length){h+=sec('CRM · Contato agendado',crm.length)+crm.map(l=>{const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);
     return `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="openLead('${l.id}')"><div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(l.empresa)}</div>
       <div class="row-meta">${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:''}${l.contato?`<span class="chip chip-n">${esc(l.contato)}</span>`:''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome)}</span>`:''}</div></div></div>`}).join('')}
+  if(cad.length){h+=sec('Cadência comercial',cad.length)+cad.map(x=>
+    `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="openCad('${x.l.id}','${x.r}')"><div class="row-body">
+      <div class="row-title" style="font-size:12.5px">${esc(x.t.obj)}</div>
+      <div class="row-meta"><span class="chip chip-n" style="color:${CAD_CAL_COR}">${esc(REG(x.r).curto)} ${x.t.n}/${REG(x.r).toques.length}</span><span class="chip chip-n">${esc(x.l.empresa)}</span></div></div></div>`).join('')}
+  if(onbE.length){h+=sec('Implantação',onbE.length)+onbE.map(x=>
+    `<div class="row" style="padding:9px 11px;cursor:pointer" onclick="onbCliente='${x.cliente.id}';go('onb')"><div class="row-body">
+      <div class="row-title" style="font-size:12.5px">${esc(x.etapa.titulo)}</div>
+      <div class="row-meta"><span class="chip chip-n" style="color:${ONB_CAL_COR}">etapa ${x.etapa.num||''}</span><span class="chip chip-n">${esc(x.cliente.nome)}</span>${x.etapa.bloqueador?'<span class="chip chip-vencido">bloqueador</span>':''}</div></div></div>`).join('')}
   const holBan=hol?`<div class="empty" style="border-color:var(--meta);color:var(--meta);text-align:left;padding:10px 12px;margin-bottom:10px">🎌 Feriado: ${esc(hol)}</div>`:'';
-  const empty=(av.length+men.length+sem.length+dia.length+cp.length+crm.length)?'':'<div class="empty">Nada agendado para este dia.</div>';
+  const empty=(av.length+men.length+sem.length+dia.length+cp.length+crm.length+cliP.length+cad.length+onbE.length)?'':'<div class="empty">Nada agendado para este dia.</div>';
   return `<div class="panel" style="margin-bottom:0"><div class="panel-head"><h2 style="text-transform:none">${fmtBR(dk)}<small style="text-transform:capitalize">${dt.toLocaleDateString('pt-BR',{weekday:'long'})}${!util?' · fora do dia útil':''}</small></h2></div>
-   ${holBan}${h}${empty}<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-sm btn-gold" style="flex:1;justify-content:center" onclick="novaNoDia('${dk}')">+ Tarefa</button><button class="btn btn-sm" style="flex:1;justify-content:center" onclick="openConta(null,(DB.grupos[0]||{}).id);gEl('c_dia').value=${dt.getDate()}" ${DB.grupos.length?'':'disabled'}>+ Conta</button></div></div>`}
+   ${holBan}${h}${empty}<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm btn-gold" style="flex:1;justify-content:center" onclick="novaNoDia('${dk}')">+ Tarefa</button><button class="btn btn-sm" style="flex:1;justify-content:center" onclick="openConta(null,(DB.grupos[0]||{}).id);gEl('c_dia').value=${dt.getDate()}" ${DB.grupos.length?'':'disabled'}>+ Conta</button></div></div>`}
 function novaNoDia(dk){openTask(null,'afazer',dk)}
 function quickDoneAvulsa(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.status=a.status==='feito'?'afazer':'feito';a.concluidoEm=a.status==='feito'?Date.now():null;persistAvulsa(a);render()}
 function toggleExecDate(tipo,mid,dk){const dt=parseK(dk);const pk=tipo==='mensais'?monthKey(dt):tipo==='semanais'?weekKey(dt):dk;
@@ -4391,7 +4467,10 @@ function comAbrir(id,tab){const l=crmLeadById(id);if(!l)return;
 function pgActsHTML(){
  if(activeTab==='pend')return '<button class="btn btn-gold" onclick="openTask()">+ Nova tarefa</button>';
  if(activeTab==='comCli')return '<button class="btn btn-gold" onclick="comCliTab=\'cadastrar\';render()">+ Novo cliente</button>';
- if(activeTab==='comFicha')return '<button class="btn" onclick="go(\'comCli\')">← Todos os clientes</button>';
+ if(activeTab==='comFicha')return '<button class="btn" onclick="go(\'comCli\')">← Todos os leads</button>';
+ if(activeTab==='carteira')return '<button class="btn btn-gold" onclick="cliAbrirModal()">+ Cliente</button>';
+ if(activeTab==='cliFicha')return '<button class="btn btn-gold" onclick="cliPendModal(null,cliFichaId)">+ Pendência</button>'
+   +'<button class="btn" onclick="go(\'carteira\')">← Carteira</button>';
  return ''}
 function comFichaSub(l){const e=crmEstById(l.estagioId),c=comPdDoLead(l),p=comPropAtiva(l);
  const partes=[e?e.nome:'sem etapa'];
@@ -5587,7 +5666,8 @@ const AG_ORIGENS=[
  {id:'conta',nome:'Contas a pagar',cor:'#06b6d4'},
  {id:'cadencia',nome:'Cadência',cor:'#8a7cf2'},
  {id:'reuniao',nome:'Reuniões',cor:'#ec4899'},
- {id:'implantacao',nome:'Implantação',cor:'var(--pos)'}];
+ {id:'implantacao',nome:'Implantação',cor:'var(--pos)'},
+ {id:'cliente',nome:'Clientes',cor:'#f59e0b'}];
 const agOrigem=id=>AG_ORIGENS.find(o=>o.id===id)||AG_ORIGENS[0];
 const ONB_CAL_COR='var(--pos)', CAD_CAL_COR='#8a7cf2';
 
@@ -5648,7 +5728,14 @@ function agendaItens(de,ate){
     add({dk:l.reativarEm,hora:'',origem:'reuniao',tipo:'Reativar cliente',titulo:l.empresa,
       cliente:l.motivoPerda||'',resp:l.responsavelId?respName(l.responsavelId):'',prioridade:'media',
       feito:false,valor:+l.ticket||0,abrir:`comAbrir('${l.id}','fechamento')`})});
-  /* 7. etapas de implantação */
+  /* 7. pendências de cliente com prazo */
+  alive(DB.cliPend||[]).forEach(p=>{if(!p.prazo||p.prazo<de||p.prazo>ate)return;
+    const c=cliById(p.clienteId);
+    add({dk:p.prazo,hora:'',origem:'cliente',tipo:cliTipo(p.tipo).curto,titulo:p.titulo,
+      cliente:c?c.nome:'',resp:p.responsavelId?respName(p.responsavelId):'',
+      prioridade:p.prioridade||'media',feito:p.status==='resolvida',valor:+p.valor||0,
+      abrir:`cliAbrir('${p.clienteId}')`})});
+  /* 8. etapas de implantação */
   alive(DB.onbClientes).forEach(c=>c.etapas.forEach(e=>{
     if(!e.prazo||e.prazo<de||e.prazo>ate||!onbAplic(e))return;
     add({dk:e.prazo,hora:'',origem:'implantacao',tipo:'Etapa '+(e.num||''),titulo:e.titulo,
@@ -5667,7 +5754,9 @@ let agModo='semana', agRef=todayKey(), agOrigemOff=[], agRespF='', agSoAbertos=t
 
 function setAgModo(m){agModo=m;agRef=todayKey();render()}
 function agHoje(){agRef=todayKey();render()}
-function agAndar(n){agRef=addDias(agRef,n*(agModo==='dia'?1:agModo==='semana'?7:30));render()}
+function agAndar(n){
+ if(agModo==='mes'){const d=parseK(agRef);agRef=iso(new Date(d.getFullYear(),d.getMonth()+n,1));render();return}
+ agRef=addDias(agRef,n*(agModo==='dia'?1:agModo==='semana'?7:30));render()}
 function agTogOrigem(id){const i=agOrigemOff.indexOf(id);
  if(i<0)agOrigemOff.push(id);else agOrigemOff.splice(i,1);render()}
 function agSetResp(v){agRespF=v;render()}
@@ -5678,6 +5767,8 @@ const agSegunda=dk=>addDias(dk,-((parseK(dk).getDay()+6)%7));
 function agJanela(){
  if(agModo==='dia')return {de:agRef,ate:agRef};
  if(agModo==='semana'){const s=agSegunda(agRef);return {de:s,ate:addDias(s,6)}}
+ if(agModo==='mes'){const d=parseK(agRef);
+  return {de:iso(new Date(d.getFullYear(),d.getMonth(),1)),ate:iso(new Date(d.getFullYear(),d.getMonth()+1,0))}}
  return {de:agRef,ate:addDias(agRef,29)}}
 
 /* Atraso é o que passou da data e ainda cobra alguma coisa.
@@ -5731,6 +5822,7 @@ function agTituloPeriodo(){const {de,ate}=agJanela();const dd=parseK(de),da=pars
   return t.charAt(0).toUpperCase()+t.slice(1)}
  if(agModo==='semana'){const mi=dd.toLocaleDateString('pt-BR',{month:'long'}),mf=da.toLocaleDateString('pt-BR',{month:'long'});
   return dd.getDate()+(mi===mf?'':' de '+mi)+' a '+da.getDate()+' de '+mf}
+ if(agModo==='mes')return mesExtenso(dd);
  return fmtBR(de)+' a '+fmtBR(ate)}
 
 function viewAgenda(){
@@ -5746,12 +5838,13 @@ function viewAgenda(){
  const stats=`<div class="stats">
    <div class="stat"><div class="k">Atrasado</div><div class="v" style="color:${atr.length?'var(--neg)':'var(--pos)'}">${atr.length}</div><div class="sub">${atr.length?'ainda cobra de você':'nada para trás'}</div></div>
    <div class="stat"><div class="k">Hoje</div><div class="v" style="color:var(--warn)">${hj.length}</div><div class="sub">para fechar o dia</div></div>
-   <div class="stat"><div class="k">${agModo==='dia'?'Neste dia':agModo==='semana'?'Nesta semana':'Neste período'}</div><div class="v">${itens.length}</div><div class="sub">${agSoAbertos?'em aberto':'tudo, feito incluso'}</div></div>
+   <div class="stat"><div class="k">${agModo==='dia'?'Neste dia':agModo==='semana'?'Nesta semana':agModo==='mes'?'Neste mês':'Neste período'}</div><div class="v">${itens.length}</div><div class="sub">${agSoAbertos?'em aberto':'tudo, feito incluso'}</div></div>
  </div>`;
 
- const modos=[['dia','Dia'],['semana','Semana'],['lista','30 dias']]
+ const modos=[['dia','Dia'],['semana','Semana'],['mes','Mês'],['lista','30 dias']]
    .map(([k,l])=>`<button class="btn btn-sm ${agModo===k?'btn-gold':''}" onclick="setAgModo('${k}')">${l}</button>`).join('');
- const naSemana=agModo==='semana'&&agSegunda(agRef)===agSegunda(hoje);
+ const naSemana=(agModo==='semana'&&agSegunda(agRef)===agSegunda(hoje))
+   ||(agModo==='mes'&&agRef.slice(0,7)===hoje.slice(0,7));
  const barra=`<div class="ag-top">
    <div class="ag-nav">
      <button class="btn btn-sm" onclick="agAndar(-1)" title="Anterior">‹</button>
@@ -5762,8 +5855,7 @@ function viewAgenda(){
    <div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
      ${resps.length?`<select onchange="agSetResp(this.value)" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
        <option value="">Todos os responsáveis</option>${resps.map(r=>`<option ${agRespF===r?'selected':''}>${esc(r)}</option>`).join('')}</select>`:''}
-     <button class="btn btn-sm ${agSoAbertos?'btn-gold':''}" onclick="agToggleAbertos()">${agSoAbertos?'Só em aberto':'Mostrando tudo'}</button>
-     <button class="btn btn-sm" onclick="go('cal')">Calendário</button></div></div>`;
+     <button class="btn btn-sm ${agSoAbertos?'btn-gold':''}" onclick="agToggleAbertos()">${agSoAbertos?'Só em aberto':'Mostrando tudo'}</button></div></div>`;
 
  const chips=`<div class="ag-chips">${AG_ORIGENS.map(o=>{const on=agOrigemOff.indexOf(o.id)<0;
    const n=todos.filter(x=>x.origem===o.id&&x.dk>=de&&x.dk<=ate&&!(agSoAbertos&&x.feito)).length;
@@ -5786,6 +5878,26 @@ function viewAgenda(){
        <div class="dh"><span class="dn">${AG_DIAS[d.getDay()]}</span><span class="dd">${pad(d.getDate())}</span></div>
        ${lista.map(x=>agLinha(x,hoje)).join('')||'<div class="ag-vazio">livre</div>'}</div>`}
    corpo=`<div class="panel"><div class="ag-week">${cols}</div></div>`}
+ else if(agModo==='mes'){
+   const d0=parseK(de),y=d0.getFullYear(),mo=d0.getMonth();
+   const startDow=(d0.getDay()+6)%7, dim=daysInMonth(y,mo), prevDim=new Date(y,mo,0).getDate();
+   const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
+   let cells='';
+   for(let i=startDow-1;i>=0;i--)cells+=`<div class="d out"><span class="n">${prevDim-i}</span></div>`;
+   for(let dd=1;dd<=dim;dd++){
+     const dt=new Date(y,mo,dd),dk=iso(dt),lista=porDia[dk]||[],hol=holidayName(dt);
+     const contas=lista.filter(x=>x.origem==='conta');
+     const soma=contas.reduce((t,x)=>t+(+x.valor||0),0);
+     const venceu=contas.some(x=>!x.feito&&dk<hoje);
+     const dots=AG_ORIGENS.filter(o=>lista.some(x=>x.origem===o.id)).map(o=>`<i style="background:${o.cor}"></i>`).join('');
+     cells+=`<div class="d ${dk===hoje?'hoje':''} ${!isDiaUtil(dt)?'nu':''} ${hol?'hol':''} ${calSel===dk?'sel':''}" onclick="calSel='${dk}';render()">
+       <span class="n">${dd}</span>${lista.length?`<span class="cnt">${lista.length}</span>`:''}
+       <div class="dots">${dots}</div>${soma?`<div class="val" style="color:${venceu?'var(--neg)':'#06b6d4'}">${brl(soma)}</div>`:''}${hol?`<div class="hol-lab">${esc(hol)}</div>`:''}</div>`}
+   const sobra=42-(startDow+dim);
+   for(let dd=1;dd<=sobra;dd++)cells+=`<div class="d out"><span class="n">${dd}</span></div>`;
+   corpo=`<div class="panel"><div class="split2">
+     <div class="cal">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>`<div class="hd">${x}</div>`).join('')}${cells}</div>
+     <div>${calSel?calDayHTML(calSel):'<div class="empty">Clique num dia para ver, marcar e lançar o que tem nele.</div>'}</div></div></div>`}
  else if(agModo==='dia'){
    const lista=itens.slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
    corpo=`<div class="panel"><div class="panel-head"><h2>${esc(agTituloPeriodo())}<small>${lista.length} item(ns)${agRef===hoje?'':' · '+fmtBR(agRef)}</small></h2></div>
@@ -5942,6 +6054,340 @@ function waBlocoRisco(){return `<div class="wa-risco">
   Conectar e mandar uma mensagem de teste para você mesmo é baixo risco. Disparar os 7 toques
   para uma lista fria a partir do número da casa é o cenário que derruba número.
   Se for automatizar a prospecção, use um chip separado.</div>`}
+
+
+/* ===================================================================
+   Carteira de clientes: quem a Lidere atende hoje e o que está parado
+   em cada um. Pendência aqui não é tarefa da equipe: é assunto do
+   cliente, com tipo, competência e prazo.
+   =================================================================== */
+const CLI_STATUS=[['ativo','Ativo'],['pausado','Pausado'],['encerrado','Encerrado']];
+const CLI_TIPOS=[
+ {id:'conciliacao',nome:'Conciliação',curto:'Conciliação',cor:'#06b6d4',
+  dica:'Lançamento no banco sem identificação, divergência de saldo, cartão sem repasse.'},
+ {id:'documento',nome:'Documento ou comprovante',curto:'Documento',cor:'var(--acc)',
+  dica:'Comprovante para arquivar, nota que falta, contrato pendente.'},
+ {id:'fechamento',nome:'Fechamento e relatório',curto:'Fechamento',cor:'var(--meta)',
+  dica:'Fechar o mês, conferir o relatório e entregar ao cliente e à contabilidade.'},
+ {id:'aprovacao',nome:'Aprovação do cliente',curto:'Aprovação',cor:'#8a7cf2',
+  dica:'Pagamento parado esperando o de acordo de quem decide.'},
+ {id:'cadastro',nome:'Acesso ou cadastro',curto:'Cadastro',cor:'#ec4899',
+  dica:'Senha de banco, procuração, acesso ao ERP, dado cadastral faltando.'},
+ {id:'outro',nome:'Outro',curto:'Outro',cor:'var(--mut)',dica:'O que não cabe nas outras caixas.'}];
+const CLI_PST=[['aberta','Aberta','var(--acc)'],['aguardando','Com o cliente','var(--warn)'],['resolvida','Resolvida','var(--pos)']];
+const cliTipo=id=>CLI_TIPOS.find(t=>t.id===id)||CLI_TIPOS[CLI_TIPOS.length-1];
+const cliPstLabel=k=>(CLI_PST.find(x=>x[0]===k)||CLI_PST[0])[1];
+const cliPstCor=k=>(CLI_PST.find(x=>x[0]===k)||CLI_PST[0])[2];
+
+const cliVivos=()=>alive(DB.clientes||[]).slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome)));
+const cliAtivos=()=>cliVivos().filter(c=>c.status==='ativo');
+const cliById=id=>(DB.clientes||[]).find(c=>c.id===id&&!c.deletedAt);
+const cliPendDe=id=>alive(DB.cliPend||[]).filter(p=>p.clienteId===id);
+const cliPendAbertas=id=>cliPendDe(id).filter(p=>p.status!=='resolvida');
+/* o que o menu conta: pendência aberta que já venceu ou vence hoje */
+const cliPendCobrando=()=>alive(DB.cliPend||[]).filter(p=>p.status!=='resolvida'&&p.prazo&&p.prazo<=todayKey());
+
+function cliSaude(c){
+ const ab=cliPendAbertas(c.id),hoje=todayKey();
+ if(c.status!=='ativo')return {id:'parado',label:(CLI_STATUS.find(x=>x[0]===c.status)||['','—'])[1],cor:'var(--mut)'};
+ if(ab.some(p=>p.prazo&&p.prazo<hoje))return {id:'atrasado',label:'Atrasado',cor:'var(--neg)'};
+ if(ab.length&&ab.every(p=>p.status==='aguardando'))return {id:'aguardando',label:'Aguarda o cliente',cor:'var(--warn)'};
+ if(ab.length)return {id:'pendente',label:ab.length+' em aberto',cor:'var(--acc)'};
+ return {id:'em_dia',label:'Em dia',cor:'var(--pos)'}}
+function cliSub(c){const s=cliSaude(c),r=respName(c.responsavelId);
+ return [s.label,r?'resp. '+r:'',c.honorario?brl(c.honorario)+'/mês':''].filter(Boolean).join(' · ')}
+
+function persistCliente(c){up('clientes',{id:c.id,nome:c.nome,cnpj:c.cnpj||null,lead_id:c.leadId||null,
+ onb_id:c.onbId||null,responsavel_id:c.responsavelId||null,status:c.status||'ativo',honorario:+c.honorario||0,
+ dia_fechamento:+c.diaFechamento||10,inicio:c.inicio||null,contato:c.contato||null,telefone:c.telefone||null,
+ email:c.email||null,obs:c.obs||null,updated_at:new Date().toISOString(),deleted_at:toISO(c.deletedAt)})}
+function persistCliPend(p){up('cliente_pendencias',{id:p.id,cliente_id:p.clienteId,tipo:p.tipo||'outro',
+ titulo:p.titulo,detalhe:p.detalhe||null,valor:+p.valor||0,competencia:p.competencia||null,prazo:p.prazo||null,
+ prioridade:p.prioridade||'media',status:p.status||'aberta',responsavel_id:p.responsavelId||null,
+ updated_at:new Date().toISOString(),resolvido_em:p.resolvidoEm||null,deleted_at:toISO(p.deletedAt)})}
+
+/* ---- cliente: criar, editar, abrir ---- */
+let cliFichaId='', cliTab='carteira', cliFiltro={q:'',saude:'',resp:''};
+function setCliTab(t){cliTab=t;render()}
+function cliAbrir(id){cliFichaId=id;activeTab='cliFicha';render();window.scrollTo({top:0,behavior:'smooth'})}
+
+function cliAbrirModal(id,base){
+ const c=id?cliById(id):null;
+ gEl('cliTitle').textContent=c?'Editar cliente':'Novo cliente';
+ gEl('cl_id').value=c?c.id:'';
+ gEl('cl_resp').innerHTML='<option value="">— sem responsável —</option>'+
+   alive(DB.responsaveis).map(r=>`<option value="${r.id}">${esc(r.nome)}</option>`).join('');
+ gEl('cl_status').innerHTML=CLI_STATUS.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
+ const v=(k,val)=>gEl(k).value=val==null?'':val;
+ v('cl_nome',c?c.nome:(base&&base.nome)||'');
+ v('cl_cnpj',c?c.cnpj:(base&&base.cnpj)||'');
+ v('cl_contato',c?c.contato:(base&&base.contato)||'');
+ v('cl_tel',c?c.telefone:(base&&base.telefone)||'');
+ v('cl_email',c?c.email:(base&&base.email)||'');
+ v('cl_hon',c?(c.honorario||''):((base&&base.honorario)||''));
+ v('cl_dia',c?(c.diaFechamento||10):10);
+ v('cl_inicio',c?c.inicio:(base&&base.inicio)||todayKey());
+ v('cl_obs',c?c.obs:'');
+ gEl('cl_resp').value=c?(c.responsavelId||''):((base&&base.responsavelId)||'');
+ gEl('cl_status').value=c?(c.status||'ativo'):'ativo';
+ gEl('cl_lead').value=c?(c.leadId||''):((base&&base.leadId)||'');
+ gEl('cl_onb').value=c?(c.onbId||''):((base&&base.onbId)||'');
+ showModal('ovCliente');setTimeout(()=>gEl('cl_nome').focus(),60)}
+
+function cliSalvar(){
+ const nome=gEl('cl_nome').value.trim();if(!nome)return toast('Informe o nome do cliente');
+ const g=k=>gEl(k).value;
+ const dados={nome,cnpj:g('cl_cnpj').trim(),contato:g('cl_contato').trim(),telefone:g('cl_tel').trim(),
+  email:g('cl_email').trim(),responsavelId:g('cl_resp'),status:g('cl_status'),honorario:+g('cl_hon')||0,
+  diaFechamento:Math.min(28,Math.max(1,+g('cl_dia')||10)),inicio:g('cl_inicio'),obs:g('cl_obs').trim(),
+  leadId:g('cl_lead'),onbId:g('cl_onb')};
+ const id=g('cl_id');let c;
+ if(id){c=cliById(id);Object.assign(c,dados)}
+ else{c=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),deletedAt:null},dados);
+  (DB.clientes=DB.clientes||[]).push(c)}
+ persistCliente(c);closeModal('ovCliente');render();toast(id?'Cliente atualizado':nome+' entrou na carteira')}
+
+function cliExcluir(id){const c=cliById(id);if(!c)return;
+ if(!confirm('Mandar '+c.nome+' para os excluídos? As pendências dele vão junto.'))return;
+ c.deletedAt=Date.now();persistCliente(c);
+ cliPendDe(id).forEach(p=>{p.deletedAt=Date.now();persistCliPend(p)});
+ if(cliFichaId===id){cliFichaId='';activeTab='carteira'}
+ render();toast('Movido para Excluídos')}
+function cliRestaurar(id){const c=(DB.clientes||[]).find(x=>x.id===id);if(!c)return;
+ c.deletedAt=null;persistCliente(c);render();toast('Cliente restaurado')}
+
+/* ---- pendências ---- */
+function cliPendModal(id,clienteId){
+ const p=id?alive(DB.cliPend||[]).find(x=>x.id===id):null;
+ gEl('pcTitle').textContent=p?'Editar pendência':'Nova pendência';
+ gEl('pc_id').value=p?p.id:'';
+ gEl('pc_cliente').innerHTML=cliVivos().map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join('')
+   ||'<option value="">— cadastre um cliente antes —</option>';
+ gEl('pc_cliente').value=p?p.clienteId:(clienteId||(cliVivos()[0]||{}).id||'');
+ gEl('pc_tipo').innerHTML=CLI_TIPOS.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join('');
+ gEl('pc_tipo').value=p?p.tipo:'conciliacao';
+ gEl('pc_resp').innerHTML='<option value="">— sem responsável —</option>'+
+   alive(DB.responsaveis).map(r=>`<option value="${r.id}">${esc(r.nome)}</option>`).join('');
+ gEl('pc_resp').value=p?(p.responsavelId||''):'';
+ gEl('pc_status').innerHTML=CLI_PST.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('');
+ gEl('pc_status').value=p?p.status:'aberta';
+ const v=(k,val)=>gEl(k).value=val==null?'':val;
+ v('pc_titulo',p?p.titulo:'');v('pc_detalhe',p?p.detalhe:'');
+ v('pc_valor',p&&p.valor?p.valor:'');v('pc_comp',p?p.competencia:monthKey(new Date()));
+ v('pc_prazo',p?p.prazo:'');
+ gEl('pc_pri').value=p?(p.prioridade||'media'):'media';
+ cliPendDica();
+ showModal('ovPendCli');setTimeout(()=>gEl('pc_titulo').focus(),60)}
+function cliPendDica(){const el=gEl('pc_dica');if(el)el.textContent=cliTipo(gEl('pc_tipo').value).dica}
+
+function cliPendSalvar(){
+ const titulo=gEl('pc_titulo').value.trim();if(!titulo)return toast('Descreva a pendência');
+ const clienteId=gEl('pc_cliente').value;if(!clienteId)return toast('Escolha o cliente');
+ const g=k=>gEl(k).value;
+ const dados={clienteId,tipo:g('pc_tipo'),titulo,detalhe:g('pc_detalhe').trim(),valor:+g('pc_valor')||0,
+  competencia:g('pc_comp'),prazo:g('pc_prazo'),prioridade:g('pc_pri'),status:g('pc_status'),
+  responsavelId:g('pc_resp')};
+ const id=g('pc_id');let p;
+ if(id){p=alive(DB.cliPend||[]).find(x=>x.id===id);Object.assign(p,dados)}
+ else{p=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),resolvidoEm:'',deletedAt:null},dados);
+  (DB.cliPend=DB.cliPend||[]).push(p)}
+ if(p.status==='resolvida'&&!p.resolvidoEm)p.resolvidoEm=new Date().toISOString();
+ if(p.status!=='resolvida')p.resolvidoEm='';
+ persistCliPend(p);closeModal('ovPendCli');render();toast(id?'Pendência atualizada':'Pendência lançada')}
+
+function cliPendCriar(base){
+ const p=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+  tipo:'outro',titulo:'',detalhe:'',valor:0,competencia:'',prazo:'',prioridade:'media',
+  status:'aberta',responsavelId:'',resolvidoEm:'',deletedAt:null},base||{});
+ (DB.cliPend=DB.cliPend||[]).push(p);persistCliPend(p);return p}
+
+function cliPendStatus(id,st){const p=alive(DB.cliPend||[]).find(x=>x.id===id);if(!p)return;
+ p.status=st;p.resolvidoEm=st==='resolvida'?new Date().toISOString():'';
+ persistCliPend(p);render();
+ toast(st==='resolvida'?'Resolvida':st==='aguardando'?'Marcada como: com o cliente':'Reaberta')}
+function cliPendExcluir(id){const p=alive(DB.cliPend||[]).find(x=>x.id===id);if(!p)return;
+ if(!confirm('Excluir esta pendência?'))return;
+ p.deletedAt=Date.now();persistCliPend(p);render();toast('Movida para Excluídos')}
+
+/* ---- fechamento do mês: em setembro você fecha agosto ---- */
+const cliCompFechar=()=>{const d=new Date();return monthKey(new Date(d.getFullYear(),d.getMonth()-1,1))};
+const cliTemFechamento=(c,comp)=>cliPendDe(c.id).some(p=>p.tipo==='fechamento'&&p.competencia===comp);
+function cliAbrirFechamento(){
+ const comp=cliCompFechar(),ref=parseK(comp+'-01'),hoje=new Date();
+ const alvo=cliAtivos().filter(c=>!cliTemFechamento(c,comp));
+ if(!alvo.length)return toast('Todos os clientes ativos já têm o fechamento de '+mesExtenso(ref));
+ if(!confirm('Abrir o fechamento de '+mesExtenso(ref)+' para '+alvo.length+' cliente(s)?'))return;
+ alvo.forEach(c=>{
+  const dia=Math.min(+c.diaFechamento||10,daysInMonth(hoje.getFullYear(),hoje.getMonth()));
+  cliPendCriar({clienteId:c.id,tipo:'fechamento',titulo:'Fechar o relatório de '+mesExtenso(ref),
+   detalhe:'Conciliar, conferir o resultado e entregar ao cliente e à contabilidade.',
+   competencia:comp,prazo:iso(new Date(hoje.getFullYear(),hoje.getMonth(),dia)),
+   prioridade:'alta',responsavelId:c.responsavelId||''})});
+ render();toast(alvo.length+' fechamento(s) abertos');}
+
+/* ---- quem já é cliente no comercial ou na implantação e ainda não está na carteira ---- */
+function cliCandidatos(){
+ const usados={};cliVivos().forEach(c=>{if(c.leadId)usados['l'+c.leadId]=1;if(c.onbId)usados['o'+c.onbId]=1});
+ const out=[];
+ alive(DB.onbClientes).forEach(o=>{if(usados['o'+o.id])return;
+   const l=o.leadId?crmLeadById(o.leadId):null;
+   if(l&&usados['l'+l.id])return;
+   out.push({fonte:'Implantação',nome:o.nome,onbId:o.id,leadId:o.leadId||'',
+     responsavelId:o.operadorId||'',honorario:l?+l.ticket||0:0,
+     cnpj:l?l.cnpj||'':'',contato:l?l.contato||'':'',telefone:l?l.telefone||'':'',email:l?l.email||'':''})});
+ crmLeadsAtivos().forEach(l=>{if(usados['l'+l.id])return;
+   const e=crmEstById(l.estagioId);if(!e||e.tipo!=='ganho')return;
+   if(out.some(x=>x.leadId===l.id))return;
+   out.push({fonte:'Comercial',nome:l.empresa,onbId:'',leadId:l.id,responsavelId:'',
+     honorario:+l.ticket||0,cnpj:l.cnpj||'',contato:l.contato||'',telefone:l.telefone||'',email:l.email||''})});
+ return out}
+
+/* ================= telas ================= */
+function viewCarteira(){
+ const abas=[['carteira','Carteira',cliVivos().length],
+   ['pendencias','Pendências',alive(DB.cliPend||[]).filter(p=>p.status!=='resolvida').length],
+   ['fechamento','Fechamento do mês']];
+ const body=({carteira:viewCarteiraLista,pendencias:viewCarteiraPend,fechamento:viewCarteiraFech}[cliTab]||viewCarteiraLista)();
+ return comTabs(abas,cliTab,'setCliTab')+body}
+
+function viewCarteiraLista(){
+ let lista=cliVivos();
+ const q=(cliFiltro.q||'').toLowerCase();
+ if(q)lista=lista.filter(c=>[c.nome,c.cnpj,c.contato,c.email].some(x=>(x||'').toLowerCase().includes(q)));
+ if(cliFiltro.resp)lista=lista.filter(c=>c.responsavelId===cliFiltro.resp);
+ if(cliFiltro.saude)lista=lista.filter(c=>cliSaude(c).id===cliFiltro.saude);
+ const todos=cliVivos();
+ const conta=k=>todos.filter(c=>cliSaude(c).id===k).length;
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Clientes ativos</div><div class="v">${cliAtivos().length}</div><div class="sub">${brl(cliAtivos().reduce((t,c)=>t+(+c.honorario||0),0))} por mês</div></div>
+   <div class="stat"><div class="k">Atrasado</div><div class="v" style="color:${conta('atrasado')?'var(--neg)':'var(--pos)'}">${conta('atrasado')}</div><div class="sub">passou do prazo</div></div>
+   <div class="stat"><div class="k">Aguarda o cliente</div><div class="v" style="color:var(--warn)">${conta('aguardando')}</div><div class="sub">a bola não está com você</div></div>
+   <div class="stat"><div class="k">Em dia</div><div class="v" style="color:var(--pos)">${conta('em_dia')}</div><div class="sub">nada em aberto</div></div>
+ </div>`;
+ const filtros=`<div class="filters">
+   <input placeholder="Buscar cliente, CNPJ, contato..." value="${esc(cliFiltro.q)}" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px;min-width:210px" oninput="cliFiltro.q=this.value;render()">
+   <select onchange="cliFiltro.saude=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+    <option value="">Todas as situações</option>
+    ${[['atrasado','Atrasado'],['aguardando','Aguarda o cliente'],['pendente','Com pendência'],['em_dia','Em dia'],['parado','Pausado ou encerrado']]
+      .map(x=>`<option value="${x[0]}" ${cliFiltro.saude===x[0]?'selected':''}>${x[1]} · ${conta(x[0])}</option>`).join('')}</select>
+   <select onchange="cliFiltro.resp=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
+    <option value="">Todos os responsáveis</option>
+    ${alive(DB.responsaveis).map(r=>`<option value="${r.id}" ${cliFiltro.resp===r.id?'selected':''}>${esc(r.nome)}</option>`).join('')}</select></div>`;
+ const cards=lista.map(c=>{const sa=cliSaude(c),ab=cliPendAbertas(c.id);
+   const porTipo=CLI_TIPOS.map(t=>{const n=ab.filter(p=>p.tipo===t.id).length;
+     return n?`<span class="cli-tag" style="color:${t.cor}">${esc(t.curto)} ${n}</span>`:''}).filter(Boolean).join('');
+   return `<button class="cli-c" style="border-left-color:${sa.cor}" onclick="cliAbrir('${c.id}')">
+    <div class="nm">${esc(c.nome)}</div>
+    <div class="sb">${esc(sa.label)}${c.responsavelId?' · '+esc(respName(c.responsavelId)):''}${c.honorario?' · '+brl(c.honorario):''}</div>
+    <div class="tg">${porTipo||'<span class="cli-tag" style="color:var(--pos)">sem pendência</span>'}</div></button>`}).join('')
+  ||'<div class="empty">Nenhum cliente com esses filtros.</div>';
+ return stats+filtros+`<div class="panel"><div class="panel-head"><h2>${lista.length} de ${todos.length}<small>clique no cliente para ver e lançar pendência</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="cliAbrirModal()">+ Cliente</button></div>
+   <div class="cli-g">${cards}</div></div>`+viewCarteiraCandidatos()}
+
+let _cliCand=[];
+function cliAdicionarCand(i){const x=_cliCand[i];if(!x)return;cliAbrirModal(null,x)}
+function viewCarteiraCandidatos(){
+ _cliCand=cliCandidatos();
+ if(!_cliCand.length)return '';
+ return `<div class="panel"><div class="panel-head"><h2>Ainda fora da carteira<small>ganhos no comercial ou em implantação que não estão aqui</small></h2></div>
+  ${_cliCand.map((x,i)=>`<div class="row"><div class="row-body"><div class="row-title">${esc(x.nome)}</div>
+    <div class="row-meta"><span class="chip chip-n">${esc(x.fonte)}</span>${x.honorario?`<span class="chip chip-n" style="color:var(--acc)">${brl(x.honorario)}/mês</span>`:''}</div></div>
+   <div class="row-actions"><button class="btn btn-sm btn-gold" onclick="cliAdicionarCand(${i})">Adicionar à carteira</button></div></div>`).join('')}</div>`}
+
+function cliLinhaPend(p,mostrarCliente){
+ const t=cliTipo(p.tipo),c=cliById(p.clienteId),hoje=todayKey();
+ const atras=p.status!=='resolvida'&&p.prazo&&p.prazo<hoje;
+ const meta=[mostrarCliente&&c?esc(c.nome):'',t.nome,
+   p.competencia?'competência '+esc(p.competencia):'',
+   p.prazo?(atras?'venceu em ':'prazo ')+fmtBR(p.prazo):'',
+   p.valor?brl(p.valor):'',
+   p.responsavelId?esc(respName(p.responsavelId)):''].filter(Boolean).join(' · ');
+ return `<div class="cli-p ${p.status==='resolvida'?'ok':''}">
+   <span class="bo" style="background:${p.status==='resolvida'?'var(--pos)':atras?'var(--neg)':t.cor}"></span>
+   <span class="tx"><b>${esc(p.titulo)}</b><i>${meta}${p.detalhe?'<br>'+esc(p.detalhe):''}</i></span>
+   <span class="ac">
+    <span class="chip chip-n" style="color:${atras?'var(--neg)':cliPstCor(p.status)}">${atras?'atrasada':esc(cliPstLabel(p.status))}</span>
+    ${p.status!=='resolvida'?`<button class="btn btn-sm btn-gold" onclick="cliPendStatus('${p.id}','resolvida')">Resolver</button>`:`<button class="btn btn-sm" onclick="cliPendStatus('${p.id}','aberta')">Reabrir</button>`}
+    ${p.status==='aberta'?`<button class="btn btn-sm" title="Depende do cliente" onclick="cliPendStatus('${p.id}','aguardando')">Com o cliente</button>`:''}
+    <button class="iconbtn" title="Editar" onclick="cliPendModal('${p.id}')">✎</button>
+    <button class="iconbtn del" title="Excluir" onclick="cliPendExcluir('${p.id}')">🗑</button></span></div>`}
+
+function viewCarteiraPend(){
+ const abertas=alive(DB.cliPend||[]).filter(p=>p.status!=='resolvida');
+ const hoje=todayKey();
+ const atras=abertas.filter(p=>p.prazo&&p.prazo<hoje);
+ const blocos=CLI_TIPOS.map(t=>{const seg=abertas.filter(p=>p.tipo===t.id)
+    .sort((a,b)=>String(a.prazo||'9999').localeCompare(String(b.prazo||'9999')));
+   if(!seg.length)return '';
+   return `<div class="panel"><div class="panel-head"><h2 style="color:${t.cor}">${esc(t.nome)}<small>${seg.length} em aberto · ${esc(t.dica)}</small></h2></div>
+     ${seg.map(p=>cliLinhaPend(p,true)).join('')}</div>`}).join('');
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Em aberto</div><div class="v">${abertas.length}</div><div class="sub">em ${new Set(abertas.map(p=>p.clienteId)).size} cliente(s)</div></div>
+   <div class="stat"><div class="k">Atrasadas</div><div class="v" style="color:${atras.length?'var(--neg)':'var(--pos)'}">${atras.length}</div><div class="sub">passaram do prazo</div></div>
+   <div class="stat"><div class="k">Com o cliente</div><div class="v" style="color:var(--warn)">${abertas.filter(p=>p.status==='aguardando').length}</div><div class="sub">esperando resposta</div></div>
+ </div>`;
+ return stats+`<div class="filters"><button class="btn btn-sm btn-gold" onclick="cliPendModal()">+ Pendência</button></div>`
+  +(blocos||'<div class="panel"><div class="empty">Nenhuma pendência em aberto. Carteira limpa.</div></div>')}
+
+function viewCarteiraFech(){
+ const comp=cliCompFechar(),ref=parseK(comp+'-01');
+ const ativos=cliAtivos();
+ const linha=c=>{const p=cliPendDe(c.id).find(x=>x.tipo==='fechamento'&&x.competencia===comp);
+  const st=!p?'<span class="chip chip-n" style="opacity:.6">não aberto</span>'
+    :p.status==='resolvida'?'<span class="chip chip-pago">fechado</span>'
+    :p.prazo&&p.prazo<todayKey()?'<span class="chip chip-vencido">atrasado</span>'
+    :'<span class="chip chip-avencer">em aberto</span>';
+  return `<div class="row" style="cursor:pointer" onclick="cliAbrir('${c.id}')"><div class="row-body">
+    <div class="row-title">${esc(c.nome)}</div>
+    <div class="row-meta">${st}${p&&p.prazo?`<span class="chip chip-n">prazo ${fmtBR(p.prazo)}</span>`:''}${c.responsavelId?`<span class="chip chip-n">${esc(respName(c.responsavelId))}</span>`:''}</div></div></div>`};
+ const feitos=ativos.filter(c=>cliPendDe(c.id).some(x=>x.tipo==='fechamento'&&x.competencia===comp&&x.status==='resolvida')).length;
+ return `<div class="panel"><div class="panel-head"><h2>Fechamento de ${esc(mesExtenso(ref))}<small>${feitos} de ${ativos.length} clientes ativos já fecharam</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="cliAbrirFechamento()">Abrir o fechamento do mês</button></div>
+  <div class="empty" style="text-align:left;margin-bottom:12px">Abre uma pendência de fechamento para cada cliente ativo que ainda não tem a deste mês.
+   O prazo de cada um sai do <b>dia de fechamento</b> do cadastro dele.</div>
+  ${ativos.map(linha).join('')||'<div class="empty">Nenhum cliente ativo na carteira.</div>'}</div>`}
+
+function viewCliFicha(){
+ const c=cliById(cliFichaId);
+ if(!c)return `<div class="panel"><div class="empty">Cliente não encontrado.<br><br><button class="btn btn-sm" onclick="go('carteira')">Voltar para a carteira</button></div></div>`;
+ const sa=cliSaude(c);
+ const pend=cliPendDe(c.id);
+ const abertas=pend.filter(p=>p.status!=='resolvida').sort((a,b)=>String(a.prazo||'9999').localeCompare(String(b.prazo||'9999')));
+ const feitas=pend.filter(p=>p.status==='resolvida').sort((a,b)=>String(b.resolvidoEm||'').localeCompare(String(a.resolvidoEm||''))).slice(0,12);
+ const linha=(k,v)=>v?`<tr><td class="muted" style="width:38%">${esc(k)}</td><td>${v}</td></tr>`:'';
+ const wa=waHref(c.telefone,'');
+ const lead=c.leadId?crmLeadById(c.leadId):null;
+ const onb=c.onbId?alive(DB.onbClientes).find(x=>x.id===c.onbId):null;
+ const cabec=`<div class="grid2">
+  <div class="panel"><div class="panel-head"><h2>Cadastro<small>quem é e como falar com ele</small></h2>
+    <button class="btn btn-sm" onclick="cliAbrirModal('${c.id}')">Editar</button></div>
+   <table class="tbl">${linha('Cliente','<b>'+esc(c.nome)+'</b>')}${linha('CNPJ',esc(c.cnpj||''))}
+    ${linha('Contato',esc(c.contato||''))}
+    ${linha('Telefone',esc(c.telefone||'')+(wa?` <a href="${wa}" target="_blank" rel="noopener" class="chip chip-n" style="color:var(--pos)">WhatsApp</a>`:''))}
+    ${linha('E-mail',esc(c.email||''))}${linha('Observações',esc(c.obs||''))}</table></div>
+  <div class="panel"><div class="panel-head"><h2>Operação</h2>
+    <span class="chip chip-n" style="color:${sa.cor};border-color:${sa.cor}">${esc(sa.label)}</span></div>
+   <table class="tbl">
+    ${linha('Situação',`<span style="color:${sa.cor};font-weight:700">${esc(sa.label)}</span>`)}
+    ${linha('Responsável',c.responsavelId?esc(respName(c.responsavelId)):'—')}
+    ${linha('Honorário',c.honorario?'<b style="color:var(--acc)">'+brl(c.honorario)+'/mês</b>':'—')}
+    ${linha('Fecha todo dia',String(c.diaFechamento||10))}
+    ${linha('Cliente desde',fmtBR(c.inicio)||'—')}
+    ${linha('Status',(CLI_STATUS.find(x=>x[0]===c.status)||['','—'])[1])}
+    ${linha('Origem',[lead?`<button class="btn btn-sm" onclick="comAbrir('${lead.id}')">Ver no comercial</button>`:'',
+      onb?`<button class="btn btn-sm" onclick="onbCliente='${onb.id}';go('onb')">Ver a implantação</button>`:''].filter(Boolean).join(' ')||'cadastro manual')}</table>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn btn-sm btn-ghost" onclick="cliExcluir('${c.id}')">Excluir cliente</button></div></div></div>`;
+ const porTipo=CLI_TIPOS.map(t=>{const seg=abertas.filter(p=>p.tipo===t.id);if(!seg.length)return '';
+   return `<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:${t.cor};font-weight:800;margin:16px 0 6px">${esc(t.nome)} (${seg.length})</div>`
+    +seg.map(p=>cliLinhaPend(p,false)).join('')}).join('');
+ const bloco=`<div class="panel"><div class="panel-head"><h2>Pendências<small>${abertas.length} em aberto${feitas.length?' · '+feitas.length+' resolvida(s) recentes':''}</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="cliPendModal(null,'${c.id}')">+ Pendência</button></div>
+   ${porTipo||'<div class="empty">Nada pendente com este cliente.</div>'}
+   ${feitas.length?`<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:20px 0 6px">Resolvidas</div>`
+     +feitas.map(p=>cliLinhaPend(p,false)).join(''):''}</div>`;
+ return cabec+bloco}
 
 /* ===== Excluídos ===== */
 /* ===== Backup ===== */
