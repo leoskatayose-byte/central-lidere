@@ -246,6 +246,14 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
+/* ---- abertura do mês ---- */
+.ab-l{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:9px 4px}
+.ab-l:first-of-type{border-top:0}
+.ab-l .tx{flex:1;min-width:0}
+.ab-l .tx b{font-size:12.5px;font-weight:600;display:block;line-height:1.35;overflow-wrap:anywhere}
+.ab-l .tx i{font-size:11px;color:var(--mut);font-style:normal;display:block;margin-top:2px}
+.ab-l .ac{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+@media(max-width:680px){.ab-l{flex-wrap:wrap}.ab-l .ac{width:100%;justify-content:flex-start}}
 /* ---- arquivos do cliente ---- */
 .arq-l{display:flex;gap:11px;align-items:flex-start;border-top:1px solid var(--line);padding:11px 4px}
 .arq-l:first-of-type{border-top:0}
@@ -1409,23 +1417,24 @@ function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
-  if(tipo==='mensais'){row.dia=m.dia;row.ajuste=m.ajuste;row.valor=m.valor||0;row.categoria=m.categoria||null}
+  if(tipo==='mensais'){row.dia=m.dia;row.ajuste=m.ajuste;row.valor=m.valor||0;row.categoria=m.categoria||null;
+    row.vigencia_ini=m.vigenciaIni||null;row.vigencia_fim=m.vigenciaFim||null}
   if(tipo==='semanais')row.dia_semana=m.diaSemana;
   if(tipo==='diarias')row.ordem=m.ordem||0;
   up(t,row)}
-async function persistExec(tipo,mid,periodo,feito,valor){const {error}=await sb.from('execucoes').upsert({tipo,modelo_id:mid,periodo,feito,feito_em:feito?new Date().toISOString():null,valor:(valor===undefined||valor===null||valor==='')?null:+valor},{onConflict:'tipo,modelo_id,periodo'});pErr(error,'exec')}
+async function persistExec(tipo,mid,periodo,feito,valor,ativo){const {error}=await sb.from('execucoes').upsert({tipo,modelo_id:mid,periodo,feito,feito_em:feito?new Date().toISOString():null,valor:(valor===undefined||valor===null||valor==='')?null:+valor,ativo:ativo!==false},{onConflict:'tipo,modelo_id,periodo'});pErr(error,'exec')}
 /* ===== Contas a Pagar: persistência (mesmo padrão blob do app separado — tabela cp_state) ===== */
 let _cpSaveTimer=null;
 function saveCP(){clearTimeout(_cpSaveTimer);_cpSaveTimer=setTimeout(cpSaveNow,600)}
 async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
-  const {error}=await sb.from('cp_state').upsert({id:1,data:{grupos:DB.grupos,classes:DB.classes,contas:DB.contas,pagamentos:DB.pagamentos},updated_at:new Date().toISOString(),updated_by:ME.id});
+  const {error}=await sb.from('cp_state').upsert({id:1,data:{grupos:DB.grupos,classes:DB.classes,contas:DB.contas,pagamentos:DB.pagamentos,pulos:DB.cpPulos||{}},updated_at:new Date().toISOString(),updated_by:ME.id});
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,CA2,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('cliente_arquivos'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
+  const [R,A,MA,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,CA2,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('meses_abertos'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('cliente_arquivos'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
-  (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor}});
+  (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor,ativo:e.ativo!==false}});
   const cp=(CP&&CP.data&&CP.data.data)||{};
   const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',leadId:r.lead_id||'',origem:r.origem||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
   const byCli={};onbClientes.forEach(c=>byCli[c.id]=c);
@@ -1444,7 +1453,8 @@ async function loadAll(){
     _legado_implantacao:(OO.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',tipo:a.tipo||'',propostaId:a.proposta_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
-    mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
+    mesesAbertos:(MA&&MA.data?MA.data:[]).map(x=>({area:x.area,periodo:x.periodo,abertoEm:x.aberto_em||''})),
+    mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',vigenciaIni:m.vigencia_ini||'',vigenciaFim:m.vigencia_fim||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
     diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
     feriados:(F.data||[]).map(f=>({id:f.id,data:f.data,nome:f.nome})),
@@ -1452,6 +1462,7 @@ async function loadAll(){
     classes:(cp.classes&&cp.classes.length)?cp.classes:[{id:'fixa',nome:'Fixa',cor:'#a855f7'},{id:'variavel',nome:'Variável',cor:'#9aa3b2'},{id:'semivar',nome:'Semi-variável',cor:'#14b8a6'}],
     contas:cp.contas||[],
     pagamentos:cp.pagamentos||{},
+    cpPulos:cp.pulos||{},
     onbOperadores:(OO.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     onbModelo:(OM.data||[]).map(r=>({id:r.id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,deletedAt:fromISO(r.deleted_at)})),
     onbClientes,
@@ -2151,7 +2162,7 @@ let calSel=null;
 function mensaisOnDate(dt){
   const out=[],seen={},y=dt.getFullYear(),m=dt.getMonth();
   [-1,0,1].forEach(off=>{const r=new Date(y,m+off,1),yy=r.getFullYear(),mm=r.getMonth();
-    alive(DB.mensais.modelos).forEach(mo=>{if(seen[mo.id])return;if(iso(mensalEff(yy,mm,mo))===iso(dt)){out.push(mo);seen[mo.id]=1}})});
+    mensaisDoPeriodo(monthKey(r)).forEach(mo=>{if(seen[mo.id])return;if(iso(mensalEff(yy,mm,mo))===iso(dt)){out.push(mo);seen[mo.id]=1}})});
   return out}
 function semanaisOnDate(dt){return alive(DB.semanais.modelos).filter(m=>String(m.diaSemana)===String(dt.getDay()))}
 function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt)).sort((x,y)=>String(x.hora||'99:99').localeCompare(String(y.hora||'99:99'))||pendByOrdem(x,y))}
@@ -2207,6 +2218,107 @@ function toggleExecDate(tipo,mid,dk){const dt=parseK(dk);const pk=tipo==='mensai
   const ant=s[pk][mid]||{};const cur=ant.feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null,valor:ant.valor==null?null:ant.valor};
   persistExec(tipo,mid,pk,!cur,s[pk][mid].valor);render()}
 
+
+/* ===================================================================
+   Virada de mês.
+   Cada mês tem a sua própria lista. Tirar um item de outubro não apaga
+   o que ele foi em setembro: o histórico é o que já tem execução ou
+   pagamento registrado, e isso nunca some.
+   - vigência: de que mês até que mês o item roda
+   - pular: sai só deste mês, volta no seguinte
+   - encerrar: não roda mais daqui pra frente, o passado fica inteiro
+   =================================================================== */
+const mesVigente=(ini,fim,pk)=>(!ini||pk>=ini)&&(!fim||pk<=fim);
+const mesAnterior=pk=>{const d=parseK(pk+'-01');return monthKey(new Date(d.getFullYear(),d.getMonth()-1,1))};
+const mesSeguinte=pk=>{const d=parseK(pk+'-01');return monthKey(new Date(d.getFullYear(),d.getMonth()+1,1))};
+const mesNome=pk=>mesExtenso(parseK(pk+'-01'));
+
+/* --- rotinas mensais --- */
+const mensalExec=(mo,pk)=>(DB.mensais.exec[pk]||{})[mo.id];
+function mensalPulado(mo,pk){const e=mensalExec(mo,pk);return !!(e&&e.ativo===false)}
+/* já mexeram nele neste mês? então é histórico e não sai mais da lista */
+function mensalRegistrado(mo,pk){const e=mensalExec(mo,pk);return !!(e&&(e.feito||e.valor!=null))}
+function mensalEncerrada(mo,pk){return !!(mo.vigenciaFim&&pk>mo.vigenciaFim)}
+function mensaisDoPeriodo(pk){
+ return (DB.mensais.modelos||[]).filter(mo=>{
+  if(mensalRegistrado(mo,pk))return true;
+  if(mo.deletedAt)return false;
+  if(mensalPulado(mo,pk))return false;
+  return mesVigente(mo.vigenciaIni,mo.vigenciaFim,pk)})}
+
+function setExecAtivo(mid,pk,ativo){const s=DB.mensais.exec;s[pk]=s[pk]||{};
+ const ant=s[pk][mid]||{feito:false,em:null,valor:null};
+ ant.ativo=ativo!==false;s[pk][mid]=ant;
+ persistExec('mensais',mid,pk,!!ant.feito,ant.valor,ant.ativo)}
+
+function rotPular(id){const pk=monthKey(mensalRef);const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
+ if(mensalRegistrado(mo,pk))return toast('Esta rotina já foi marcada ou valorizada neste mês; desfaça isso antes de pular');
+ setExecAtivo(id,pk,false);render();toast('Fora de '+mesNome(pk)+' · volta no mês seguinte')}
+function rotVoltar(id){const pk=monthKey(mensalRef);setExecAtivo(id,pk,true);render();toast('De volta em '+mesNome(pk))}
+function rotEncerrar(id){const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
+ const pk=monthKey(mensalRef);
+ if(!confirm('Encerrar "'+mo.descricao+'" a partir de '+mesNome(mesSeguinte(pk))+'?\n\n'
+   +'Ela continua aparecendo em '+mesNome(pk)+' e em todos os meses anteriores, com o que já foi registrado.'))return;
+ mo.vigenciaFim=pk;persistModelo('mensais',mo);render();
+ toast(mo.descricao+' encerrada · última vez em '+mesNome(pk))}
+function rotReativar(id){const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
+ mo.vigenciaFim='';persistModelo('mensais',mo);render();toast(mo.descricao+' voltou a rodar todo mês')}
+
+/* --- contas a pagar --- */
+const cpPulado=(c,mk)=>!!(((DB.cpPulos||{})[mk]||{})[c.id]);
+function cpSetPulo(id,mk,v){DB.cpPulos=DB.cpPulos||{};DB.cpPulos[mk]=DB.cpPulos[mk]||{};
+ if(v)DB.cpPulos[mk][id]=true;else delete DB.cpPulos[mk][id];
+ if(!Object.keys(DB.cpPulos[mk]).length)delete DB.cpPulos[mk];
+ saveCP()}
+function cpPular(id){const mk=monthKey(cpMesRef);
+ if(cpPagto(mk,id)&&cpPagto(mk,id).pago)return toast('Esta conta já está paga neste mês; desmarque o pagamento antes');
+ cpSetPulo(id,mk,true);render();toast('Fora de '+mesNome(mk)+' · volta no mês seguinte')}
+function cpVoltar(id){const mk=monthKey(cpMesRef);cpSetPulo(id,mk,false);render();toast('De volta em '+mesNome(mk))}
+function cpEncerrar(id){const c=DB.contas.find(x=>x.id===id);if(!c)return;
+ const mk=monthKey(cpMesRef);
+ if(c.tipo!=='mensal')return toast('Só conta mensal tem vigência; parcelada e única já terminam sozinhas');
+ if(!confirm('Encerrar "'+c.fornecedor+'" a partir de '+mesNome(mesSeguinte(mk))+'?\n\n'
+   +'Ela continua em '+mesNome(mk)+' e nos meses anteriores, com os pagamentos já lançados.'))return;
+ c.vigenciaFim=mk;saveCP();render();toast(c.fornecedor+' encerrada · última vez em '+mesNome(mk))}
+function cpReativar(id){const c=DB.contas.find(x=>x.id===id);if(!c)return;
+ c.vigenciaFim=null;saveCP();render();toast(c.fornecedor+' voltou a vencer todo mês')}
+
+/* --- registro de que o mês já foi revisado --- */
+const mesAberto=(area,pk)=>(DB.mesesAbertos||[]).some(x=>x.area===area&&x.periodo===pk);
+function abrirMes(area,pk){
+ if(mesAberto(area,pk))return;
+ (DB.mesesAbertos=DB.mesesAbertos||[]).push({area,periodo:pk,abertoEm:new Date().toISOString()});
+ up('meses_abertos',{area,periodo:pk,aberto_em:new Date().toISOString(),user_id:ME?ME.id:null});
+ render();toast(mesNome(pk)+' conferido e aberto')}
+function reabrirMes(area,pk){
+ DB.mesesAbertos=(DB.mesesAbertos||[]).filter(x=>!(x.area===area&&x.periodo===pk));
+ sb.from('meses_abertos').delete().match({area,periodo:pk}).then(()=>{},()=>{});
+ render();toast('Revisão de '+mesNome(pk)+' reaberta')}
+
+/* painel que aparece na virada: o que vai rodar, e o que você tira */
+function painelAbertura(area,pk,itens,fns){
+ if(pk!==monthKey(new Date()))return '';
+ if(mesAberto(area,pk)){
+  const reg=(DB.mesesAbertos||[]).find(x=>x.area===area&&x.periodo===pk);
+  return `<div class="filters" style="justify-content:space-between">
+    <span class="muted" style="font-size:11.5px">✓ ${esc(mesNome(pk))} conferido${reg&&reg.abertoEm?' em '+fmtBR(String(reg.abertoEm).slice(0,10)):''}.</span>
+    <button class="btn btn-sm btn-ghost" onclick="reabrirMes('${area}','${pk}')">Rever a lista do mês</button></div>`}
+ const linha=x=>`<div class="ab-l">
+   <span class="tx"><b>${esc(x.nome)}</b><i>${esc(x.meta||'')}</i></span>
+   <span class="ac">
+    ${x.fora
+      ? `<span class="chip chip-n" style="color:var(--mut)">fora deste mês</span>
+         <button class="btn btn-sm" onclick="${fns.voltar}('${x.id}')">Trazer de volta</button>`
+      : `<button class="btn btn-sm btn-ghost" onclick="${fns.pular}('${x.id}')">Pular este mês</button>
+         <button class="btn btn-sm btn-ghost" onclick="${fns.encerrar}('${x.id}')">Encerrar</button>`}</span></div>`;
+ const dentro=itens.filter(x=>!x.fora).length;
+ return `<div class="panel" style="border-color:var(--acc)">
+  <div class="panel-head"><h2>Virou o mês: confira ${esc(mesNome(pk))}<small>${dentro} de ${itens.length} item(ns) vão rodar</small></h2>
+    <button class="btn btn-gold" onclick="abrirMes('${area}','${pk}')">Está certo, abrir o mês</button></div>
+  <div class="empty" style="text-align:left;margin-bottom:10px">Esta é a cópia deste mês. <b>Pular</b> tira só de ${esc(mesNome(pk))};
+   <b>Encerrar</b> tira daqui pra frente. Nos dois casos os meses anteriores ficam intactos, com o que já foi registrado.</div>
+  ${itens.map(linha).join('')||'<div class="empty">Nada para este mês.</div>'}</div>`}
+
 /* ===== Rotinas (mensais / semanais / diárias) ===== */
 let rotinaTab='mensais', mensalRef=new Date(), semRef=new Date(), diariaDate=null, curAj='posterga';
 function ajLabel(a){return a==='antecipa'?'antecipado':a==='posterga'?'postergado':'fixo'}
@@ -2248,7 +2360,7 @@ function setExecValor(mid,v){const pk=monthKey(mensalRef);const s=DB.mensais.exe
   s[pk][mid]=ant;persistExec('mensais',mid,pk,!!ant.feito,ant.valor);render()}
 function mensalTotais(pk){
   const ex=DB.mensais.exec[pk]||{};
-  const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0);
+  const mods=mensaisDoPeriodo(pk).filter(mo=>mensalValor(mo,pk)>0);
   const emitidas=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito);
   const soma=a=>a.reduce((t,mo)=>t+mensalValor(mo,pk),0);
   const porCat={};
@@ -2261,9 +2373,22 @@ function mensalTotais(pk){
     nEmitidas:emitidas.length,aEmitir:soma(mods)-soma(emitidas),nPendentes:mods.length-emitidas.length,
     porCat,entrou:fluxo('entra'),saiu:fluxo('sai'),notas:porCat.nota.feito,nNotas:porCat.nota.nFeito}}
 
+/* o que o painel da virada mostra para as rotinas mensais */
+function rotItensAbertura(pk){
+  const dentro=mensaisDoPeriodo(pk);
+  const fora=(DB.mensais.modelos||[]).filter(mo=>!mo.deletedAt&&mensalPulado(mo,pk)&&!mensalRegistrado(mo,pk));
+  const monta=(mo,f)=>({id:mo.id,nome:mo.descricao,fora:f,
+    meta:'dia '+mo.dia+(mo.valor?' · '+brl(mensalValor(mo,pk)):'')
+      +(mo.categoria?' · '+rotCat(mo.categoria).curto:'')
+      +(mo.responsavelId?' · '+respName(mo.responsavelId):'')});
+  return dentro.map(mo=>monta(mo,false)).concat(fora.map(mo=>monta(mo,true)))
+    .sort((a,b)=>String(a.nome).localeCompare(String(b.nome)))}
+
 function viewMensais(){
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();const pk=monthKey(mensalRef);const ex=DB.mensais.exec[pk]||{};
-  const mods=alive(DB.mensais.modelos).sort((a,b)=>a.dia-b.dia);
+  const abertura=painelAbertura('rotinas',pk,rotItensAbertura(pk),
+    {pular:'rotPular',voltar:'rotVoltar',encerrar:'rotEncerrar'});
+  const mods=mensaisDoPeriodo(pk).sort((a,b)=>a.dia-b.dia);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
   const rows=mods.map(mo=>{const on=ex[mo.id]&&ex[mo.id].feito;const eff=mensalEff(y,m,mo);
     const v=mensalValor(mo,pk),proprio=mensalValorProprio(mo,pk);
@@ -2272,7 +2397,10 @@ function viewMensais(){
       <div class="row-meta"><span class="chip chip-n">dia ${mo.dia} · ${ajLabel(mo.ajuste)} → ${fmtBR(iso(eff))}</span>
       ${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}
       ${mo.categoria?`<span class="chip chip-n" style="color:${rotCat(mo.categoria).cor}">${esc(rotCat(mo.categoria).curto)}</span>`:''}
-      ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+      ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}
+      ${mo.deletedAt?'<span class="chip chip-n" style="color:var(--mut)" title="rotina excluída; fica aqui porque houve registro neste mês">excluída · histórico</span>':''}
+      ${mensalEncerrada(mo,pk)?`<span class="chip chip-n" style="color:var(--mut)" title="encerrada em ${esc(mesNome(mo.vigenciaFim))}">encerrada</span>`:''}
+      ${(!mo.deletedAt&&mo.vigenciaFim===pk)?'<span class="chip chip-avencer" title="último mês desta rotina">último mês</span>':''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
       <div class="row-actions" style="align-items:center">
        <select class="rot-cat" title="Em qual total esta rotina entra" onchange="setModeloCat('${mo.id}',this.value)">${ROT_CAT_OPCOES(mo.categoria)}</select>
        <input type="number" step="0.01" class="rot-val" value="${v?v:''}" placeholder="${mo.valor?pdH1(mo.valor):'valor'}"
@@ -2280,10 +2408,20 @@ function viewMensais(){
          onchange="setExecValor('${mo.id}',this.value)" oninput="mensalTotaisLive()">
        ${proprio?`<button class="iconbtn" title="Voltar ao valor padrão" onclick="setExecValor('${mo.id}','')">↺</button>`:''}
        <button class="iconbtn" onclick="openModelo('mensais','${mo.id}')">✎</button>
-       <button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button></div></div>`}).join('')
-    ||'<div class="empty">Nenhuma rotina mensal. Clique em "+ Nova".</div>';
+       ${mo.deletedAt?''
+         :(mo.vigenciaFim&&pk>=mo.vigenciaFim)
+           ? `<button class="iconbtn" title="Voltar a rodar todo mês" onclick="rotReativar('${mo.id}')">↻</button>`
+           : `<button class="iconbtn" title="Pular só este mês" onclick="rotPular('${mo.id}')">⤼</button>
+              <button class="iconbtn" title="Encerrar a partir do mês que vem" onclick="rotEncerrar('${mo.id}')">⏻</button>`}
+       ${mo.deletedAt?'':`<button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button>`}</div></div>`}).join('')
+    ||'<div class="empty">Nenhuma rotina mensal neste mês.</div>';
+  const pulados=(DB.mensais.modelos||[]).filter(mo=>!mo.deletedAt&&mensalPulado(mo,pk)&&!mensalRegistrado(mo,pk));
+  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Fora de ${esc(mesNome(pk))}<small>voltam sozinhas no mês que vem</small></h2></div>
+    ${pulados.map(mo=>`<div class="row"><div class="row-body"><div class="row-title" style="color:var(--mut)">${esc(mo.descricao)}</div>
+      <div class="row-meta"><span class="chip chip-n">dia ${mo.dia}</span>${mo.valor?`<span class="chip chip-n">${brl(mo.valor)}</span>`:''}</div></div>
+      <div class="row-actions"><button class="btn btn-sm" onclick="rotVoltar('${mo.id}')">Trazer de volta</button></div></div>`).join('')}</div>`:'';
   const t=mensalTotais(pk);
-  const semCat=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0&&!mo.categoria).length;
+  const semCat=mensaisDoPeriodo(pk).filter(mo=>mensalValor(mo,pk)>0&&!mo.categoria).length;
   const catRows=ROT_CATS.filter(c=>t.porCat[c.id].n).map(c=>{const d=t.porCat[c.id];
     const pct=d.previsto?Math.round(d.feito/d.previsto*100):0;
     return `<div class="hbar"><div class="hl"><span class="nm"><span style="width:8px;height:8px;border-radius:50%;background:${c.cor};display:inline-block"></span>${esc(c.nome)}</span>
@@ -2306,14 +2444,14 @@ function viewMensais(){
      <div class="row-actions"><b style="font-size:17px;color:${saldo>=0?'var(--pos)':'var(--neg)'}">${brl(saldo)}</b></div></div>
    ${semCat?`<div class="tip">${semCat} rotina(s) com valor ainda sem classificação. Use o seletor na linha para dizer em qual total ela entra.</div>`:''}
    ${mensalHistorico()}</div>`:'';
-  return `<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas</small></h2>
+  return abertura+`<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas</small></h2>
     <button class="btn btn-sm" onclick="stepMonth(-1)">‹</button><button class="btn btn-sm" onclick="mensalRef=new Date();render()">Este mês</button><button class="btn btn-sm" onclick="stepMonth(1)">›</button>
-    <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`+resumo}
+    <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`+blocoPulados+resumo}
 
 /* recalcula os totais enquanto você digita, sem redesenhar a lista */
 function mensalTotaisLive(){
   const pk=monthKey(mensalRef),ex=DB.mensais.exec[pk]||{};
-  const mods=alive(DB.mensais.modelos).sort((a,b)=>a.dia-b.dia);
+  const mods=mensaisDoPeriodo(pk).sort((a,b)=>a.dia-b.dia);
   const campos=document.querySelectorAll('.rot-val');
   let previsto=0,emitido=0,n=0,nE=0;
   mods.forEach((mo,i)=>{const el=campos[i];if(!el)return;
@@ -2350,7 +2488,7 @@ function mesCurto(d){const t=d.toLocaleDateString('pt-BR',{month:'short'}).repla
 
 function mensalBaixar(){
   const pk=monthKey(mensalRef),ex=DB.mensais.exec[pk]||{};
-  const mods=alive(DB.mensais.modelos).filter(mo=>mensalValor(mo,pk)>0).sort((a,b)=>a.dia-b.dia);
+  const mods=mensaisDoPeriodo(pk).filter(mo=>mensalValor(mo,pk)>0).sort((a,b)=>a.dia-b.dia);
   if(!mods.length)return toast('Nenhuma rotina com valor neste mês');
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();
   const linhas=[['Vencimento','Rotina','Classificação','Responsável','Valor','Concluída'].join(';')]
@@ -2499,10 +2637,16 @@ function cpStatusConta(c,y,m){const mk=monthKey(new Date(y,m,1));if(cpPagto(mk,c
 function mkToYM(mk){const[y,m]=mk.split('-').map(Number);return{y,m:m-1}}
 let cpTab='resumo', cpMesRef=new Date(), cpBusca='', cpFiltroStatus='', curAjC='antecipa', curTipoC='mensal', curCorG='#d4a840';
 function cpContasDoMes(dref){const d=dref||cpMesRef;const y=d.getFullYear(),m=d.getMonth(),mk=monthKey(d);const out=[];
-  alive(DB.contas).forEach(c=>{let parcela=null;
-    if(c.tipo==='unica'){if(c.mesUnico!==mk)return}
-    else if(c.tipo==='parcelada'){if(!c.parcelaInicio)return;const s=mkToYM(c.parcelaInicio);const diff=(y-s.y)*12+(m-s.m);if(diff<0||diff>=(c.parcelas||1))return;parcela=(diff+1)+'/'+c.parcelas}
-    else{if(c.vigenciaInicio&&mk<c.vigenciaInicio)return;if(c.vigenciaFim&&mk>c.vigenciaFim)return}
+  (DB.contas||[]).forEach(c=>{let parcela=null;
+    /* o que já foi pago naquele mês nunca sai da lista: é o histórico */
+    const pago=!!cpPagto(mk,c.id);
+    if(!pago){
+      if(c.deletedAt)return;
+      if(cpPulado(c,mk))return;
+    }
+    if(c.tipo==='unica'){if(c.mesUnico!==mk&&!pago)return}
+    else if(c.tipo==='parcelada'){if(!c.parcelaInicio)return;const s=mkToYM(c.parcelaInicio);const diff=(y-s.y)*12+(m-s.m);if((diff<0||diff>=(c.parcelas||1))&&!pago)return;parcela=(diff+1)+'/'+c.parcelas}
+    else{if(!pago){if(c.vigenciaInicio&&mk<c.vigenciaInicio)return;if(c.vigenciaFim&&mk>c.vigenciaFim)return}}
     const eff=mensalEff(y,m,c),st=cpStatusConta(c,y,m),pg=cpPagto(mk,c.id);
     out.push({c,eff,st,pg,valorPago:pg?pg.valorPago||0:0,parcela})});
   return out.sort((a,b)=>a.eff-b.eff)}
@@ -2520,6 +2664,16 @@ function viewContas(){
   if(cpTab.startsWith('emp:'))body=viewCpEmpresa(cpTab.slice(4));
   else body=({resumo:viewCpResumo,empresas:viewCpEmpresas,excluidos:viewCpExcluidos}[cpTab]||viewCpResumo)();
   return tabsHTML+body}
+/* o que o painel da virada mostra para as contas */
+function cpItensAbertura(mk){
+  const dentro=cpContasDoMes().map(x=>x.c);
+  const fora=(DB.contas||[]).filter(c=>!c.deletedAt&&cpPulado(c,mk)&&!cpPagto(mk,c.id));
+  const monta=(c,f)=>({id:c.id,nome:c.fornecedor,fora:f,
+    meta:'dia '+c.dia+' · '+brl(c.valor)+' · '+cpGrupoNome(c.grupoId)
+      +(c.tipo==='parcelada'?' · parcelada':c.tipo==='unica'?' · única':'')});
+  return dentro.map(c=>monta(c,false)).concat(fora.map(c=>monta(c,true)))
+    .sort((a,b)=>String(a.nome).localeCompare(String(b.nome)))}
+
 function viewCpResumo(){
   const list=cpContasDoMes();
   const totPrev=list.reduce((s,x)=>s+x.c.valor,0);
@@ -2537,7 +2691,15 @@ function viewCpResumo(){
   const hbars=keys.length?keys.map(gid=>{const d=byG[gid],pct=d.prev?Math.round(d.pago/d.prev*100):0,cor=cpGrupoCor(gid);
     return `<div class="hbar"><div class="hl"><span class="nm"><span style="width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block"></span>${esc(cpGrupoNome(gid))}</span><span class="muted">${brl(d.pago)} / ${brl(d.prev)}</span></div><div class="ht"><i style="width:${pct}%;background:${cor}"></i></div></div>`}).join('')
     :'<div class="empty">Sem contas neste mês.</div>';
-  return cpMonthBar()+stats+`<div class="panel"><div class="panel-head"><h2>Por empresa — pago / previsto</h2></div>${hbars}</div>`}
+  const mk=monthKey(cpMesRef);
+  const abertura=painelAbertura('contas',mk,cpItensAbertura(mk),
+    {pular:'cpPular',voltar:'cpVoltar',encerrar:'cpEncerrar'});
+  const pulados=(DB.contas||[]).filter(c=>!c.deletedAt&&cpPulado(c,mk)&&!cpPagto(mk,c.id));
+  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Fora de ${esc(mesNome(mk))}<small>voltam sozinhas no mês que vem</small></h2></div>
+    ${pulados.map(c=>`<div class="row"><div class="row-body"><div class="row-title" style="color:var(--mut)">${esc(c.fornecedor)}</div>
+      <div class="row-meta"><span class="chip chip-n">dia ${c.dia}</span><span class="chip chip-n">${brl(c.valor)}</span><span class="chip chip-n" style="color:${cpGrupoCor(c.grupoId)}">${esc(cpGrupoNome(c.grupoId))}</span></div></div>
+      <div class="row-actions"><button class="btn btn-sm" onclick="cpVoltar('${c.id}')">Trazer de volta</button></div></div>`).join('')}</div>`:'';
+  return cpMonthBar()+abertura+stats+`<div class="panel"><div class="panel-head"><h2>Por empresa — pago / previsto</h2></div>${hbars}</div>`+blocoPulados}
 function viewCpEmpresa(gid){
   let list=cpContasDoMes().filter(x=>x.c.grupoId===gid);
   const totPrev=list.reduce((s,x)=>s+x.c.valor,0);
@@ -2569,10 +2731,20 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
   const classeChip=c.classeId?`<span class="chip chip-n" style="color:${cpClasseCor(c.classeId)}">${esc(cpClasseNome(c.classeId))}</span>`:'';
   const parc=x.parcela?`<span class="chip chip-n">Parc. ${x.parcela}</span>`:(c.tipo==='unica'?'<span class="chip chip-n">Única</span>':'');
   const obs=c.obs?`<span class="chip chip-n">${esc(c.obs)}</span>`:'';
+  const mk=monthKey(cpMesRef);
+  const encerrada=c.tipo==='mensal'&&c.vigenciaFim&&mk>=c.vigenciaFim;
+  const marcaHist=c.deletedAt?'<span class="chip chip-n" style="color:var(--mut)" title="conta excluída; fica aqui porque foi paga neste mês">excluída · histórico</span>'
+    :c.vigenciaFim===mk?'<span class="chip chip-avencer" title="último mês desta conta">último mês</span>'
+    :encerrada?'<span class="chip chip-n" style="color:var(--mut)">encerrada</span>':'';
   return `<div class="row"><button class="chk ${st==='pago'?'on':''}" title="${st==='pago'?'Desmarcar pago':'Registrar pagamento'}" onclick="cpTogglePay('${c.id}')">✓</button>
-    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${forma}${classeChip}${parc}${obs}</div></div>
+    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${marcaHist}${forma}${classeChip}${parc}${obs}</div></div>
     <div style="font-weight:700;font-variant-numeric:tabular-nums;padding:0 6px" class="${st==='vencido'?'neg':''}">${valTxt}</div>
-    <div class="row-actions"><button class="iconbtn" onclick="openConta('${c.id}')">✎</button><button class="iconbtn del" onclick="delConta('${c.id}')">🗑</button></div></div>`}
+    <div class="row-actions"><button class="iconbtn" onclick="openConta('${c.id}')">✎</button>
+     ${c.deletedAt?''
+       :encerrada?`<button class="iconbtn" title="Voltar a vencer todo mês" onclick="cpReativar('${c.id}')">↻</button>`
+       :c.tipo==='mensal'?`<button class="iconbtn" title="Pular só este mês" onclick="cpPular('${c.id}')">⤼</button>
+          <button class="iconbtn" title="Encerrar a partir do mês que vem" onclick="cpEncerrar('${c.id}')">⏻</button>`:''}
+     ${c.deletedAt?'':`<button class="iconbtn del" onclick="delConta('${c.id}')">🗑</button>`}</div></div>`}
 /* viewCpCalendario removida — o calendário de Contas a Pagar foi unificado com o de Pendências (ver viewCalendar). */
 function viewCpEmpresas(){
   const cards=DB.grupos.map(g=>{const n=alive(DB.contas).filter(c=>c.grupoId===g.id).length;
