@@ -247,13 +247,19 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
 /* ---- logo como marca d'água no card do funil ---- */
+/* a mistura fica no QUADRO e a transparencia na IMAGEM: juntas no mesmo
+   elemento, o navegador compoe depois de misturar e o fundo branco volta a pintar */
 .kb-card .marca{position:absolute;right:5px;top:50%;transform:translateY(-50%);
-  width:54px;height:54px;pointer-events:none;z-index:0;line-height:0}
+  width:54px;height:54px;pointer-events:none;line-height:0;mix-blend-mode:screen}
+:root[data-tema="claro"] .kb-card .marca{mix-blend-mode:multiply}
+/* invertida + screen: o fundo branco vira preto, e preto no screen nao pinta nada,
+   entao sobra so o desenho. Vale para PNG transparente e para JPG de fundo branco,
+   sem precisar reenviar a imagem. */
 .kb-card .marca img{width:100%;height:100%;object-fit:contain;
-  filter:grayscale(1) brightness(0) invert(1);opacity:.24}
-:root[data-tema="claro"] .kb-card .marca img{filter:grayscale(1) brightness(0);opacity:.14}
-.kb-card:hover .marca img{opacity:.38}
-:root[data-tema="claro"] .kb-card:hover .marca img{opacity:.24}
+  filter:invert(1) grayscale(1);opacity:.5}
+:root[data-tema="claro"] .kb-card .marca img{filter:grayscale(1);opacity:.32}
+.kb-card:hover .marca img{opacity:.72}
+:root[data-tema="claro"] .kb-card:hover .marca img{opacity:.5}
 .kb-card>.t,.kb-card>.d,.kb-card>.m,.kb-card>.acts{position:relative;z-index:1}
 .kb.funil .kb-card .marca{width:52px;height:52px;right:3px}
 @media(prefers-reduced-motion:no-preference){.kb-card .marca img{transition:opacity .15s}}
