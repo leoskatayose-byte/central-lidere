@@ -246,6 +246,17 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
+/* ---- logo como marca d'água no card do funil ---- */
+.kb-card .marca{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:54px;height:54px;pointer-events:none;z-index:0;line-height:0}
+.kb-card .marca img{width:100%;height:100%;object-fit:contain;
+  filter:grayscale(1) brightness(0) invert(1);opacity:.24}
+:root[data-tema="claro"] .kb-card .marca img{filter:grayscale(1) brightness(0);opacity:.14}
+.kb-card:hover .marca img{opacity:.38}
+:root[data-tema="claro"] .kb-card:hover .marca img{opacity:.24}
+.kb-card>.t,.kb-card>.d,.kb-card>.m,.kb-card>.acts{position:relative;z-index:1}
+.kb.funil .kb-card .marca{width:52px;height:52px;right:3px}
+@media(prefers-reduced-motion:no-preference){.kb-card .marca img{transition:opacity .15s}}
 /* ---- arquivos do cliente ---- */
 .arq-l{display:flex;gap:11px;align-items:flex-start;border-top:1px solid var(--line);padding:11px 4px}
 .arq-l:first-of-type{border-top:0}
@@ -849,7 +860,7 @@ tbody tr:hover{background:var(--panel2)}
         <div class="logo-ac">
           <div style="display:flex;gap:7px;flex-wrap:wrap">
             <button type="button" class="btn btn-sm" onclick="gEl('cl_logo_file').click()">Escolher imagem</button>
-            <button type="button" class="btn btn-sm btn-ghost" id="cl_logo_del" style="display:none" onclick="cliLogoRemover()">Remover</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="cl_logo_del" style="display:none" onclick="cliLogoRemover('cl')">Remover</button>
           </div>
           <div class="muted" id="cl_logo_st" style="font-size:11px"></div>
           <div class="muted" style="font-size:11px;line-height:1.5">PNG, JPG, WEBP ou SVG, até 2 MB.
@@ -857,7 +868,7 @@ tbody tr:hover{background:var(--panel2)}
         </div>
       </div>
       <input type="hidden" id="cl_logo">
-      <input type="file" id="cl_logo_file" accept="image/*" style="display:none" onchange="cliLogoArquivo(this)">
+      <input type="file" id="cl_logo_file" accept="image/*" style="display:none" onchange="cliLogoArquivo(this,'cl')">
     </div>
     <div class="field"><label>Observações</label><textarea id="cl_obs" rows="3" placeholder="particularidades da operação, combinados, o que não pode esquecer"></textarea></div>
   </div>
@@ -1083,7 +1094,7 @@ tbody tr:hover{background:var(--panel2)}
 
 <!-- ===== Modal Lead (CRM) ===== -->
 <div class="overlay" id="ovLead"><div class="modal wide">
-  <div class="modal-head"><h3 id="leadTitle">Novo lead</h3><button class="modal-x" onclick="closeModal('ovLead')">×</button></div>
+  <div class="modal-head"><h3 id="leadTitle">Novo lead</h3><button class="modal-x" onclick="cancelarLead()">×</button></div>
   <div class="modal-body">
     <input type="hidden" id="l_id">
     <div class="cad-acts" id="l_cadbox" style="margin-bottom:14px"><span id="l_cad_res" class="muted" style="font-size:12px;flex:1;min-width:150px"></span>
@@ -1113,6 +1124,21 @@ tbody tr:hover{background:var(--panel2)}
     <div class="field"><label>Linha de serviço</label>
       <select id="l_linha" onchange="linhaHint('l_linha_hint',this.value)"></select>
       <div class="muted" id="l_linha_hint" style="font-size:11px;margin-top:5px;line-height:1.45"></div></div>
+    <div class="field"><label>Logo da empresa</label>
+      <div class="logo-row">
+        <div class="logo-prev" id="l_logo_prev"><span>sem logo</span></div>
+        <div class="logo-ac">
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button type="button" class="btn btn-sm" onclick="gEl('l_logo_file').click()">Escolher imagem</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="l_logo_del" style="display:none" onclick="cliLogoRemover('l')">Remover</button>
+          </div>
+          <div class="muted" id="l_logo_st" style="font-size:11px"></div>
+          <div class="muted" style="font-size:11px;line-height:1.5">Aparece no card do funil e vai junto quando ele virar cliente.</div>
+        </div>
+      </div>
+      <input type="hidden" id="l_logo">
+      <input type="file" id="l_logo_file" accept="image/*" style="display:none" onchange="cliLogoArquivo(this,'l')">
+    </div>
     <div class="fgrid">
       <div class="field"><label>Próximo contato</label><input id="l_prox" type="date"></div>
       <div class="field"><label>Último contato</label><input id="l_ult" type="date"></div>
@@ -1137,7 +1163,7 @@ tbody tr:hover{background:var(--panel2)}
     <div class="field"><label>Pré-diagnóstico e proposta</label><div id="l_vinc" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div></div>
     <div class="field"><label>Observações</label><textarea id="l_obs" rows="2"></textarea></div>
   </div>
-  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovLead')">Cancelar</button><button class="btn btn-gold" onclick="saveLead()">Salvar</button></div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="cancelarLead()">Cancelar</button><button class="btn btn-gold" onclick="saveLead()">Salvar</button></div>
 </div></div>
 
 <!-- ===== Modal Cadência de 7 mensagens (CRM) ===== -->
@@ -1442,7 +1468,7 @@ async function loadAll(){
     onbClientes,
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
-    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,deletedAt:fromISO(l.deleted_at)})),
+    crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,logoUrl:l.logo_url||'',deletedAt:fromISO(l.deleted_at)})),
     crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',assinaturaProvedor:p.assinatura_provedor||'',assinaturaDocId:p.assinatura_doc_id||'',assinaturaUrl:p.assinatura_url||'',assinaturaStatus:p.assinatura_status||'nao_enviado',assinaturaEnviadaEm:p.assinatura_enviada_em||'',assinadaEm:p.assinada_em||'',arquivoAssinadoUrl:p.arquivo_assinado_url||'',deletedAt:fromISO(p.deleted_at)})),
     clientes:(CC&&CC.data?CC.data:[]).map(c=>({id:c.id,nome:c.nome||'',cnpj:c.cnpj||'',
       leadId:c.lead_id||'',onbId:c.onb_id||'',responsavelId:c.responsavel_id||'',status:c.status||'ativo',
@@ -2902,7 +2928,7 @@ function delOperador(id){const o=onbOpById(id);const usa=alive(DB.onbClientes).f
 /* ===== CRM Comercial ===== */
 let crmTab='dashboard', crmCurPri='media', crmCurColor=PALETTE[0], crmLeadFilter={q:'',estagio:'',resp:'',linha:''};
 /* persistência */
-function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,loss_detail:l.lossDetail||null,lost_from_stage_id:l.lostFrom||null,lost_at:l.lostAt||null,reativar_em:l.reativarEm||null,reativar_status:l.reativarStatus||null,ciclo:l.ciclo||1,linha_servico:l.linhaServico||null,cadencia_off:l.cadenciaOff||[],sem_proposta:!!l.semProposta,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,cnpj:l.cnpj||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
+function persistCrmLead(l){up('crm_leads',{id:l.id,empresa:l.empresa,estagio_id:l.estagioId||null,cadencia:l.cadencia||[],cadencia_inicio:l.cadenciaInicio||null,cadencia_prop:l.cadenciaProp||[],proposta_data:l.propostaData||null,prediag_status:l.prediagStatus||'pendente',prediag_data:l.prediagData||null,prediag_obs:l.prediagObs||null,prediag_id:l.prediagId||null,motivo_perda:l.motivoPerda||null,loss_detail:l.lossDetail||null,lost_from_stage_id:l.lostFrom||null,lost_at:l.lostAt||null,reativar_em:l.reativarEm||null,reativar_status:l.reativarStatus||null,ciclo:l.ciclo||1,linha_servico:l.linhaServico||null,cadencia_off:l.cadenciaOff||[],sem_proposta:!!l.semProposta,logo_url:l.logoUrl||null,responsavel_id:l.responsavelId||null,contato:l.contato||null,cargo:l.cargo||null,cnpj:l.cnpj||null,segmento:l.segmento||null,email:l.email||null,telefone:l.telefone||null,origem:l.origem||null,servico:l.servico||null,ticket:+l.ticket||0,proximo_contato:l.proximoContato||null,ultimo_contato:l.ultimoContato||null,status_contrato:l.statusContrato||'Aguardando',link_proposta:l.linkProposta||null,prioridade:l.prioridade||'media',obs:l.obs||null,data_entrada:l.dataEntrada||null,deleted_at:toISO(l.deletedAt)})}
 function persistCrmEstagio(e){up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:e.ordem||0})}
 function persistCrmOrdemEstagios(){DB.crmEstagios.forEach((e,i)=>{e.ordem=i;up('crm_estagios',{id:e.id,nome:e.nome,tipo:e.tipo,cor:e.cor,fase:e.fase||'prospeccao',ordem:i})})}
 function persistCrmResp(r){up('crm_responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
@@ -3228,6 +3254,7 @@ function viewCrmKanban(){
   const cols=est.map(e=>{const leads=a.filter(l=>l.estagioId===e.id);const val=leads.reduce((s,l)=>s+(+l.ticket||0),0);
     const cards=leads.map(l=>{const r=crmRespById(l.responsavelId);const late=l.proximoContato&&l.proximoContato<todayKey();
       return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')">
+        ${marcaDagua(leadLogo(l))}
         <div class="t">${esc(l.empresa)}</div>
         <div class="m"><span class="chip chip-n">${brl(l.ticket)}</span>${late?'<span class="chip chip-vencido">atraso</span>':''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div>
         <div class="acts">${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button></div>
@@ -3250,7 +3277,11 @@ function crmCardPop(l,e){
  const p=comPropAtiva(l);
  const linha=(k,v)=>v?`<div class="pl"><span>${esc(k)}</span><b>${v}</b></div>`:'';
  const late=l.proximoContato&&l.proximoContato<todayKey();
- return `<div class="kb-pop"><div class="pn">${esc(l.empresa)}</div>
+ const lg=leadLogo(l);
+ return `<div class="kb-pop">
+  <div style="display:flex;gap:9px;align-items:center;margin-bottom:7px">
+   ${cliAvatar({nome:l.empresa,logoUrl:lg},lg?34:30)}
+   <div class="pn" style="margin:0;flex:1;min-width:0">${esc(l.empresa)}</div></div>
   ${linha('Contato',esc(l.contato||'')+(l.cargo?' · '+esc(l.cargo):''))}
   ${linha('Etapa',esc((e||{}).nome||''))}
   ${linha('Linha',esc(linhaDo(l).nome))}
@@ -3380,6 +3411,7 @@ function openLead(id){const l=id?crmLeadById(id):null;
   gEl('l_origem').innerHTML='<option value="">—</option>'+DB.crmOrigens.map(o=>`<option ${l&&l.origem===o?'selected':''}>${esc(o)}</option>`).join('');
   gEl('l_servico').innerHTML='<option value="">—</option>'+DB.crmServicos.map(o=>`<option ${l&&l.servico===o?'selected':''}>${esc(o)}</option>`).join('');
   gEl('l_linha').innerHTML=linhaOpts(l?l.linhaServico:'');linhaHint('l_linha_hint',gEl('l_linha').value);
+  cliLogoIniciar('l',l?l.logoUrl:'');
   const set=(k,v)=>gEl(k).value=v||'';
   set('l_empresa',l?l.empresa:'');set('l_contato',l?l.contato:'');set('l_cargo',l?l.cargo:'');set('l_segmento',l?l.segmento:'');set('l_email',l?l.email:'');set('l_tel',l?l.telefone:'');
   set('l_ticket',l?l.ticket:'');set('l_prox',l?l.proximoContato:'');set('l_ult',l?l.ultimoContato:'');set('l_link',l?l.linkProposta:'');set('l_obs',l?l.obs:'');
@@ -3397,12 +3429,13 @@ function updLeadWa(){const a=gEl('l_wa');if(!a)return;const h=waHref(gEl('l_tel'
   a.innerHTML=WA_SVG+' WhatsApp';a.style.display=h?'':'none';a.href=h||'#'}
 function saveLead(){const empresa=gEl('l_empresa').value.trim();if(!empresa)return toast('Informe a empresa');
   const g=k=>gEl(k).value;
-  const data={empresa,estagioId:g('l_estagio'),responsavelId:g('l_resp'),contato:g('l_contato').trim(),cargo:g('l_cargo').trim(),segmento:g('l_segmento').trim(),email:g('l_email').trim(),telefone:g('l_tel').trim(),origem:g('l_origem'),servico:g('l_servico'),linhaServico:g('l_linha')||LINHA_PADRAO,ticket:+g('l_ticket')||0,proximoContato:g('l_prox'),ultimoContato:g('l_ult'),statusContrato:g('l_status'),linkProposta:g('l_link').trim(),prioridade:crmCurPri,obs:g('l_obs').trim(),
+  const data={empresa,estagioId:g('l_estagio'),responsavelId:g('l_resp'),contato:g('l_contato').trim(),cargo:g('l_cargo').trim(),segmento:g('l_segmento').trim(),email:g('l_email').trim(),telefone:g('l_tel').trim(),origem:g('l_origem'),servico:g('l_servico'),linhaServico:g('l_linha')||LINHA_PADRAO,logoUrl:g('l_logo'),ticket:+g('l_ticket')||0,proximoContato:g('l_prox'),ultimoContato:g('l_ult'),statusContrato:g('l_status'),linkProposta:g('l_link').trim(),prioridade:crmCurPri,obs:g('l_obs').trim(),
     prediagStatus:crmCurPd,prediagData:g('l_pd_data'),prediagObs:g('l_pd_obs').trim()};
   const id=g('l_id');let lead;
   if(id){lead=crmLeadById(id);Object.assign(lead,data)}else{lead=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),dataEntrada:todayKey(),cadencia:[],cadenciaInicio:'',deletedAt:null},data);DB.crmLeads.push(lead)}
   const ligou=crmAutoProposta(lead);
-  persistCrmLead(lead);closeModal('ovLead');render();toast(ligou?'Lead salvo · follow-up de proposta começou hoje':'Lead salvo')}
+  persistCrmLead(lead);_logoOrig.l=lead.logoUrl||'';closeModal('ovLead');render();
+  toast(ligou?'Lead salvo · follow-up de proposta começou hoje':'Lead salvo')}
 function delLead(id){const l=crmLeadById(id);if(!l)return;l.deletedAt=Date.now();persistCrmLead(l);render();toast('Movido para Excluídos')}
 function restoreLead(id){const l=crmLeadById(id);if(l){l.deletedAt=null;persistCrmLead(l);render();toast('Restaurado')}}
 function purgeLead(id){if(!confirm('Excluir este lead definitivamente?'))return;DB.crmLeads=DB.crmLeads.filter(x=>x.id!==id);onbDelRow('crm_leads',id);render()}
@@ -4743,6 +4776,7 @@ function viewComCliLista(){
  const rows=a.map(l=>{const e=crmEstById(l.estagioId),r=crmRespById(l.responsavelId);
   const late=l.proximoContato&&l.proximoContato<todayKey();
   return `<tr onclick="comAbrir('${l.id}')" style="cursor:pointer">
+   <td>${cliAvatar({nome:l.empresa,logoUrl:leadLogo(l)},28)}</td>
    <td><b>${esc(l.empresa)}</b> ${linhaChip(l)}<div class="muted">${esc(l.contato||'')}${l.cargo?' · '+esc(l.cargo):''}</div></td>
    <td>${e?`<span class="chip chip-n" style="color:${e.cor}">${esc(e.nome)}</span>`:crmSemEtapa(l)?'<span class="chip chip-vencido">sem etapa</span>':'—'}</td>
    <td>${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:'—'}</td>
@@ -4753,7 +4787,7 @@ function viewComCliLista(){
     <button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button>
     <button class="iconbtn" title="Editar cadastro" onclick="event.stopPropagation();openLead('${l.id}')">✎</button>
     <button class="iconbtn del" onclick="event.stopPropagation();delLead('${l.id}')">🗑</button></td></tr>`}).join('')
-  ||`<tr><td colspan="8"><div class="empty">Nenhum cliente encontrado.</div></td></tr>`;
+  ||`<tr><td colspan="9"><div class="empty">Nenhum cliente encontrado.</div></td></tr>`;
  const soltos=comSoltos();
  return `<div class="panel"><div class="panel-head"><h2>${a.length} de ${crmLeadsAtivos().length}<small>clique na linha para abrir a ficha completa</small></h2></div>
   <div class="filters"><input placeholder="Buscar empresa, contato, e-mail, telefone..." value="${esc(crmLeadFilter.q)}" style="background:var(--bg2);border:1px solid var(--line-f);color:var(--txt);padding:8px 12px;border-radius:9px;font-size:12.5px;min-width:220px" oninput="crmLeadFilter.q=this.value;render()">
@@ -4761,7 +4795,7 @@ function viewComCliLista(){
    <select onchange="crmLeadFilter.resp=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">${optResp}</select>
    <select onchange="crmLeadFilter.linha=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:12.5px">
     <option value="">Todas as linhas</option>${LINHAS.map(x=>`<option value="${x.id}" ${crmLeadFilter.linha===x.id?'selected':''}>${esc(x.nome)} · ${crmLeadsAtivos().filter(y=>linhaDo(y).id===x.id).length}</option>`).join('')}</select></div>
-  <div class="tbl-scroll"><table><thead><tr><th>Cliente</th><th>Etapa</th><th>Resp.</th><th>Ticket</th><th>Pré-diagnóstico</th><th>Proposta</th><th>Próx. contato</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`+soltos}
+  <div class="tbl-scroll"><table><thead><tr><th style="width:44px"></th><th>Cliente</th><th>Etapa</th><th>Resp.</th><th>Ticket</th><th>Pré-diagnóstico</th><th>Proposta</th><th>Próx. contato</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`+soltos}
 
 /* pré-diagnósticos e propostas que ainda não têm cliente vinculado */
 function comSoltos(){
@@ -6524,16 +6558,23 @@ function cliLogoReduzir(file,max){max=max||320;
    img.src=fr.result};
   fr.readAsDataURL(file)})}
 
-function cliLogoPreview(){
- const url=(gEl('cl_logo')||{}).value||'', box=gEl('cl_logo_prev');
+/* o mesmo campo serve o cliente da carteira (px='cl') e o lead (px='l') */
+const _logoOrig={};
+function cliLogoPreview(px){px=px||'cl';
+ const url=(gEl(px+'_logo')||{}).value||'', box=gEl(px+'_logo_prev');
  if(box)box.innerHTML=url?`<img src="${esc(url)}" alt="logo">`:'<span>sem logo</span>';
- const del=gEl('cl_logo_del');if(del)del.style.display=url?'':'none'}
+ const del=gEl(px+'_logo_del');if(del)del.style.display=url?'':'none'}
 
-let _cliLogoOrig='';
-async function cliLogoArquivo(inp){
+function cliLogoIniciar(px,url){px=px||'cl';
+ const el=gEl(px+'_logo');if(el)el.value=url||'';
+ _logoOrig[px]=url||'';
+ const st=gEl(px+'_logo_st');if(st)st.textContent='';
+ cliLogoPreview(px)}
+
+async function cliLogoArquivo(inp,px){px=px||'cl';
  const f=inp&&inp.files&&inp.files[0];if(inp)inp.value='';
  if(!f)return;
- const st=gEl('cl_logo_st');
+ const st=gEl(px+'_logo_st');
  if(!/^image\//.test(f.type||''))return toast('Escolha um arquivo de imagem');
  if(f.size>2*1024*1024)return toast('A imagem precisa ter no máximo 2 MB');
  if(st)st.textContent='Enviando...';
@@ -6544,23 +6585,33 @@ async function cliLogoArquivo(inp){
   const {error}=await sb.storage.from('logos').upload(nome,blob,{contentType:svg?'image/svg+xml':'image/png',upsert:false});
   if(error)throw error;
   const {data}=sb.storage.from('logos').getPublicUrl(nome);
-  const antigo=gEl('cl_logo').value;
-  gEl('cl_logo').value=data.publicUrl;
-  cliLogoPreview();
-  if(antigo&&antigo!==_cliLogoOrig)cliLogoApagarArquivo(antigo);
+  const antigo=gEl(px+'_logo').value;
+  gEl(px+'_logo').value=data.publicUrl;
+  cliLogoPreview(px);
+  if(antigo&&antigo!==_logoOrig[px])cliLogoApagarArquivo(antigo);
   if(st)st.textContent='Imagem no ar';
  }catch(e){if(st)st.textContent='';toast('Não deu para enviar a imagem: '+((e&&e.message)||e))}}
 
-function cliLogoRemover(){const url=(gEl('cl_logo')||{}).value||'';if(!url)return;
- gEl('cl_logo').value='';cliLogoPreview();
- const st=gEl('cl_logo_st');if(st)st.textContent='';
- if(url!==_cliLogoOrig)cliLogoApagarArquivo(url)}
+function cliLogoRemover(px){px=px||'cl';
+ const url=(gEl(px+'_logo')||{}).value||'';if(!url)return;
+ gEl(px+'_logo').value='';cliLogoPreview(px);
+ const st=gEl(px+'_logo_st');if(st)st.textContent='';
+ if(url!==_logoOrig[px])cliLogoApagarArquivo(url)}
 
 /* fechar sem salvar não pode deixar imagem órfã no Storage */
-function cliCancelarModal(){
- const url=(gEl('cl_logo')||{}).value||'';
- if(url&&url!==_cliLogoOrig)cliLogoApagarArquivo(url);
- closeModal('ovCliente')}
+function cliLogoDescartar(px){px=px||'cl';
+ const url=(gEl(px+'_logo')||{}).value||'';
+ if(url&&url!==_logoOrig[px])cliLogoApagarArquivo(url)}
+function cliCancelarModal(){cliLogoDescartar('cl');closeModal('ovCliente')}
+function cancelarLead(){cliLogoDescartar('l');closeModal('ovLead')}
+
+/* a logo que o funil mostra: a do lead ou, se ele já virou cliente, a da carteira */
+function leadLogo(l){
+ if(!l)return '';
+ if(l.logoUrl)return l.logoUrl;
+ const c=(DB.clientes||[]).find(x=>!x.deletedAt&&x.leadId===l.id);
+ return (c&&c.logoUrl)||''}
+const marcaDagua=url=>url?`<span class="marca"><img src="${esc(url)}" alt="" loading="lazy"></span>`:'';
 
 /* ===================================================================
    Carteira de clientes: quem a Lidere atende hoje e o que está parado
@@ -6637,10 +6688,7 @@ function cliAbrirModal(id,base){
  v('cl_dia',c?(c.diaFechamento||10):10);
  v('cl_inicio',c?c.inicio:(base&&base.inicio)||todayKey());
  v('cl_obs',c?c.obs:'');
- v('cl_logo',c?c.logoUrl:(base&&base.logoUrl)||'');
- _cliLogoOrig=(gEl('cl_logo').value||'');
- const st=gEl('cl_logo_st');if(st)st.textContent='';
- cliLogoPreview();
+ cliLogoIniciar('cl',c?c.logoUrl:(base&&base.logoUrl)||'');
  gEl('cl_resp').value=c?(c.responsavelId||''):((base&&base.responsavelId)||'');
  gEl('cl_status').value=c?(c.status||'ativo'):'ativo';
  gEl('cl_lead').value=c?(c.leadId||''):((base&&base.leadId)||'');
@@ -6659,8 +6707,8 @@ function cliSalvar(){
  else{c=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),deletedAt:null},dados);
   (DB.clientes=DB.clientes||[]).push(c)}
  persistCliente(c);
- if(_cliLogoOrig&&_cliLogoOrig!==(c.logoUrl||''))cliLogoApagarArquivo(_cliLogoOrig);
- _cliLogoOrig=c.logoUrl||'';closeModal('ovCliente');render();
+ if(_logoOrig.cl&&_logoOrig.cl!==(c.logoUrl||''))cliLogoApagarArquivo(_logoOrig.cl);
+ _logoOrig.cl=c.logoUrl||'';closeModal('ovCliente');render();
  toast(id?'Cliente atualizado':nome+' entrou na carteira')}
 
 function cliExcluir(id){const c=cliById(id);if(!c)return;
@@ -6751,13 +6799,14 @@ function cliCandidatos(){
    const l=o.leadId?crmLeadById(o.leadId):null;
    if(l&&usados['l'+l.id])return;
    out.push({fonte:'Implantação',nome:o.nome,onbId:o.id,leadId:o.leadId||'',
-     responsavelId:o.operadorId||'',honorario:l?+l.ticket||0:0,
+     responsavelId:o.operadorId||'',honorario:l?+l.ticket||0:0,logoUrl:l?l.logoUrl||'':'',
      cnpj:l?l.cnpj||'':'',contato:l?l.contato||'':'',telefone:l?l.telefone||'':'',email:l?l.email||'':''})});
  crmLeadsAtivos().forEach(l=>{if(usados['l'+l.id])return;
    const e=crmEstById(l.estagioId);if(!e||e.tipo!=='ganho')return;
    if(out.some(x=>x.leadId===l.id))return;
    out.push({fonte:'Comercial',nome:l.empresa,onbId:'',leadId:l.id,responsavelId:'',
-     honorario:+l.ticket||0,cnpj:l.cnpj||'',contato:l.contato||'',telefone:l.telefone||'',email:l.email||''})});
+     honorario:+l.ticket||0,logoUrl:l.logoUrl||'',cnpj:l.cnpj||'',contato:l.contato||'',
+     telefone:l.telefone||'',email:l.email||''})});
  return out}
 
 /* ================= telas ================= */
