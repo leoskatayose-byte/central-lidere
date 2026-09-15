@@ -2655,7 +2655,7 @@ function cpStepMes(n){cpMesRef=new Date(cpMesRef.getFullYear(),cpMesRef.getMonth
 function cpMonthBar(){const mn=cpMesRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   return `<div class="filters"><button class="btn btn-sm" onclick="cpStepMes(-1)">‹</button><b style="text-transform:capitalize">${mn}</b><button class="btn btn-sm" onclick="cpStepMes(1)">›</button>
     <button class="btn btn-sm" onclick="cpMesRef=new Date();render()">Mês atual</button>
-    <button class="btn btn-sm right" onclick="cpMarcarMesTodo(true)">✓ Marcar mês pago</button><button class="btn btn-sm btn-ghost" onclick="cpMarcarMesTodo(false)">↩ Desmarcar</button></div>`
+    <button class="btn btn-sm right" onclick="cpPreencherMes()">✓ Marcar o que falta como pago</button></div>`
     +cpBarraDesfazer()}
 function cpBarraDesfazer(){
   const lx=DB.cpLixo;if(!lx||!lx.itens)return '';
@@ -2813,7 +2813,8 @@ function savePay(){const id=gEl('p_conta').value;const mk=monthKey(cpMesRef);
   DB.pagamentos[mk]=DB.pagamentos[mk]||{};
   DB.pagamentos[mk][id]={pago:true,dataPgto:gEl('p_data').value||todayKey(),valorPago:parseFloat(gEl('p_valor').value)||0,desconto:parseFloat(gEl('p_desc').value)||0,juros:parseFloat(gEl('p_juros').value)||0};
   saveCP();closeModal('ovPay');render();toast('Pagamento registrado')}
-/* apagar pagamento em lote é destrutivo: guarda uma cópia antes e avisa quanto vai sumir */
+/* Desmarcar o mês inteiro saiu do sistema: apagava dezenas de registros de uma vez.
+   Desmarcar uma conta continua existindo, e essa dá para desfazer. */
 function cpGuardarLixo(mk,itens,n){
   DB.cpLixo={mes:mk,quando:new Date().toISOString(),n:n||Object.keys(itens).length,itens:JSON.parse(JSON.stringify(itens))}}
 function cpDesfazerLixo(){
@@ -2824,19 +2825,23 @@ function cpDesfazerLixo(){
   toast(n+' pagamento(s) de '+mesNome(lx.mes)+' restaurado(s)')}
 function cpDescartarLixo(){DB.cpLixo=null;saveCP();render()}
 
-function cpMarcarMesTodo(pago){const mk=monthKey(cpMesRef);const list=cpContasDoMes();DB.pagamentos[mk]=DB.pagamentos[mk]||{};
-  if(!pago){
-    const tinha={};list.forEach(x=>{const p=DB.pagamentos[mk][x.c.id];if(p)tinha[x.c.id]=p});
-    const n=Object.keys(tinha).length;
-    if(!n)return toast('Nenhum pagamento marcado em '+mesNome(mk));
-    const soma=Object.keys(tinha).reduce((t,id)=>t+(+tinha[id].valorPago||0),0);
-    if(!confirm('Desmarcar TODOS os '+n+' pagamentos de '+mesNome(mk)+'?\n\n'
-      +'Some o registro de '+brl(soma)+' já pago. Dá para desfazer logo depois, pelo botão que aparece no topo do mês.'))return;
-    cpGuardarLixo(mk,tinha,n);
-    list.forEach(x=>{delete DB.pagamentos[mk][x.c.id]});
-    saveCP();render();toast(n+' pagamento(s) desmarcado(s) · use Desfazer se foi sem querer');return}
-  list.forEach(x=>{DB.pagamentos[mk][x.c.id]={pago:true,dataPgto:mk+'-'+pad(Math.min(x.c.dia,28)),valorPago:x.c.valor,desconto:0,juros:0}});
-  saveCP();render();toast('Mês marcado como pago')}
+/* preenche só o que ainda não tem pagamento; o que já está lançado fica intacto,
+   com a data, o desconto e o juro que você registrou */
+function cpPreencherMes(){const mk=monthKey(cpMesRef);const list=cpContasDoMes();
+  DB.pagamentos[mk]=DB.pagamentos[mk]||{};
+  const faltam=list.filter(x=>!cpPagto(mk,x.c.id));
+  const jaTem=list.length-faltam.length;
+  if(!list.length)return toast('Nenhuma conta em '+mesNome(mk));
+  if(!faltam.length)return toast('Todas as '+list.length+' contas de '+mesNome(mk)+' já estão marcadas');
+  const soma=faltam.reduce((t,x)=>t+(+x.c.valor||0),0);
+  if(!confirm('Marcar como pagas as '+faltam.length+' conta(s) que ainda faltam em '+mesNome(mk)+'?'+'\n'+'\n'
+    +'Total '+brl(soma)+', cada uma pelo valor cadastrado e pelo dia de vencimento.'
+    +(jaTem?' As '+jaTem+' que já estão lançadas não são tocadas.':'')))return;
+  faltam.forEach(x=>{DB.pagamentos[mk][x.c.id]={pago:true,dataPgto:mk+'-'+pad(Math.min(x.c.dia,28)),
+    valorPago:x.c.valor,desconto:0,juros:0}});
+  saveCP();render();
+  toast(faltam.length+' conta(s) marcada(s)'+(jaTem?' · '+jaTem+' já estavam e ficaram intactas':''))}
+
 function openGrupo(id){const g=id?cpGrupo(id):null;gEl('grupoTitle').textContent=g?'Editar empresa':'Nova empresa';
   gEl('g_id').value=g?g.id:'';gEl('g_nome').value=g?g.nome:'';
   curCorG=g?g.cor:PALETTE[DB.grupos.length%PALETTE.length];
