@@ -246,6 +246,17 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
+/* ---- logo do cliente ---- */
+.cli-av{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;
+  overflow:hidden;background:#fff;flex:0 0 auto;line-height:0}
+.cli-av img{width:100%;height:100%;object-fit:contain;display:block}
+.cli-av.ini{background:var(--panel);border:1px solid;font-weight:800;letter-spacing:.5px;line-height:1}
+.logo-row{display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.logo-prev{width:86px;height:86px;border-radius:12px;border:1px dashed var(--line-f);background:#fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;padding:6px}
+.logo-prev img{max-width:100%;max-height:100%;object-fit:contain}
+.logo-prev span{font-size:10px;color:#8a8f98;text-align:center;line-height:1.4}
+.logo-ac{display:flex;flex-direction:column;gap:7px;align-items:flex-start;flex:1;min-width:180px}
 /* ---- carteira de clientes ---- */
 .cli-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
 .cli-c{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
@@ -784,9 +795,25 @@ tbody tr:hover{background:var(--panel2)}
       <div class="field"><label>Cliente desde</label><input id="cl_inicio" type="date"></div>
       <div class="field"><label>Status</label><select id="cl_status"></select></div>
     </div>
+    <div class="field"><label>Logo do cliente</label>
+      <div class="logo-row">
+        <div class="logo-prev" id="cl_logo_prev"><span>sem logo</span></div>
+        <div class="logo-ac">
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button type="button" class="btn btn-sm" onclick="gEl('cl_logo_file').click()">Escolher imagem</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="cl_logo_del" style="display:none" onclick="cliLogoRemover()">Remover</button>
+          </div>
+          <div class="muted" id="cl_logo_st" style="font-size:11px"></div>
+          <div class="muted" style="font-size:11px;line-height:1.5">PNG, JPG, WEBP ou SVG, até 2 MB.
+            Reduzo para 320px antes de subir, então pode mandar o arquivo grande.</div>
+        </div>
+      </div>
+      <input type="hidden" id="cl_logo">
+      <input type="file" id="cl_logo_file" accept="image/*" style="display:none" onchange="cliLogoArquivo(this)">
+    </div>
     <div class="field"><label>Observações</label><textarea id="cl_obs" rows="3" placeholder="particularidades da operação, combinados, o que não pode esquecer"></textarea></div>
   </div>
-  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovCliente')">Cancelar</button><button class="btn btn-gold" onclick="cliSalvar()">Salvar</button></div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="cliCancelarModal()">Cancelar</button><button class="btn btn-gold" onclick="cliSalvar()">Salvar</button></div>
 </div></div>
 
 <!-- ===== Modal Pendência do cliente ===== -->
@@ -1373,7 +1400,7 @@ async function loadAll(){
       leadId:c.lead_id||'',onbId:c.onb_id||'',responsavelId:c.responsavel_id||'',status:c.status||'ativo',
       honorario:Number(c.honorario)||0,diaFechamento:c.dia_fechamento||10,inicio:c.inicio||'',
       contato:c.contato||'',telefone:c.telefone||'',email:c.email||'',obs:c.obs||'',
-      deletedAt:fromISO(c.deleted_at)})),
+      logoUrl:c.logo_url||'',deletedAt:fromISO(c.deleted_at)})),
     cliPend:(CQ&&CQ.data?CQ.data:[]).map(p=>({id:p.id,clienteId:p.cliente_id||'',tipo:p.tipo||'outro',
       titulo:p.titulo||'',detalhe:p.detalhe||'',valor:Number(p.valor)||0,competencia:p.competencia||'',
       prazo:p.prazo||'',prioridade:p.prioridade||'media',status:p.status||'aberta',
@@ -6138,6 +6165,80 @@ function waBlocoRisco(){return `<div class="wa-risco">
   Se for automatizar a prospecção, use um chip separado.</div>`}
 
 
+
+/* ===== Logo do cliente =====
+   A imagem vai para o bucket "logos" do Supabase e o cliente guarda só a URL.
+   Reduzo para 320px antes de subir: logo não precisa de mais que isso. */
+const CLI_CORES=['#d4a840','#3ea06b','#06b6d4','#8a7cf2','#ec4899','#f59e0b','#14b8a6'];
+function cliIniciais(n){const p=String(n||'').trim().split(/\s+/).filter(Boolean);
+ const a=(p[0]||'').charAt(0), b=(p.length>1?p[p.length-1]:'').charAt(0);
+ return ((a+b)||'?').toUpperCase()}
+function cliCor(n){let h=0;const t=String(n||'');
+ for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;
+ return CLI_CORES[Math.abs(h)%CLI_CORES.length]}
+function cliAvatar(c,tam){const t=tam||34;
+ if(c&&c.logoUrl)return `<span class="cli-av" style="width:${t}px;height:${t}px"><img src="${esc(c.logoUrl)}" alt="${esc(c.nome||'')}" loading="lazy"></span>`;
+ const cor=cliCor(c&&c.nome);
+ return `<span class="cli-av ini" style="width:${t}px;height:${t}px;font-size:${Math.round(t*.36)}px;color:${cor};border-color:${cor}">${esc(cliIniciais(c&&c.nome))}</span>`}
+
+const cliLogoNome=url=>{const m=/\/logos\/([^?#]+)/.exec(url||'');return m?decodeURIComponent(m[1]):''};
+function cliLogoApagarArquivo(url){const n=cliLogoNome(url);
+ if(n&&sb)sb.storage.from('logos').remove([n]).then(()=>{},()=>{})}
+
+/* reduz e converte para PNG; SVG passa direto, que já é leve e vetorial */
+function cliLogoReduzir(file,max){max=max||320;
+ return new Promise((ok,err)=>{
+  const fr=new FileReader();
+  fr.onerror=()=>err(new Error('não consegui ler o arquivo'));
+  fr.onload=()=>{const img=new Image();
+   img.onerror=()=>err(new Error('arquivo de imagem inválido'));
+   img.onload=()=>{
+    const e=Math.min(1,max/Math.max(img.width||1,img.height||1));
+    const w=Math.max(1,Math.round((img.width||max)*e)),h=Math.max(1,Math.round((img.height||max)*e));
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    cv.getContext('2d').drawImage(img,0,0,w,h);
+    cv.toBlob(b=>b?ok(b):err(new Error('não consegui converter a imagem')),'image/png')};
+   img.src=fr.result};
+  fr.readAsDataURL(file)})}
+
+function cliLogoPreview(){
+ const url=(gEl('cl_logo')||{}).value||'', box=gEl('cl_logo_prev');
+ if(box)box.innerHTML=url?`<img src="${esc(url)}" alt="logo">`:'<span>sem logo</span>';
+ const del=gEl('cl_logo_del');if(del)del.style.display=url?'':'none'}
+
+let _cliLogoOrig='';
+async function cliLogoArquivo(inp){
+ const f=inp&&inp.files&&inp.files[0];if(inp)inp.value='';
+ if(!f)return;
+ const st=gEl('cl_logo_st');
+ if(!/^image\//.test(f.type||''))return toast('Escolha um arquivo de imagem');
+ if(f.size>2*1024*1024)return toast('A imagem precisa ter no máximo 2 MB');
+ if(st)st.textContent='Enviando...';
+ try{
+  const svg=f.type==='image/svg+xml';
+  const blob=svg?f:await cliLogoReduzir(f);
+  const nome='cli-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36))+(svg?'.svg':'.png');
+  const {error}=await sb.storage.from('logos').upload(nome,blob,{contentType:svg?'image/svg+xml':'image/png',upsert:false});
+  if(error)throw error;
+  const {data}=sb.storage.from('logos').getPublicUrl(nome);
+  const antigo=gEl('cl_logo').value;
+  gEl('cl_logo').value=data.publicUrl;
+  cliLogoPreview();
+  if(antigo&&antigo!==_cliLogoOrig)cliLogoApagarArquivo(antigo);
+  if(st)st.textContent='Imagem no ar';
+ }catch(e){if(st)st.textContent='';toast('Não deu para enviar a imagem: '+((e&&e.message)||e))}}
+
+function cliLogoRemover(){const url=(gEl('cl_logo')||{}).value||'';if(!url)return;
+ gEl('cl_logo').value='';cliLogoPreview();
+ const st=gEl('cl_logo_st');if(st)st.textContent='';
+ if(url!==_cliLogoOrig)cliLogoApagarArquivo(url)}
+
+/* fechar sem salvar não pode deixar imagem órfã no Storage */
+function cliCancelarModal(){
+ const url=(gEl('cl_logo')||{}).value||'';
+ if(url&&url!==_cliLogoOrig)cliLogoApagarArquivo(url);
+ closeModal('ovCliente')}
+
 /* ===================================================================
    Carteira de clientes: quem a Lidere atende hoje e o que está parado
    em cada um. Pendência aqui não é tarefa da equipe: é assunto do
@@ -6182,7 +6283,8 @@ function cliSub(c){const s=cliSaude(c),r=respName(c.responsavelId);
 function persistCliente(c){up('clientes',{id:c.id,nome:c.nome,cnpj:c.cnpj||null,lead_id:c.leadId||null,
  onb_id:c.onbId||null,responsavel_id:c.responsavelId||null,status:c.status||'ativo',honorario:+c.honorario||0,
  dia_fechamento:+c.diaFechamento||10,inicio:c.inicio||null,contato:c.contato||null,telefone:c.telefone||null,
- email:c.email||null,obs:c.obs||null,updated_at:new Date().toISOString(),deleted_at:toISO(c.deletedAt)})}
+ email:c.email||null,obs:c.obs||null,logo_url:c.logoUrl||null,
+ updated_at:new Date().toISOString(),deleted_at:toISO(c.deletedAt)})}
 function persistCliPend(p){up('cliente_pendencias',{id:p.id,cliente_id:p.clienteId,tipo:p.tipo||'outro',
  titulo:p.titulo,detalhe:p.detalhe||null,valor:+p.valor||0,competencia:p.competencia||null,prazo:p.prazo||null,
  prioridade:p.prioridade||'media',status:p.status||'aberta',responsavel_id:p.responsavelId||null,
@@ -6210,6 +6312,10 @@ function cliAbrirModal(id,base){
  v('cl_dia',c?(c.diaFechamento||10):10);
  v('cl_inicio',c?c.inicio:(base&&base.inicio)||todayKey());
  v('cl_obs',c?c.obs:'');
+ v('cl_logo',c?c.logoUrl:(base&&base.logoUrl)||'');
+ _cliLogoOrig=(gEl('cl_logo').value||'');
+ const st=gEl('cl_logo_st');if(st)st.textContent='';
+ cliLogoPreview();
  gEl('cl_resp').value=c?(c.responsavelId||''):((base&&base.responsavelId)||'');
  gEl('cl_status').value=c?(c.status||'ativo'):'ativo';
  gEl('cl_lead').value=c?(c.leadId||''):((base&&base.leadId)||'');
@@ -6220,18 +6326,22 @@ function cliSalvar(){
  const nome=gEl('cl_nome').value.trim();if(!nome)return toast('Informe o nome do cliente');
  const g=k=>gEl(k).value;
  const dados={nome,cnpj:g('cl_cnpj').trim(),contato:g('cl_contato').trim(),telefone:g('cl_tel').trim(),
-  email:g('cl_email').trim(),responsavelId:g('cl_resp'),status:g('cl_status'),honorario:+g('cl_hon')||0,
+  email:g('cl_email').trim(),logoUrl:g('cl_logo'),responsavelId:g('cl_resp'),status:g('cl_status'),honorario:+g('cl_hon')||0,
   diaFechamento:Math.min(28,Math.max(1,+g('cl_dia')||10)),inicio:g('cl_inicio'),obs:g('cl_obs').trim(),
   leadId:g('cl_lead'),onbId:g('cl_onb')};
  const id=g('cl_id');let c;
  if(id){c=cliById(id);Object.assign(c,dados)}
  else{c=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),deletedAt:null},dados);
   (DB.clientes=DB.clientes||[]).push(c)}
- persistCliente(c);closeModal('ovCliente');render();toast(id?'Cliente atualizado':nome+' entrou na carteira')}
+ persistCliente(c);
+ if(_cliLogoOrig&&_cliLogoOrig!==(c.logoUrl||''))cliLogoApagarArquivo(_cliLogoOrig);
+ _cliLogoOrig=c.logoUrl||'';closeModal('ovCliente');render();
+ toast(id?'Cliente atualizado':nome+' entrou na carteira')}
 
 function cliExcluir(id){const c=cliById(id);if(!c)return;
  if(!confirm('Mandar '+c.nome+' para os excluídos? As pendências dele vão junto.'))return;
  c.deletedAt=Date.now();persistCliente(c);
+ if(c.logoUrl)cliLogoApagarArquivo(c.logoUrl);
  cliPendDe(id).forEach(p=>{p.deletedAt=Date.now();persistCliPend(p)});
  if(cliFichaId===id){cliFichaId='';activeTab='carteira'}
  render();toast('Movido para Excluídos')}
@@ -6359,8 +6469,10 @@ function viewCarteiraLista(){
    const porTipo=CLI_TIPOS.map(t=>{const n=ab.filter(p=>p.tipo===t.id).length;
      return n?`<span class="cli-tag" style="color:${t.cor}">${esc(t.curto)} ${n}</span>`:''}).filter(Boolean).join('');
    return `<button class="cli-c" style="border-left-color:${sa.cor}" onclick="cliAbrir('${c.id}')">
-    <div class="nm">${esc(c.nome)}</div>
-    <div class="sb">${esc(sa.label)}${c.responsavelId?' · '+esc(respName(c.responsavelId)):''}${c.honorario?' · '+brl(c.honorario):''}</div>
+    <div style="display:flex;gap:10px;align-items:center">${cliAvatar(c,38)}
+     <div style="min-width:0;flex:1">
+      <div class="nm">${esc(c.nome)}</div>
+      <div class="sb">${esc(sa.label)}${c.responsavelId?' · '+esc(respName(c.responsavelId)):''}${c.honorario?' · '+brl(c.honorario):''}</div></div></div>
     <div class="tg">${porTipo||'<span class="cli-tag" style="color:var(--pos)">sem pendência</span>'}</div></button>`}).join('')
   ||'<div class="empty">Nenhum cliente com esses filtros.</div>';
  return stats+filtros+`<div class="panel"><div class="panel-head"><h2>${lista.length} de ${todos.length}<small>clique no cliente para ver e lançar pendência</small></h2>
@@ -6420,7 +6532,7 @@ function viewCarteiraFech(){
     :p.status==='resolvida'?'<span class="chip chip-pago">fechado</span>'
     :p.prazo&&p.prazo<todayKey()?'<span class="chip chip-vencido">atrasado</span>'
     :'<span class="chip chip-avencer">em aberto</span>';
-  return `<div class="row" style="cursor:pointer" onclick="cliAbrir('${c.id}')"><div class="row-body">
+  return `<div class="row" style="cursor:pointer" onclick="cliAbrir('${c.id}')">${cliAvatar(c,30)}<div class="row-body">
     <div class="row-title">${esc(c.nome)}</div>
     <div class="row-meta">${st}${p&&p.prazo?`<span class="chip chip-n">prazo ${fmtBR(p.prazo)}</span>`:''}${c.responsavelId?`<span class="chip chip-n">${esc(respName(c.responsavelId))}</span>`:''}</div></div></div>`};
  const feitos=ativos.filter(c=>cliPendDe(c.id).some(x=>x.tipo==='fechamento'&&x.competencia===comp&&x.status==='resolvida')).length;
@@ -6444,6 +6556,9 @@ function viewCliFicha(){
  const cabec=`<div class="grid2">
   <div class="panel"><div class="panel-head"><h2>Cadastro<small>quem é e como falar com ele</small></h2>
     <button class="btn btn-sm" onclick="cliAbrirModal('${c.id}')">Editar</button></div>
+   <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px">${cliAvatar(c,64)}
+    <div style="min-width:0"><div style="font-size:15px;font-weight:700;line-height:1.3;overflow-wrap:anywhere">${esc(c.nome)}</div>
+     <div class="muted" style="font-size:11.5px;margin-top:3px">${c.logoUrl?'':'Sem logo. Clique em Editar para subir a imagem.'}</div></div></div>
    <table class="tbl">${linha('Cliente','<b>'+esc(c.nome)+'</b>')}${linha('CNPJ',esc(c.cnpj||''))}
     ${linha('Contato',esc(c.contato||''))}
     ${linha('Telefone',esc(c.telefone||'')+(wa?` <a href="${wa}" target="_blank" rel="noopener" class="chip chip-n" style="color:var(--pos)">WhatsApp</a>`:''))}
