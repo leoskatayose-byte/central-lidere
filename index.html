@@ -246,22 +246,6 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
-/* ---- logo como marca d'água no card do funil ---- */
-/* a mistura fica no QUADRO e a transparencia na IMAGEM: juntas no mesmo
-   elemento, o navegador compoe depois de misturar e o fundo branco volta a pintar */
-.kb-card .marca{position:absolute;inset:0;padding:7px 8px;pointer-events:none;
-  line-height:0;mix-blend-mode:screen}
-:root[data-tema="claro"] .kb-card .marca{mix-blend-mode:multiply}
-/* invertida + screen: o fundo branco vira preto, e preto no screen nao pinta nada,
-   entao sobra so o desenho. Vale para PNG transparente e para JPG de fundo branco,
-   sem precisar reenviar a imagem. */
-.kb-card .marca img{width:100%;height:100%;object-fit:contain;
-  filter:invert(1) grayscale(1);opacity:.3}
-:root[data-tema="claro"] .kb-card .marca img{filter:grayscale(1);opacity:.2}
-.kb-card:hover .marca img{opacity:.46}
-:root[data-tema="claro"] .kb-card:hover .marca img{opacity:.3}
-.kb-card>.t,.kb-card>.d,.kb-card>.m,.kb-card>.acts{position:relative;z-index:1}
-@media(prefers-reduced-motion:no-preference){.kb-card .marca img{transition:opacity .15s}}
 /* ---- arquivos do cliente ---- */
 .arq-l{display:flex;gap:11px;align-items:flex-start;border-top:1px solid var(--line);padding:11px 4px}
 .arq-l:first-of-type{border-top:0}
@@ -3259,7 +3243,6 @@ function viewCrmKanban(){
   const cols=est.map(e=>{const leads=a.filter(l=>l.estagioId===e.id);const val=leads.reduce((s,l)=>s+(+l.ticket||0),0);
     const cards=leads.map(l=>{const r=crmRespById(l.responsavelId);const late=l.proximoContato&&l.proximoContato<todayKey();
       return `<div class="kb-card" draggable="true" ondragstart="crmDragStart(event,'${l.id}')" onclick="comAbrir('${l.id}')">
-        ${marcaDagua(leadLogo(l))}
         <div class="t">${esc(l.empresa)}</div>
         <div class="m"><span class="chip chip-n">${brl(l.ticket)}</span>${late?'<span class="chip chip-vencido">atraso</span>':''}${r?`<span class="chip chip-n" style="color:${r.cor}">${esc(r.nome.split(' ')[0])}</span>`:''}</div>
         <div class="acts">${waIcon(l.telefone,'','Abrir conversa no WhatsApp')}<button class="iconbtn" title="Cadência" onclick="event.stopPropagation();openCad('${l.id}')">⇢</button></div>
@@ -6616,7 +6599,7 @@ function leadLogo(l){
  if(l.logoUrl)return l.logoUrl;
  const c=(DB.clientes||[]).find(x=>!x.deletedAt&&x.leadId===l.id);
  return (c&&c.logoUrl)||''}
-const marcaDagua=url=>url?`<span class="marca"><img src="${esc(url)}" alt="" loading="lazy"></span>`:'';
+
 
 /* ===================================================================
    Carteira de clientes: quem a Lidere atende hoje e o que está parado
