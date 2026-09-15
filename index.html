@@ -206,6 +206,46 @@ a.btn{text-decoration:none;cursor:pointer}
 .kb-card .acts{position:absolute;top:9px;right:9px;display:flex;gap:4px;opacity:.35;transition:.15s}
 .kb-card:hover .acts{opacity:1}
 /* ---- assinatura eletronica ---- */
+/* ---- agenda com o calendário ao lado ---- */
+.ag-split{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:start}
+@media(max-width:980px){.ag-split{grid-template-columns:1fr}}
+.ag-mini{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 12px 13px;
+  position:sticky;top:12px}
+@media(max-width:980px){.ag-mini{position:static}}
+.ag-mini .mh{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:9px}
+.ag-mini .mh b{font-size:12px;font-weight:700;color:var(--txt);text-align:center;flex:1}
+.ag-mini .nv{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:7px;
+  width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1;padding:0;font-family:inherit}
+.ag-mini .nv:hover{color:var(--txt);border-color:var(--acc)}
+.ag-mini .gr{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.ag-mini .wd{font-size:8.5px;font-weight:800;letter-spacing:.4px;color:var(--mut);text-align:center;padding:2px 0 4px}
+.ag-mini .dd{position:relative;aspect-ratio:1;border:0;background:transparent;color:var(--dim);
+  font-size:11px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-family:inherit;padding:0}
+.ag-mini .dd:hover{background:var(--raise);color:var(--txt)}
+.ag-mini .dd.out{opacity:.22;pointer-events:none}
+.ag-mini .dd.fds{color:var(--mut)}
+.ag-mini .dd.rng{background:color-mix(in srgb,var(--acc) 13%,transparent);color:var(--txt);border-radius:0}
+.ag-mini .dd.rng.ini{border-radius:8px 0 0 8px}
+.ag-mini .dd.rng.fim{border-radius:0 8px 8px 0}
+.ag-mini .dd.rng.ini.fim{border-radius:8px}
+.ag-mini .dd.hoje{color:var(--acc);font-weight:800}
+.ag-mini .dd.on{background:var(--acc);color:var(--acc-ink);font-weight:800;border-radius:8px}
+.ag-mini .dd.on:hover{background:var(--acc);color:var(--acc-ink)}
+.ag-mini .dd i{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;
+  border-radius:50%;background:var(--mut)}
+.ag-mini .dd.cheio i{background:var(--acc)}
+.ag-mini .dd.atras i{background:var(--neg)}
+.ag-mini .dd.on i{background:var(--acc-ink)}
+.ag-mini .leg{font-size:10px;color:var(--mut);margin-top:11px;line-height:1.6;
+  border-top:1px solid var(--line);padding-top:9px}
+.ag-mini .leg b{color:var(--txt);font-weight:700}
+/* a linha da agenda deixou de ser botão para poder ter botão dentro */
+.ag-row,.ag-lin{cursor:pointer}
+.ag-lin .chk{flex:0 0 22px}
+.ag-row .rh{display:flex;align-items:flex-start;gap:6px}
+.ag-row .rh .rt{flex:1;min-width:0}
+.ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
 /* ---- carteira de clientes ---- */
 .cli-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
 .cli-c{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
@@ -5695,8 +5735,8 @@ function agendaItens(de,ate){
   /* 2. rotinas, dia a dia */
   for(let d=de;d<=ate;d=addDias(d,1)){const dt=parseK(d);
     const mex=DB.mensais.exec[monthKey(dt)]||{},wex=DB.semanais.exec[weekKey(dt)]||{},dex=DB.diarias.exec[d]||{};
-    const push=(m,lbl,ex,sub)=>add({dk:d,hora:'',origem:'rotina',tipo:'Rotina '+lbl,sub,titulo:m.descricao,
-      cliente:'',resp:m.responsavelId?respName(m.responsavelId):'',prioridade:'media',
+    const push=(m,lbl,ex,sub)=>add({dk:d,hora:'',origem:'rotina',tipo:'Rotina '+lbl,sub,modeloId:m.id,
+      titulo:m.descricao,cliente:'',resp:m.responsavelId?respName(m.responsavelId):'',prioridade:'media',
       feito:!!(ex[m.id]&&ex[m.id].feito),valor:0,abrir:"go('rotinas')"});
     mensaisOnDate(dt).forEach(m=>push(m,'mensal',mex,'mensal'));
     semanaisOnDate(dt).forEach(m=>push(m,'semanal',wex,'semanal'));
@@ -5751,10 +5791,16 @@ function agendaItens(de,ate){
    =================================================================== */
 const AG_DIAS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let agModo='semana', agRef=todayKey(), agOrigemOff=[], agRespF='', agSoAbertos=true, agAtrAberto=false;
+let agMesRef='';  /* mês que o calendário lateral está mostrando; vazio = segue o período */
 
-function setAgModo(m){agModo=m;agRef=todayKey();render()}
-function agHoje(){agRef=todayKey();render()}
+function setAgModo(m){agModo=m;agRef=todayKey();agMesRef='';render()}
+function agHoje(){agRef=todayKey();agMesRef='';render()}
+function agMesAndar(n){const d=parseK(agMesRef||agRef);
+ agMesRef=iso(new Date(d.getFullYear(),d.getMonth()+n,1));render()}
+function agIrPara(dk){agRef=dk;agMesRef='';calSel=dk;
+ if(agModo==='mes')calSel=dk;render()}
 function agAndar(n){
+ agMesRef='';
  if(agModo==='mes'){const d=parseK(agRef);agRef=iso(new Date(d.getFullYear(),d.getMonth()+n,1));render();return}
  agRef=addDias(agRef,n*(agModo==='dia'?1:agModo==='semana'?7:30));render()}
 function agTogOrigem(id){const i=agOrigemOff.indexOf(id);
@@ -5789,27 +5835,25 @@ function agPendentes(){const hoje=todayKey();
  const t=agendaItens(addDias(hoje,-90),hoje);
  return t.filter(x=>agEhAtraso(x,hoje)).length+t.filter(x=>x.dk===hoje&&!x.feito).length}
 
-/* várias rotinas no mesmo dia viram uma linha só; a tela de Rotinas é que detalha */
-function agAgrupaRotinas(arr){
- const rot=arr.filter(x=>x.origem==='rotina');
- if(rot.length<3)return arr;
- const feitas=rot.filter(x=>x.feito).length;
- return arr.filter(x=>x.origem!=='rotina').concat([{dk:rot[0].dk,hora:'',origem:'rotina',
-   tipo:'Rotinas do dia',titulo:rot.length+' rotinas',cliente:feitas?feitas+' já feita'+(feitas>1?'s':''):'',
-   resp:'',prioridade:'media',feito:feitas===rot.length,valor:0,abrir:"go('rotinas')"}])}
+const agChkRotina=x=>(x.origem==='rotina'&&x.modeloId)
+ ? `<button class="chk ${x.feito?'on':''}" title="${x.feito?'Desmarcar':'Marcar como feita'}"
+     onclick="event.stopPropagation();agTogRotina('${x.sub}','${x.modeloId}','${x.dk}')">✓</button>` : '';
+function agTogRotina(sub,mid,dk){
+ toggleExecDate(sub==='mensal'?'mensais':sub==='semanal'?'semanais':'diarias',mid,dk)}
 
 function agLinha(x,hoje){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
- return `<button class="ag-row ${x.feito?'ok':''}" style="border-left-color:${atr?'var(--neg)':o.cor}"
+ return `<div class="ag-row ${x.feito?'ok':''}" style="border-left-color:${atr?'var(--neg)':o.cor}"
    onclick="${x.abrir}" title="${esc(o.nome+' · '+x.tipo+' · '+x.titulo)}">
-   <div class="rt">${esc(x.titulo)}</div>
-   <div class="rm">${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.valor?' · '+brl(x.valor):''}</div></button>`}
+   <div class="rh"><div class="rt">${esc(x.titulo)}</div>${agChkRotina(x)}</div>
+   <div class="rm">${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.valor?' · '+brl(x.valor):''}</div></div>`}
 
-function agLinhaLarga(x,hoje){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
- return `<button class="ag-lin ${x.feito?'ok':''}" onclick="${x.abrir}">
+function agLinhaLarga(x,hoje,semOrigem){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
+ return `<div class="ag-lin ${x.feito?'ok':''}" onclick="${x.abrir}">
    <span class="bo" style="background:${atr?'var(--neg)':o.cor}"></span>
-   <span class="tx"><b>${esc(x.titulo)}</b><i>${esc(o.nome)} · ${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.resp?' · '+esc(x.resp):''}</i></span>
+   ${agChkRotina(x)}
+   <span class="tx"><b>${esc(x.titulo)}</b><i>${semOrigem?'':esc(o.nome)+' · '}${esc(x.tipo)}${x.cliente?' · '+esc(x.cliente):''}${x.resp?' · '+esc(x.resp):''}</i></span>
    ${x.valor?`<span class="vl">${brl(x.valor)}</span>`:''}
-   <span class="dt" style="${atr?'color:var(--neg)':''}">${x.dk===hoje?'hoje':fmtBR(x.dk)}${x.hora?' · '+esc(x.hora):''}</span></button>`}
+   <span class="dt" style="${atr?'color:var(--neg)':''}">${x.dk===hoje?'hoje':fmtBR(x.dk)}${x.hora?' · '+esc(x.hora):''}</span></div>`}
 
 function agCabecalhoDia(dk,n,hoje){const d=parseK(dk);
  const nome=d.toLocaleDateString('pt-BR',{weekday:'long'});
@@ -5824,6 +5868,35 @@ function agTituloPeriodo(){const {de,ate}=agJanela();const dd=parseK(de),da=pars
   return dd.getDate()+(mi===mf?'':' de '+mi)+' a '+da.getDate()+' de '+mf}
  if(agModo==='mes')return mesExtenso(dd);
  return fmtBR(de)+' a '+fmtBR(ate)}
+
+
+/* calendário do mês ao lado da agenda: dá o contexto e serve de navegação */
+function agMiniCal(todos,hoje,de,ate){
+ const base=parseK(agMesRef||agRef);
+ const y=base.getFullYear(),mo=base.getMonth();
+ const prim=new Date(y,mo,1), startDow=(prim.getDay()+6)%7, dim=daysInMonth(y,mo);
+ const prevDim=new Date(y,mo,0).getDate();
+ const porDia={};todos.forEach(x=>{const a=porDia[x.dk]=porDia[x.dk]||{n:0,atras:0};
+   if(agSoAbertos&&x.feito)return;a.n++;if(!x.feito&&x.dk<hoje)a.atras++});
+ let cel='';
+ for(let i=startDow-1;i>=0;i--)cel+=`<button class="dd out">${prevDim-i}</button>`;
+ for(let d=1;d<=dim;d++){
+  const dt=new Date(y,mo,d),dk=iso(dt),info=porDia[dk]||{n:0,atras:0};
+  const dentro=dk>=de&&dk<=ate, fds=dt.getDay()===0||dt.getDay()===6;
+  const sel=(agModo==='dia'&&dk===agRef)||(agModo==='mes'&&dk===calSel);
+  const cls=['dd',fds?'fds':'',sel?'on':dentro?'rng':'',dk===de?'ini':'',dk===ate?'fim':'',
+    dk===hoje?'hoje':'',info.atras?'atras':info.n?'cheio':''].filter(Boolean).join(' ');
+  cel+=`<button class="${cls}" title="${fmtBR(dk)}${info.n?' · '+info.n+' item(ns)':''}" onclick="agIrPara('${dk}')">${d}${info.n?'<i></i>':''}</button>`}
+ const sobra=(7-((startDow+dim)%7))%7;
+ for(let d=1;d<=sobra;d++)cel+=`<button class="dd out">${d}</button>`;
+ const noMes=todos.filter(x=>x.dk.slice(0,7)===iso(prim).slice(0,7)&&!(agSoAbertos&&x.feito)).length;
+ return `<div class="ag-mini">
+   <div class="mh"><button class="nv" title="Mês anterior" onclick="agMesAndar(-1)">‹</button>
+     <b>${esc(mesExtenso(prim))}</b>
+     <button class="nv" title="Próximo mês" onclick="agMesAndar(1)">›</button></div>
+   <div class="gr">${['S','T','Q','Q','S','S','D'].map(w=>`<div class="wd">${w}</div>`).join('')}${cel}</div>
+   <div class="leg"><b>${noMes}</b> item(ns) no mês${agMesRef?'<br><a onclick="agHoje()" style="color:var(--acc);cursor:pointer">voltar para hoje</a>':''}
+     <br>Clique num dia para ir até ele.</div></div>`}
 
 function viewAgenda(){
  const hoje=todayKey(), {de,ate}=agJanela();
@@ -5873,7 +5946,7 @@ function viewAgenda(){
    const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
    let cols='';
    for(let i=0;i<7;i++){const dk=addDias(de,i),d=parseK(dk),fds=d.getDay()===0||d.getDay()===6;
-     const lista=agAgrupaRotinas(porDia[dk]||[]);
+     const lista=porDia[dk]||[];
      cols+=`<div class="ag-day ${dk===hoje?'hoje':''} ${fds?'fds':''}">
        <div class="dh"><span class="dn">${AG_DIAS[d.getDay()]}</span><span class="dd">${pad(d.getDate())}</span></div>
        ${lista.map(x=>agLinha(x,hoje)).join('')||'<div class="ag-vazio">livre</div>'}</div>`}
@@ -5900,18 +5973,27 @@ function viewAgenda(){
      <div>${calSel?calDayHTML(calSel):'<div class="empty">Clique num dia para ver, marcar e lançar o que tem nele.</div>'}</div></div></div>`}
  else if(agModo==='dia'){
    const lista=itens.slice().sort((a,b)=>String(a.hora||'99').localeCompare(String(b.hora||'99')));
-   corpo=`<div class="panel"><div class="panel-head"><h2>${esc(agTituloPeriodo())}<small>${lista.length} item(ns)${agRef===hoje?'':' · '+fmtBR(agRef)}</small></h2></div>
-     ${lista.map(x=>agLinhaLarga(x,hoje)).join('')||'<div class="empty">Nada marcado para este dia.</div>'}</div>`}
+   const secoes=AG_ORIGENS.map(o=>{const seg=lista.filter(x=>x.origem===o.id);
+     if(!seg.length)return '';
+     const feitos=seg.filter(x=>x.feito).length;
+     return `<div class="ag-dh"><b style="color:${o.cor}">${esc(o.nome)}</b>
+       <span>${feitos?feitos+' de '+seg.length+' já feito'+(feitos>1?'s':''):''}</span><i>${seg.length}</i></div>`
+      +seg.map(x=>agLinhaLarga(x,hoje,true)).join('')}).join('');
+   corpo=`<div class="panel"><div class="panel-head"><h2>${esc(agTituloPeriodo())}<small>${lista.length} item(ns)${agRef===hoje?'':' · '+fmtBR(agRef)}</small></h2>
+     <button class="btn btn-sm" onclick="novaNoDia('${agRef}')">+ Tarefa</button></div>
+     ${secoes||'<div class="empty">Nada marcado para este dia.</div>'}</div>`}
  else{
    const porDia={};itens.forEach(x=>(porDia[x.dk]=porDia[x.dk]||[]).push(x));
    const dias=Object.keys(porDia).sort();
-   corpo=dias.length?`<div class="panel">${dias.map(dk=>{const g=agAgrupaRotinas(porDia[dk]);
-     return agCabecalhoDia(dk,porDia[dk].length,hoje)+g.map(x=>agLinhaLarga(x,hoje)).join('')}).join('')}</div>`
+   corpo=dias.length?`<div class="panel">${dias.map(dk=>
+     agCabecalhoDia(dk,porDia[dk].length,hoje)+porDia[dk].map(x=>agLinhaLarga(x,hoje)).join('')).join('')}</div>`
      :'<div class="panel"><div class="empty">Nada marcado neste período.</div></div>'}
 
  const vazio=(!itens.length&&!atr.length&&agOrigemOff.length)
    ?'<div class="tip" style="margin-top:10px">Você escondeu origens nos filtros acima. Clique de novo para trazer de volta.</div>':'';
- return stats+barra+chips+blocoAtr+corpo+vazio}
+ const miolo=agModo==='mes'?corpo
+   :`<div class="ag-split">${agMiniCal(todos,hoje,de,ate)}<div>${corpo}</div></div>`;
+ return stats+barra+chips+blocoAtr+miolo+vazio}
 
 
 /* ===================================================================
