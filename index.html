@@ -1431,7 +1431,7 @@ async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
-  const [R,A,MA,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,CA2,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('meses_abertos'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('cliente_arquivos'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
+  const [R,A,CFG,MA,M,S,D,E,F,CP,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP,PC,PD,PR,SG,CC,CQ,CA2,PS,EV]=await Promise.all([q('responsaveis'),q('avulsas'),q('app_config'),q('meses_abertos'),q('mensais_modelos'),q('semanais_modelos'),q('diarias_modelos'),q('execucoes'),q('feriados'),sb.from('cp_state').select('data').eq('id',1).maybeSingle(),q('onb_operadores'),q('onb_modelo'),q('onb_clientes'),q('onb_etapas'),q('crm_estagios'),q('crm_responsaveis'),q('crm_leads'),q('crm_atividades'),q('crm_metas'),q('crm_listas'),q('plano_areas'),q('plano_tarefas'),q('plano_equipe'),q('plano_portfolio'),sb.from('plano_config').select('*').eq('id',1).maybeSingle(),sb.from('prediag_state').select('data').eq('id',1).maybeSingle(),q('crm_propostas'),q('crm_signers'),q('clientes'),q('cliente_pendencias'),q('cliente_arquivos'),q('pessoas'),sb.from('crm_events').select('*').order('ocorreu_em',{ascending:false}).limit(2000)]);
   const err=[R,A,M,S,D,E,F,OO,OM,OC,OE,CE,CR,CL,CA,CM,CX,PA,PT,PE,PP].find(x=>x.error);if(err){pErr(err.error,'load');throw err.error}
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor,ativo:e.ativo!==false}});
@@ -1453,6 +1453,7 @@ async function loadAll(){
     _legado_implantacao:(OO.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',tipo:a.tipo||'',propostaId:a.proposta_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
+    config:(function(){const o={};((CFG&&CFG.data)||[]).forEach(x=>{o[x.chave]=x.valor});return o})(),
     mesesAbertos:(MA&&MA.data?MA.data:[]).map(x=>({area:x.area,periodo:x.periodo,abertoEm:x.aberto_em||''})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',vigenciaIni:m.vigencia_ini||'',vigenciaFim:m.vigencia_fim||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
     semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
@@ -1553,12 +1554,28 @@ function setAdmTab(t){admTab=t;render()}
 function viewAdmin(){
  const adm=!!(ME&&ME.is_admin);
  const abas=[['equipe','Pessoas',pessoasVivas().length],['excluidos','Excluídos',admLixoQtd()]];
- if(adm){abas.splice(1,0,['funil','Funil e listas'],['mensagens','Mensagens'],['preco','Tabela de preço'],['whatsapp','WhatsApp']);
+ if(adm){abas.splice(1,0,['funil','Funil e listas'],['mensagens','Mensagens'],['preco','Tabela de preço'],['whatsapp','WhatsApp'],['geral','Geral']);
    abas.push(['usuarios','Usuários'])}
- if(!adm&&['funil','mensagens','preco','usuarios','whatsapp'].indexOf(admTab)>=0)admTab='equipe';
+ if(!adm&&['funil','mensagens','preco','usuarios','whatsapp','geral'].indexOf(admTab)>=0)admTab='equipe';
  const body=({equipe:admPessoas,funil:admFunil,mensagens:comAjMsgs,preco:viewPdConfig,
-   whatsapp:admWhats,excluidos:admLixo,usuarios:admUsuarios}[admTab]||admPessoas)();
+   whatsapp:admWhats,geral:admGeral,excluidos:admLixo,usuarios:admUsuarios}[admTab]||admPessoas)();
  return comTabs(abas,admTab,'setAdmTab')+body}
+
+function admGeral(){
+ const dk=agInicio();
+ const hoje=todayKey();
+ const antes=agendaItens(addDias(hoje,-400),addDias(dk,-1)).filter(x=>!x.feito&&x.dk<hoje).length;
+ return `<div class="panel"><div class="panel-head"><h2>Início da operação<small>a partir de que data a agenda cobra atraso</small></h2></div>
+  <div class="empty" style="text-align:left;line-height:1.75">
+   Tudo que vence <b>antes</b> desta data deixa de contar como atrasado. Serve para o sistema não carregar
+   um passado que nunca foi registrado aqui dentro. O histórico continua visível quando você navega até o mês,
+   só não entra mais na conta de atraso nem no número do menu.
+   <br><br>
+   <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+    <input type="date" value="${esc(dk)}" onchange="setAgInicio(this.value)"
+      style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:8px 11px;border-radius:9px;font-size:13px">
+    <span class="muted" style="font-size:12px">contando a partir de <b>${esc(fmtBR(dk))}</b>${antes?' · '+antes+' item(ns) anteriores ficaram de fora':''}</span>
+   </div></div></div>`}
 
 function admUsuarios(){return `<div class="panel"><div class="panel-head"><h2>Usuários<small>aprove cadastros e gerencie acessos — vale para o app todo</small></h2></div>
   <div id="adminList"><div class="empty">Carregando...</div></div></div>`}
@@ -1828,6 +1845,23 @@ function render(){
 function viewWip(){return `<div class="wip"><div class="ic">🚧</div><h2>${SECAO[activeTab][0]}</h2>
   <p>Essa seção ainda não foi trazida pra dentro do app único. Por enquanto continua no app separado — se quiser, me avisa que eu abro pra você.</p></div>`}
 
+
+/* rotinas vencidas para o Painel: uma linha por rotina, com quantas vezes ficou em aberto */
+function homeRotinasVencidas(){
+ const hoje=todayKey(),corte=agInicio();
+ const de=addDias(hoje,-120);
+ const itens=agendaItens(de<corte?corte:de,addDias(hoje,-1))
+   .filter(x=>x.origem==='rotina'&&agEhAtraso(x,hoje));
+ const por={};
+ itens.forEach(x=>{const k=x.modeloId||x.titulo;
+  const g=por[k];
+  if(!g){por[k]={titulo:x.titulo,tipo:x.tipo,n:1,desde:x.dk,ate:x.dk};return}
+  g.n++;if(x.dk<g.desde)g.desde=x.dk;if(x.dk>g.ate)g.ate=x.dk});
+ return Object.keys(por).map(k=>{const g=por[k];
+  return {titulo:g.titulo,fonte:g.tipo,
+   meta:g.n>1?g.n+' vezes em aberto, desde '+fmtBR(g.desde):'venceu em '+fmtBR(g.desde)}})
+  .sort((a,b)=>b.meta.localeCompare(a.meta))}
+
 /* ===== Painel (visão geral) ===== */
 function viewHome(){
   const todayK=todayKey(),hoje=new Date();
@@ -1871,6 +1905,7 @@ function viewHome(){
   </div>`;
 
   /* ---------- Prioridades: o que está atrasado e o que vence hoje ---------- */
+  /* (homeRotinasVencidas fica logo abaixo de viewHome) */
   const feed=[];
   const add=(u,cor,lbl,fonte,txt,meta,onclick)=>feed.push({u,cor,lbl,fonte,txt,meta,onclick});
   pendLate.forEach(a=>add(3,'var(--neg)','Atrasada','Pendência',a.titulo,fmtBR(a.prazo)+(a.hora?' · '+a.hora:''),"go('pend')"));
@@ -1881,6 +1916,8 @@ function viewHome(){
   cpHoje.forEach(x=>add(2,'var(--warn)','Vence hoje','Contas a pagar',x.c.fornecedor,brl(x.c.valor),"go('contas')"));
   crmHojeLeads.forEach(l=>add(2,'var(--warn)','Hoje','Comercial',l.empresa,'contato agendado',`comAbrir('${l.id}')`));
   rot.pendentes.forEach(r=>add(1,'var(--meta)','Hoje',r.tipo,r.descricao,'rotina '+r.tipo.toLowerCase(),"go('rotinas')"));
+  /* rotinas que passaram da data e ninguém marcou, agrupadas por rotina */
+  homeRotinasVencidas().forEach(r=>add(3,'var(--neg)','Vencida',r.fonte,r.titulo,r.meta,"go('rotinas')"));
   feed.sort((a,b)=>b.u-a.u);
 
   const LIM=12;
@@ -2220,6 +2257,21 @@ function toggleExecDate(tipo,mid,dk){const dt=parseK(dk);const pk=tipo==='mensai
   const ant=s[pk][mid]||{};const cur=ant.feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null,valor:ant.valor==null?null:ant.valor};
   persistExec(tipo,mid,pk,!cur,s[pk][mid].valor);render()}
 
+
+
+/* ===================================================================
+   Data de corte: o sistema começou a valer nesta data. Nada anterior
+   entra como atrasado, senão a agenda carrega um passado que nunca
+   foi registrado aqui.
+   =================================================================== */
+const CORTE_PADRAO='2026-08-01';
+const agInicio=()=>((DB.config||{}).agenda_inicio)||CORTE_PADRAO;
+function setAgInicio(v){
+ const dk=String(v||'').slice(0,10);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dk))return toast('Data inválida');
+ DB.config=DB.config||{};DB.config.agenda_inicio=dk;
+ up('app_config',{chave:'agenda_inicio',valor:dk,updated_at:new Date().toISOString()});
+ render();toast('A agenda passa a contar a partir de '+fmtBR(dk))}
 
 /* ===================================================================
    Virada de mês.
@@ -6189,14 +6241,15 @@ function agJanela(){
    Rotina diária de um dia que já passou não se faz mais: fica fora da conta.
    Semanal só pesa dentro da própria semana; mensal, dentro do próprio mês. */
 function agEhAtraso(x,hoje){
- return !x.feito&&x.dk<hoje}
+ return !x.feito&&x.dk<hoje&&x.dk>=agInicio()}
 function agPassa(x){
  if(agOrigemOff.indexOf(x.origem)>=0)return false;
  if(agRespF&&x.resp!==agRespF)return false;
  return true}
 /* o número do menu: o que está atrasado mais o que vence hoje */
 function agPendentes(){const hoje=todayKey();
- const t=agendaItens(addDias(hoje,-90),hoje);
+ const corte=agInicio(),de=addDias(hoje,-90);
+ const t=agendaItens(de<corte?corte:de,hoje);
  return t.filter(x=>agEhAtraso(x,hoje)).length+t.filter(x=>x.dk===hoje&&!x.feito).length}
 
 const agChkRotina=x=>(x.origem==='rotina'&&x.modeloId)
@@ -6277,7 +6330,9 @@ function agMiniCal(todos,hoje,de,ate){
 
 function viewAgenda(){
  const hoje=todayKey(), {de,ate}=agJanela();
- const ini=de<addDias(hoje,-90)?de:addDias(hoje,-90);
+ const corte=agInicio();
+ let ini=de<addDias(hoje,-90)?de:addDias(hoje,-90);
+ if(ini<corte&&de>=corte)ini=corte;
  const fim=ate>addDias(hoje,7)?ate:addDias(hoje,7);
  const todos=agendaItens(ini,fim);
  const atr=todos.filter(x=>agEhAtraso(x,hoje)&&agPassa(x));
