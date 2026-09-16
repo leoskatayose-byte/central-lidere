@@ -1797,6 +1797,7 @@ function tabCount(id){
   if(id==='comCli')return crmLeadsAtivos().length||null;
   if(id==='agenda')return agPendentes()||null;
   if(id==='carteira')return cliPendCobrando().length||null;
+  if(id==='rotinas')return rotVencidasAgora()||null;
   return null}
 function renderNav(){
   gEl('nav').innerHTML=NAV().map(g=>`<div class="nav-g"><b>${g.g}</b>${
@@ -2320,6 +2321,38 @@ function painelAbertura(area,pk,itens,fns){
    <b>Encerrar</b> tira daqui pra frente. Nos dois casos os meses anteriores ficam intactos, com o que já foi registrado.</div>
   ${itens.map(linha).join('')||'<div class="empty">Nada para este mês.</div>'}</div>`}
 
+
+/* ===================================================================
+   Status de uma rotina no período que está na tela.
+   Não fez e a data já passou? Vencida. É o mesmo critério das contas.
+   =================================================================== */
+function rotDataDe(tipo,mo,ref){
+ if(tipo==='mensais')return iso(mensalEff(ref.getFullYear(),ref.getMonth(),mo));
+ if(tipo==='semanais'){
+  const base=iso(ref), seg=addDias(base,-((parseK(base).getDay()+6)%7));
+  const off=String(mo.diaSemana)==='0'?6:(Math.max(1,+mo.diaSemana||1)-1);
+  return addDias(seg,off)}
+ return iso(ref)}
+function rotStatus(tipo,mo,ref,feito){
+ const dk=rotDataDe(tipo,mo,ref),hoje=todayKey();
+ if(feito)return {id:'feita',rot:'Feita',cls:'chip-pago',mark:'✓ ',dk};
+ if(dk<hoje)return {id:'vencida',rot:'Vencida',cls:'chip-vencido',mark:'✗ ',dk};
+ if(dk===hoje)return {id:'hoje',rot:'Vence hoje',cls:'chip-avencer',mark:'◷ ',dk};
+ return {id:'avencer',rot:'A vencer',cls:'chip-n',mark:'◷ ',dk}}
+const rotChip=st=>`<span class="chip ${st.cls}" title="${esc(fmtBR(st.dk))}">${st.mark}${esc(st.rot)}</span>`;
+
+/* quantas estão vencidas no período que está aberto */
+function rotVencidas(tipo,ref){
+ const pk=tipo==='mensais'?monthKey(ref):tipo==='semanais'?weekKey(ref):iso(ref);
+ const ex=DB[tipo].exec[pk]||{};
+ const mods=tipo==='mensais'?mensaisDoPeriodo(pk)
+   :tipo==='diarias'?(isDiaUtil(ref)?alive(DB.diarias.modelos):[])
+   :alive(DB.semanais.modelos);
+ return mods.filter(mo=>rotStatus(tipo,mo,ref,!!(ex[mo.id]&&ex[mo.id].feito)).id==='vencida').length}
+/* o número que o menu mostra: vencidas do mês, da semana e do dia de hoje */
+function rotVencidasAgora(){const h=new Date();
+ return rotVencidas('mensais',h)+rotVencidas('semanais',h)+rotVencidas('diarias',h)}
+
 /* ===== Rotinas (mensais / semanais / diárias) ===== */
 let rotinaTab='mensais', mensalRef=new Date(), semRef=new Date(), diariaDate=null, curAj='posterga';
 function ajLabel(a){return a==='antecipa'?'antecipado':a==='posterga'?'postergado':'fixo'}
@@ -2391,11 +2424,13 @@ function viewMensais(){
     {pular:'rotPular',voltar:'rotVoltar',encerrar:'rotEncerrar'});
   const mods=mensaisDoPeriodo(pk).sort((a,b)=>a.dia-b.dia);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
+  const vencidas=mods.filter(mo=>rotStatus('mensais',mo,mensalRef,!!(ex[mo.id]&&ex[mo.id].feito)).id==='vencida').length;
   const rows=mods.map(mo=>{const on=ex[mo.id]&&ex[mo.id].feito;const eff=mensalEff(y,m,mo);
+    const st=rotStatus('mensais',mo,mensalRef,!!on);
     const v=mensalValor(mo,pk),proprio=mensalValorProprio(mo,pk);
     return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('mensais','${mo.id}')">✓</button>
       <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
-      <div class="row-meta"><span class="chip chip-n">dia ${mo.dia} · ${ajLabel(mo.ajuste)} → ${fmtBR(iso(eff))}</span>
+      <div class="row-meta">${rotChip(st)}<span class="chip chip-n">dia ${mo.dia} · ${ajLabel(mo.ajuste)} → ${fmtBR(iso(eff))}</span>
       ${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}
       ${mo.categoria?`<span class="chip chip-n" style="color:${rotCat(mo.categoria).cor}">${esc(rotCat(mo.categoria).curto)}</span>`:''}
       ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}
@@ -2445,7 +2480,7 @@ function viewMensais(){
      <div class="row-actions"><b style="font-size:17px;color:${saldo>=0?'var(--pos)':'var(--neg)'}">${brl(saldo)}</b></div></div>
    ${semCat?`<div class="tip">${semCat} rotina(s) com valor ainda sem classificação. Use o seletor na linha para dizer em qual total ela entra.</div>`:''}
    ${mensalHistorico()}</div>`:'';
-  return abertura+`<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas</small></h2>
+  return abertura+`<div class="panel"><div class="panel-head"><h2>${mesExtenso(mensalRef)}<small>${done}/${total} concluídas${vencidas?' · <b style="color:var(--neg)">'+vencidas+' vencida(s)</b>':''}</small></h2>
     <button class="btn btn-sm" onclick="stepMonth(-1)">‹</button><button class="btn btn-sm" onclick="mensalRef=new Date();render()">Este mês</button><button class="btn btn-sm" onclick="stepMonth(1)">›</button>
     <button class="btn btn-sm btn-gold" onclick="openModelo('mensais')">+ Nova</button></div>${rows}</div>`+blocoPulados+resumo}
 
@@ -2514,12 +2549,14 @@ function viewSemanais(){
     const ms=mods.filter(mo=>String(mo.diaSemana)===d);if(!ms.length)return'';
     return `<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:14px 0 8px">${lbl}</div>`+
       ms.map(mo=>{const on=ex[mo.id]&&ex[mo.id].feito;
+        const st=rotStatus('semanais',mo,semRef,!!on);
         return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('semanais','${mo.id}')">✓</button>
         <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
-        <div class="row-meta">${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+        <div class="row-meta">${rotChip(st)}<span class="chip chip-n">${fmtBR(st.dk)}</span>${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
         <div class="row-actions"><button class="iconbtn" onclick="openModelo('semanais','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('semanais','${mo.id}')">🗑</button></div></div>`}).join('')
   }).join('')||'<div class="empty">Nenhuma rotina semanal. Clique em "+ Nova".</div>';
-  return `<div class="panel"><div class="panel-head"><h2>Semana ${wk.split('-W')[1]}<small>${done}/${total} concluídas</small></h2>
+  const vencidas=rotVencidas('semanais',semRef);
+  return `<div class="panel"><div class="panel-head"><h2>Semana ${wk.split('-W')[1]}<small>${done}/${total} concluídas${vencidas?' · <b style="color:var(--neg)">'+vencidas+' vencida(s)</b>':''}</small></h2>
     <button class="btn btn-sm" onclick="stepWeek(-1)">‹</button><button class="btn btn-sm" onclick="semRef=new Date();render()">Esta semana</button><button class="btn btn-sm" onclick="stepWeek(1)">›</button>
     <button class="btn btn-sm btn-gold" onclick="openModelo('semanais')">+ Nova</button></div>${byDay}</div>`}
 function viewDiarias(){
@@ -2532,13 +2569,14 @@ function viewDiarias(){
   let body;
   if(!util)body=`<div class="empty">${dName} não é dia útil — as rotinas diárias só ocorrem em dias úteis.</div>`;
   else body=mods.map((mo,i)=>{const on=ex[mo.id]&&ex[mo.id].feito;
+    const st=rotStatus('diarias',mo,dt,!!on);
     return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('diarias','${mo.id}')">✓</button>
     <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
-    <div class="row-meta">${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+    <div class="row-meta">${rotChip(st)}${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
     <div class="row-actions">${i>0?`<button class="iconbtn" onclick="moveModeloOrdem('${mo.id}',-1)">↑</button>`:''}${i<mods.length-1?`<button class="iconbtn" onclick="moveModeloOrdem('${mo.id}',1)">↓</button>`:''}
     <button class="iconbtn" onclick="openModelo('diarias','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('diarias','${mo.id}')">🗑</button></div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina diária. Clique em "+ Nova".</div>';
-  return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${dName}${isToday?' · hoje':''}<small>${util?`${done}/${total} concluídas`:'fora do dia útil'}</small></h2>
+  return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${dName}${isToday?' · hoje':''}<small>${util?`${done}/${total} concluídas`+(rotVencidas('diarias',dt)?' · <b style="color:var(--neg)">'+rotVencidas('diarias',dt)+' vencida(s)</b>':''):'fora do dia útil'}</small></h2>
     <button class="btn btn-sm" onclick="stepDay(-1)">‹</button>${!isToday?`<button class="btn btn-sm" onclick="diariaDate=todayKey();render()">Hoje</button>`:''}<button class="btn btn-sm" onclick="stepDay(1)">›</button>
     <button class="btn btn-sm btn-gold" onclick="openModelo('diarias')">+ Nova</button></div>${body}</div>`}
 function moveModeloOrdem(id,dir){const list=alive(DB.diarias.modelos).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
@@ -6151,11 +6189,7 @@ function agJanela(){
    Rotina diária de um dia que já passou não se faz mais: fica fora da conta.
    Semanal só pesa dentro da própria semana; mensal, dentro do próprio mês. */
 function agEhAtraso(x,hoje){
- if(x.feito||x.dk>=hoje)return false;
- if(x.origem!=='rotina')return true;
- if(x.sub==='diaria')return false;
- if(x.sub==='semanal')return weekKey(parseK(x.dk))===weekKey(parseK(hoje));
- return monthKey(parseK(x.dk))===monthKey(parseK(hoje))}
+ return !x.feito&&x.dk<hoje}
 function agPassa(x){
  if(agOrigemOff.indexOf(x.origem)>=0)return false;
  if(agRespF&&x.resp!==agRespF)return false;
@@ -6170,6 +6204,19 @@ const agChkRotina=x=>(x.origem==='rotina'&&x.modeloId)
      onclick="event.stopPropagation();agTogRotina('${x.sub}','${x.modeloId}','${x.dk}')">✓</button>` : '';
 function agTogRotina(sub,mid,dk){
  toggleExecDate(sub==='mensal'?'mensais':sub==='semanal'?'semanais':'diarias',mid,dk)}
+
+/* 12 dias da mesma rotina diária não são 12 linhas: são uma linha com 12 */
+function agAgrupaAtraso(itens){
+ const porRotina={},soltos=[];
+ itens.forEach(x=>{
+  if(x.origem!=='rotina'||!x.modeloId){soltos.push(x);return}
+  const g=porRotina[x.modeloId];
+  if(!g){porRotina[x.modeloId]=Object.assign({},x,{n:1,desde:x.dk});return}
+  g.n++;if(x.dk<g.desde)g.desde=x.dk;if(x.dk>g.dk)g.dk=x.dk});
+ Object.keys(porRotina).forEach(k=>{const g=porRotina[k];
+  soltos.push(Object.assign({},g,{
+    cliente:g.n>1?g.n+' vezes em aberto, desde '+fmtBR(g.desde):g.cliente}))});
+ return soltos.sort((a,b)=>String(a.dk).localeCompare(String(b.dk)))}
 
 function agLinha(x,hoje){const o=agOrigem(x.origem);const atr=!x.feito&&x.dk<hoje;
  return `<div class="ag-row ${x.feito?'ok':''}" style="border-left-color:${atr?'var(--neg)':o.cor}"
@@ -6266,10 +6313,11 @@ function viewAgenda(){
      style="${on?`border-color:${o.cor};color:${o.cor}`:''}">${esc(o.nome)}${n?' · '+n:''}</button>`}).join('')}</div>`;
 
  const MOSTRA=3;
- const blocoAtr=atr.length?`<div class="panel" style="border-color:color-mix(in srgb,var(--neg) 35%,var(--line))">
-   <div class="panel-head"><h2>Atrasado<small>passou da data e continua aberto${atr.length>MOSTRA&&!agAtrAberto?' · mostrando '+MOSTRA+' de '+atr.length:''}</small></h2>
-     ${atr.length>MOSTRA?`<button class="btn btn-sm" onclick="agTogAtraso()">${agAtrAberto?'Recolher':'Ver os '+atr.length}</button>`:''}</div>
-   ${(agAtrAberto?atr:atr.slice(0,MOSTRA)).map(x=>agLinhaLarga(x,hoje)).join('')}</div>`:'';
+ const atrG=agAgrupaAtraso(atr);
+ const blocoAtr=atrG.length?`<div class="panel" style="border-color:color-mix(in srgb,var(--neg) 35%,var(--line))">
+   <div class="panel-head"><h2>Atrasado<small>passou da data e continua aberto · ${atr.length} item(ns)${atrG.length!==atr.length?', agrupando as rotinas repetidas':''}${atrG.length>MOSTRA&&!agAtrAberto?' · mostrando '+MOSTRA:''}</small></h2>
+     ${atrG.length>MOSTRA?`<button class="btn btn-sm" onclick="agTogAtraso()">${agAtrAberto?'Recolher':'Ver os '+atrG.length}</button>`:''}</div>
+   ${(agAtrAberto?atrG:atrG.slice(0,MOSTRA)).map(x=>agLinhaLarga(x,hoje)).join('')}</div>`:'';
 
  let corpo='';
  if(agModo==='semana'){
