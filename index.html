@@ -117,7 +117,20 @@ input,select,textarea{font-family:inherit}
 @supports not (background:color-mix(in srgb,red 50%,blue)){.topbar{background:var(--bg)}}
 .topbar h1{margin:0;font-size:19px;font-weight:700;letter-spacing:-.3px}
 .topbar h1 span{display:block;font-size:11.5px;font-weight:500;color:var(--mut);letter-spacing:0;margin-top:3px}
-.tb-acts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tb-acts{margin-left:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* ---- modo apresentação: o olhinho que esconde os valores ---- */
+.olho-box{margin-left:auto;display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.olho-lbl{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--acc);white-space:nowrap}
+.olho{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:9px;
+  width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;flex:0 0 34px;transition:.15s}
+.olho:hover{color:var(--txt);border-color:var(--line-f)}
+.olho.on{color:var(--acc);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
+/* o que não passa pelo formatador de dinheiro leva um borrão */
+:root[data-oculto="1"] input.rot-val,
+:root[data-oculto="1"] .vlr-blur{filter:blur(6px);user-select:none;-webkit-user-select:none}
+@media(max-width:680px){.olho-lbl{display:none}}
 .burger{display:none;background:var(--panel2);border:1px solid var(--line);border-radius:9px;width:34px;height:34px;font-size:15px}
 .page{padding:22px 26px 70px;max-width:1360px;width:100%}
 @media(max-width:1024px){
@@ -733,6 +746,8 @@ tbody tr:hover{background:var(--panel2)}
     <header class="topbar">
       <button class="burger" onclick="toggleMenu()">☰</button>
       <h1 id="pgTitle">Visão geral<span id="pgSub"></span></h1>
+      <div class="olho-box"><span class="olho-lbl" id="olhoLbl"></span>
+        <button class="olho" id="btnOlho" onclick="toggleOculto()"></button></div>
       <div class="tb-acts" id="pgActs"></div>
     </header>
     <main class="page" id="views"></main>
@@ -1348,7 +1363,39 @@ document.getElementById('gateLogo').innerHTML=LOGO_SVG;
 /* ===== Utilitários ===== */
 const gEl=id=>document.getElementById(id);
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const brl=v=>(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+/* ===================================================================
+   Modo apresentação. Igual ao olhinho do app do banco: um clique e
+   todo valor em dinheiro vira ponto na tela. Fica guardado neste
+   aparelho, não no banco: é preferência de quem está apresentando.
+   O documento da proposta é exceção — ali o valor é o produto.
+   =================================================================== */
+let oculto=false;
+try{oculto=localStorage.getItem('lidere_oculto')==='1'}catch(e){}
+let _semMascara=false;
+const BRL_OCULTO='R$ ••••••';
+/* roda algo com os valores de verdade, mesmo com o olhinho fechado */
+function semMascara(fn){const antes=_semMascara;_semMascara=true;
+ try{return fn()}finally{_semMascara=antes}}
+const mascarando=()=>oculto&&!_semMascara;
+
+const OLHO_ABERTO='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.8 12S5.5 5.2 12 5.2 22.2 12 22.2 12 18.5 18.8 12 18.8 1.8 12 1.8 12z"/><circle cx="12" cy="12" r="3.1"/></svg>';
+const OLHO_FECHADO='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"/><path d="M9.6 5.6A9.6 9.6 0 0112 5.2c6.5 0 10.2 6.8 10.2 6.8a18 18 0 01-3.3 4.2M6.4 7.4A17.6 17.6 0 001.8 12S5.5 18.8 12 18.8c1.2 0 2.3-.2 3.3-.6"/><path d="M10.2 10.3a3.1 3.1 0 004.3 4.3"/></svg>';
+
+function aplicaOculto(){
+ document.documentElement.setAttribute('data-oculto',oculto?'1':'0');
+ const b=gEl('btnOlho');
+ if(b){b.innerHTML=oculto?OLHO_FECHADO:OLHO_ABERTO;
+  b.classList.toggle('on',oculto);
+  b.title=oculto?'Mostrar os valores de novo':'Ocultar os valores para apresentar'}
+ const l=gEl('olhoLbl');if(l)l.textContent=oculto?'valores ocultos':''}
+function toggleOculto(){
+ oculto=!oculto;
+ try{localStorage.setItem('lidere_oculto',oculto?'1':'0')}catch(e){}
+ render();
+ toast(oculto?'Valores ocultos · pode apresentar':'Valores visíveis de novo')}
+const brl=v=>mascarando()?BRL_OCULTO
+ :(Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const pad=n=>String(n).padStart(2,'0');
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const todayKey=()=>iso(new Date());
@@ -1837,7 +1884,7 @@ function render(){
   if(activeTab==='cliFicha'){const _c=cliById(cliFichaId);
     if(_c){gEl('pgTitle').childNodes[0].nodeValue=_c.nome||'Cliente';gEl('pgSub').textContent=cliSub(_c)}}
   gEl('pgActs').innerHTML=pgActsHTML();
-  renderNav();renderTemas();
+  renderNav();renderTemas();aplicaOculto();
   {const b=gEl('btnBackup');if(b)b.style.display=(ME&&ME.is_admin)?'':'none'}
   const V={home:viewHome,pend:viewPend,agenda:viewAgenda,carteira:viewCarteira,cliFicha:viewCliFicha,rotinas:viewRotinas,contas:viewContas,onb:viewOnb,plano:viewPn,admin:viewAdmin,comPainel:viewComPainel,comFunil:viewComFunil,comCli:viewComCli,comFicha:viewComFicha};
   gEl('views').innerHTML=(V[activeTab]||viewWip)();
@@ -4734,7 +4781,8 @@ function propBaixar(){const p=propAtual();const b=new Blob([propDocHTML(p)],{typ
  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000)}
 
 /* ===== Propostas: o documento ===== */
-function propDocHTML(p){
+function propDocHTML(p){return semMascara(()=>_propDocHTML(p))}
+function _propDocHTML(p){
  const nums=p.numeros||{}, areas=nums.areas||[], perfil=nums.perfil||null;
  const esc0=v=>esc(String(v==null?'':v));
  const venc=p.data?addDias(p.data,+p.validadeDias||30):'';
@@ -7279,6 +7327,7 @@ document.addEventListener('click',e=>{if(e.target.classList.contains('overlay')&
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.show').forEach(o=>{if(o.id!=='gate')o.classList.remove('show')})});
 
 /* ===================== BOOT ===================== */
+document.documentElement.setAttribute('data-oculto',oculto?'1':'0');
 initSB();
 sb.auth.onAuthStateChange(async e=>{if(e==='PASSWORD_RECOVERY'){
   const p=prompt('Recuperação de senha — digite a NOVA senha (mín. 8 caracteres):');
