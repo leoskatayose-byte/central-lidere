@@ -259,6 +259,17 @@ a.btn{text-decoration:none;cursor:pointer}
 .ag-row .rh{display:flex;align-items:flex-start;gap:6px}
 .ag-row .rh .rt{flex:1;min-width:0}
 .ag-row .rh .chk{flex:0 0 22px;margin-top:-1px}
+/* ---- implantação: vínculo e pergunta ---- */
+.onb-vinc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px;
+  padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:11px}
+.onb-vinc select{background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+  padding:7px 10px;border-radius:9px;font-size:12.5px;max-width:260px}
+.onb-ini{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--mut);margin-left:auto}
+.onb-ini input{background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+  padding:6px 9px;border-radius:9px;font-size:12.5px}
+@media(max-width:680px){.onb-ini{margin-left:0}.onb-vinc select{max-width:100%}}
+#reCampo input,#reCampo textarea{width:100%;background:var(--bg2);border:1px solid var(--line-f);
+  color:var(--txt);padding:9px 11px;border-radius:9px;font-size:13px;font-family:inherit}
 /* ---- abertura do mês ---- */
 .ab-l{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:9px 4px}
 .ab-l:first-of-type{border-top:0}
@@ -844,8 +855,8 @@ tbody tr:hover{background:var(--panel2)}
 <input type="file" id="aq_lote" multiple style="display:none" onchange="cliArqLote(this)">
 
 <!-- ===== Modal Cliente da carteira ===== -->
-<div class="overlay" id="ovCliente"><div class="modal">
-  <div class="modal-head"><h3 id="cliTitle">Novo cliente</h3><button class="modal-x" onclick="closeModal('ovCliente')">×</button></div>
+<div class="overlay" id="ovCarteira"><div class="modal">
+  <div class="modal-head"><h3 id="cliTitle">Novo cliente</h3><button class="modal-x" onclick="cliCancelarModal()">×</button></div>
   <div class="modal-body">
     <input type="hidden" id="cl_id"><input type="hidden" id="cl_lead"><input type="hidden" id="cl_onb">
     <div class="fgrid">
@@ -1065,6 +1076,18 @@ tbody tr:hover{background:var(--panel2)}
   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovCliente')">Cancelar</button><button class="btn btn-gold" onclick="saveCliente()">Salvar</button></div>
 </div></div>
 
+
+<!-- ===== Modal Resposta da etapa (Implantação) ===== -->
+<div class="overlay" id="ovRespEt"><div class="modal">
+  <div class="modal-head"><h3 id="reTitulo">Etapa</h3><button class="modal-x" onclick="closeModal('ovRespEt')">×</button></div>
+  <div class="modal-body">
+    <div class="field"><label id="rePergunta">Pergunta</label><div id="reCampo"></div></div>
+    <div class="muted" style="font-size:11.5px;line-height:1.6">A resposta fica registrada na etapa e aparece no checklist.
+      Se não tiver o que responder agora, use <b>Só concluir</b>.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="rePular()">Só concluir</button><button class="btn btn-gold" onclick="reSalvar()">Salvar e concluir</button></div>
+</div></div>
+
 <!-- ===== Modal Etapa (Implantação) ===== -->
 <div class="overlay" id="ovEtapa"><div class="modal">
   <div class="modal-head"><h3 id="etapaTitle">Etapa</h3><button class="modal-x" onclick="closeModal('ovEtapa')">×</button></div>
@@ -1088,6 +1111,11 @@ tbody tr:hover{background:var(--panel2)}
       <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);cursor:pointer"><input type="checkbox" id="e_bloq" style="accent-color:var(--acc);width:16px;height:16px"> 🔐 Bloqueadora (impede o Go-Live)</label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);cursor:pointer"><input type="checkbox" id="e_obrig" style="accent-color:var(--acc);width:16px;height:16px"> ⭐ Obrigatória</label>
     </div>
+    <div class="fgrid">
+      <div class="field"><label>Pergunta ao concluir</label><select id="e_pergtipo"></select></div>
+      <div class="field"><label>Texto da pergunta</label><input id="e_perglabel" placeholder="deixe em branco para o padrão"></div>
+    </div>
+    <div class="field"><label>Resposta registrada</label><input id="e_resposta" placeholder="preenchida quando você conclui a etapa"></div>
     <div class="field"><label>Observações</label><textarea id="e_obs" rows="2"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn btn-ghost" style="border-color:var(--neg);color:var(--neg)" onclick="delEtapa()">Remover</button><button class="btn btn-ghost" onclick="closeModal('ovEtapa')">Cancelar</button><button class="btn btn-gold" onclick="saveEtapa()">Salvar</button></div>
@@ -1234,7 +1262,7 @@ tbody tr:hover{background:var(--panel2)}
 <div class="overlay" id="ovMeta"><div class="modal">
   <div class="modal-head"><h3 id="metaTitle">Nova meta</h3><button class="modal-x" onclick="closeModal('ovMeta')">×</button></div>
   <div class="modal-body">
-    <input type="hidden" id="m_id">
+    <input type="hidden" id="mt_id">
     <div class="field"><label>Indicador *</label><input id="m_ind" placeholder="Ex.: Leads Novos no Mês"></div>
     <div class="fgrid">
       <div class="field"><label>Meta</label><input id="m_meta" type="number" step="0.01"></div>
@@ -1483,10 +1511,10 @@ async function loadAll(){
   const exec={mensais:{},semanais:{},diarias:{}};
   (E.data||[]).forEach(e=>{(exec[e.tipo][e.periodo]=exec[e.tipo][e.periodo]||{})[e.modelo_id]={feito:e.feito,em:fromISO(e.feito_em),valor:e.valor==null?null:+e.valor,ativo:e.ativo!==false}});
   const cp=(CP&&CP.data&&CP.data.data)||{};
-  const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',leadId:r.lead_id||'',origem:r.origem||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
+  const onbClientes=(OC.data||[]).map(r=>({id:r.id,nome:r.nome,operadorId:r.operador_id,perfil:r.perfil,dataInicio:r.data_inicio,prazoDias:r.prazo_dias,obs:r.obs||'',leadId:r.lead_id||'',origem:r.origem||'',codigo:r.codigo||'',propostaId:r.proposta_id||'',propostaNumero:r.proposta_numero||'',deletedAt:fromISO(r.deleted_at),etapas:[]}));
   const byCli={};onbClientes.forEach(c=>byCli[c.id]=c);
   (OE.data||[]).forEach(r=>{const cl=byCli[r.cliente_id];if(!cl)return;
-    cl.etapas.push({id:r.id,modeloId:r.modelo_id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,prazo:r.prazo,status:r.status,dataConclusao:r.data_conclusao,responsavelId:r.responsavel_id,obs:r.obs||''})});
+    cl.etapas.push({id:r.id,modeloId:r.modelo_id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,prazo:r.prazo,status:r.status,dataConclusao:r.data_conclusao,responsavelId:r.responsavel_id,obs:r.obs||'',perguntaTipo:r.pergunta_tipo||'',perguntaLabel:r.pergunta_label||'',resposta:r.resposta||''})});
   onbClientes.sort((a,b)=>a.nome.localeCompare(b.nome));
   DB={
     crmEventos:(EV&&EV.data?EV.data:[]).map(e=>({id:e.id,leadId:e.lead_id,tipo:e.tipo,
@@ -3022,14 +3050,15 @@ function statCard(k,v,sub,sm){return `<div class="stat"><div class="k">${esc(k)}
 function novaEtapaDoModelo(m,cli){const off=Math.round(m.offset*(cli.prazoDias/90));
   return {id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),modeloId:m.id,num:m.num,ordem:m.ordem!=null?m.ordem:m.num,fase:m.fase,titulo:m.titulo,obrigatorio:!!m.obrigatorio,bloqueador:!!m.bloqueador,marco:!!m.marco,offset:m.offset,prazo:diaUtil(addDias(cli.dataInicio,off),'posterga'),status:'pendente',dataConclusao:null,responsavelId:cli.operadorId,obs:''}}
 function criarCliente(nome,operadorId,perfil,dataInicio,prazoDias,obs){
-  const cli={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome,operadorId,perfil,dataInicio,prazoDias,obs:obs||'',deletedAt:null,etapas:[]};
+  const cli={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome,operadorId,perfil,dataInicio,prazoDias,obs:obs||'',
+    codigo:onbProximoCodigo(),leadId:'',origem:'',propostaId:'',propostaNumero:'',deletedAt:null,etapas:[]};
   const modelos=alive(DB.onbModelo).slice().sort((a,b)=>(a.fase-b.fase)||((a.ordem??a.num)-(b.ordem??b.num))||(a.num-b.num));
   cli.etapas=modelos.map(m=>novaEtapaDoModelo(m,cli));
   onbRenumerar(cli);return cli}
 /* persistência */
 const onbRowOperador=o=>({id:o.id,nome:o.nome,cor:o.cor,deleted_at:toISO(o.deletedAt)});
-const onbRowCliente=c=>({id:c.id,nome:c.nome,operador_id:c.operadorId||null,perfil:c.perfil,data_inicio:c.dataInicio,prazo_dias:c.prazoDias,obs:c.obs||null,lead_id:c.leadId||null,origem:c.origem||null,deleted_at:toISO(c.deletedAt),updated_at:new Date().toISOString()});
-const onbRowEtapa=(e,cid)=>({id:e.id,cliente_id:cid,modelo_id:e.modeloId||null,num:e.num,ordem:e.ordem,fase:e.fase,titulo:e.titulo,obrigatorio:!!e.obrigatorio,bloqueador:!!e.bloqueador,marco:!!e.marco,offset_dias:e.offset,prazo:e.prazo||null,status:e.status,data_conclusao:e.dataConclusao||null,responsavel_id:e.responsavelId||null,obs:e.obs||null,updated_at:new Date().toISOString()});
+const onbRowCliente=c=>({id:c.id,nome:c.nome,operador_id:c.operadorId||null,perfil:c.perfil,data_inicio:c.dataInicio,prazo_dias:c.prazoDias,obs:c.obs||null,lead_id:c.leadId||null,origem:c.origem||null,codigo:c.codigo||null,proposta_id:c.propostaId||null,proposta_numero:c.propostaNumero||null,deleted_at:toISO(c.deletedAt),updated_at:new Date().toISOString()});
+const onbRowEtapa=(e,cid)=>({id:e.id,cliente_id:cid,modelo_id:e.modeloId||null,num:e.num,ordem:e.ordem,fase:e.fase,titulo:e.titulo,obrigatorio:!!e.obrigatorio,bloqueador:!!e.bloqueador,marco:!!e.marco,offset_dias:e.offset,prazo:e.prazo||null,status:e.status,data_conclusao:e.dataConclusao||null,responsavel_id:e.responsavelId||null,obs:e.obs||null,pergunta_tipo:e.perguntaTipo||null,pergunta_label:e.perguntaLabel||null,resposta:e.resposta||null,updated_at:new Date().toISOString()});
 async function upMany(t,rows){if(!rows.length)return;const {error}=await sb.from(t).upsert(rows);if(error){console.error(t,error);toast('⚠ Erro ao salvar na nuvem')}}
 function pOnbOp(o){up('onb_operadores',onbRowOperador(o))}
 function pOnbCli(c){up('onb_clientes',onbRowCliente(c))}
@@ -3086,8 +3115,8 @@ function viewOnbClientes(){
   const rows=cs.map(c=>{const p=onbProg(c),atr=c.etapas.filter(onbAtrasada).length,fa=onbFaseAtual(c);
     return `<div class="row" style="cursor:pointer" onclick="abrirCliente('${c.id}')">
       ${onbAvatar(c.operadorId)}
-      <div class="row-body"><div class="row-title">${esc(c.nome)}</div>
-        <div class="row-meta">${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · início ${fmtBR(c.dataInicio)} · go-live previsto ${fmtBR(onbPrevisao(c))}</div>
+      <div class="row-body"><div class="row-title">${esc(c.nome)} ${c.codigo?`<span class="chip chip-n" style="color:var(--acc)">${esc(c.codigo)}</span>`:''}</div>
+        <div class="row-meta">${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · início ${fmtBR(c.dataInicio)} · go-live previsto ${fmtBR(onbPrevisao(c))}${c.propostaNumero?' · proposta '+esc(c.propostaNumero):''}</div>
         <div class="progress mini" style="max-width:420px"><i class="pbar-static" style="width:${p.pct}%"></i></div>
         <div class="row-meta">${badgePrazoOnb(c)}<span class="chip chip-n">${fa===5?'Concluído':FASE_CURTA[fa]}</span>
         <span class="chip chip-n">${p.pct}% · ${p.done}/${p.tot}</span>
@@ -3124,6 +3153,7 @@ function viewOnbCliente(){
             ${e.status==='andamento'?'<span class="chip chip-avencer">em andamento</span>':''}
             ${e.status==='na'?'<span class="chip chip-n">não se aplica</span>':''}
             <span class="chip chip-n">${esc(onbOpNome(e.responsavelId))}</span></div>
+          ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
           ${e.obs?`<div class="row-meta">📝 ${esc(e.obs)}</div>`:''}</div>
         <div class="row-actions">
           <button class="iconbtn" onclick="moverEtapa('${c.id}','${e.id}',-1)" ${k===0?'disabled':''}>▲</button>
@@ -3133,12 +3163,26 @@ function viewOnbCliente(){
   const alerta=atr.length?`<div class="panel" style="border-color:var(--neg)"><div class="panel-head"><h2 style="color:var(--neg)">⚠ ${atr.length} etapa(s) vencida(s)</h2></div>
     ${atr.slice(0,6).map(e=>`<div class="row"><div class="row-body"><div class="row-title">${e.num}. ${esc(e.titulo)}</div><div class="row-meta">venceu em ${fmtBR(e.prazo)} · ${dias(e.prazo,todayKey())} dia(s) de atraso</div></div>
     <button class="btn btn-sm" onclick="toggleEtapa('${c.id}','${e.id}')">Concluir</button></div>`).join('')}</div>`:'';
+  onbSincronizarCrm(c);
+  const lead=onbLead(c),prop=onbProposta(c);
+  const leads=crmLeadsAtivos().slice().sort((a,b)=>String(a.empresa).localeCompare(String(b.empresa)));
+  const vinculo=`<div class="onb-vinc">
+    <span class="chip chip-n" style="color:var(--acc);border-color:var(--acc)" title="código deste cliente na implantação">${esc(c.codigo||'—')}</span>
+    ${prop?`<span class="chip chip-n" title="proposta que fechou este cliente">proposta ${esc(prop.numero)}${prop.mensalidade?' · '+brl(prop.mensalidade)+'/mês':''}</span>`:'<span class="chip chip-n" style="opacity:.6">sem proposta vinculada</span>'}
+    ${lead?`<button class="btn btn-sm" onclick="comAbrir('${lead.id}')">Ver ${esc(lead.empresa)} no comercial</button>`:''}
+    <select onchange="onbVincularLead('${c.id}',this.value)" title="De qual cliente do comercial ele veio">
+      <option value="">— sem vínculo com o comercial —</option>
+      ${leads.map(l=>`<option value="${l.id}" ${c.leadId===l.id?'selected':''}>${esc(l.empresa)}</option>`).join('')}</select>
+    <label class="onb-ini">Início <input type="date" value="${esc(c.dataInicio||'')}" onchange="onbSetInicio('${c.id}',this.value)"></label>
+  </div>`;
   return `<div class="crumb"><a onclick="onbCliente=null;render()">← Clientes</a> / ${esc(c.nome)}</div>
-  <div class="panel"><div class="panel-head"><h2>${esc(c.nome)}<small>${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · SLA ${c.prazoDias} dias · início ${fmtBR(c.dataInicio)}${c.obs?' · '+esc(c.obs):''}</small></h2>
+  <div class="panel"><div class="panel-head"><h2>${esc(c.nome)}<small>${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · SLA ${c.prazoDias} dias${c.obs?' · '+esc(c.obs):''}</small></h2>
     <button class="btn btn-sm" onclick="openCliente('${c.id}')">Editar</button>
     <button class="btn btn-sm" onclick="recalcPrazos('${c.id}')" title="Recalcula os prazos das etapas não concluídas">Recalcular prazos</button>
     <button class="btn btn-sm" onclick="sincModelo('${c.id}')" title="Traz etapas novas do modelo">Sincronizar modelo</button>
-    <button class="btn btn-sm btn-gold" onclick="addEtapaAvulsa('${c.id}')">+ Etapa</button></div>
+    <button class="btn btn-sm btn-gold" onclick="addEtapaAvulsa('${c.id}')">+ Etapa</button>
+    <button class="btn btn-sm btn-ghost" onclick="delCliente('${c.id}')">Excluir cliente</button></div>
+    ${vinculo}
     <div class="stats">${stats}</div>
     <div class="progress"><i class="pbar" data-target="${p.pct}" style="width:${p.pct}%"></i></div>
     ${corpo}</div>${alerta}`}
@@ -3187,8 +3231,8 @@ function viewOnbExcluidos(){
   return `<div class="panel"><div class="panel-head"><h2>Excluídos</h2></div>${rows}</div>`}
 /* ===== mutações: etapas ===== */
 function toggleEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c&&c.etapas.find(x=>x.id===eid);if(!e)return;
-  if(onbFeito(e)){e.status='pendente';e.dataConclusao=null}else{e.status='realizado';e.dataConclusao=todayKey()}
-  pOnbEt(c,e);render();if(onbFeito(e)&&e.bloqueador&&onbGoLive(c))toast('🔐 Go-Live Ready: todos os bloqueadores concluídos!')}
+  if(onbFeito(e)){e.status='pendente';e.dataConclusao=null;pOnbEt(c,e);render();return}
+  etapaPerguntar(cid,eid)}
 function pickStatusE(v){curStatusE=v;document.querySelectorAll('#e_status .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===v))}
 function openEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c.etapas.find(x=>x.id===eid);if(!e)return;
   gEl('etapaTitle').textContent='Etapa '+e.num;gEl('e_id').value=e.id;gEl('e_cli').value=cid;
@@ -3196,6 +3240,12 @@ function openEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c
   gEl('e_bloq').checked=!!e.bloqueador;gEl('e_obrig').checked=!!e.obrigatorio;
   gEl('e_resp').innerHTML=alive(DB.onbOperadores).map(o=>`<option value="${o.id}" ${e.responsavelId===o.id?'selected':''}>${esc(o.nome)}</option>`).join('');
   gEl('e_fase').innerHTML=FASES.map((f,i)=>`<option value="${i}" ${e.fase===i?'selected':''}>Fase ${i+1} · ${esc(f)}</option>`).join('');
+  const q=etapaPergunta(e);
+  gEl('e_pergtipo').innerHTML='<option value="">Padrão pelo título ('+esc((ETAPA_PERG_TIPOS.find(x=>x[0]===q.tipo)||['','—'])[1])+')</option>'
+    +ETAPA_PERG_TIPOS.map(x=>`<option value="${x[0]}" ${e.perguntaTipo===x[0]?'selected':''}>${esc(x[1])}</option>`).join('');
+  gEl('e_perglabel').value=e.perguntaLabel||'';
+  gEl('e_perglabel').placeholder=q.label;
+  gEl('e_resposta').value=e.resposta||'';
   pickStatusE(e.status);showModal('ovEtapa')}
 function saveEtapa(){const cid=gEl('e_cli').value,eid=gEl('e_id').value;
   const c=DB.onbClientes.find(x=>x.id===cid),e=c.etapas.find(x=>x.id===eid);
@@ -3205,6 +3255,8 @@ function saveEtapa(){const cid=gEl('e_cli').value,eid=gEl('e_id').value;
   e.responsavelId=gEl('e_resp').value;e.obs=gEl('e_obs').value.trim();
   const nf=+gEl('e_fase').value;if(nf!==e.fase){e.fase=nf;e.ordem=Math.max(-1,...c.etapas.filter(x=>x.fase===nf&&x.id!==e.id).map(x=>x.ordem))+0.5}
   e.bloqueador=gEl('e_bloq').checked;e.obrigatorio=gEl('e_obrig').checked;
+  e.perguntaTipo=gEl('e_pergtipo').value;e.perguntaLabel=gEl('e_perglabel').value.trim();
+  e.resposta=gEl('e_resposta').value.trim();
   onbRenumerar(c);pOnbEtAll(c);closeModal('ovEtapa');render();toast('Etapa atualizada')}
 function delEtapa(){const cid=gEl('e_cli').value,eid=gEl('e_id').value;if(!confirm('Remover esta etapa do checklist deste cliente?'))return;
   const c=DB.onbClientes.find(x=>x.id===cid);c.etapas=c.etapas.filter(x=>x.id!==eid);
@@ -3247,6 +3299,99 @@ function restCliente(id){const c=DB.onbClientes.find(x=>x.id===id);if(c){c.delet
 function purgeCliente(id){if(!ME||!ME.is_admin)return toast('Só um administrador exclui em definitivo');
   if(!confirm('Excluir definitivamente? Não pode ser desfeita.'))return;
   DB.onbClientes=DB.onbClientes.filter(x=>x.id!==id);onbDelRow('onb_clientes',id);render()}
+
+/* ===================================================================
+   Cada cliente da implantação tem um código próprio (IMP-0001), o lead
+   de onde veio e o número da proposta que fechou. É o mesmo cliente do
+   começo ao fim, sem redigitar nada.
+   =================================================================== */
+function onbProximoCodigo(){
+ const usados=(DB.onbClientes||[]).map(c=>{const m=/^IMP-(\d+)$/.exec(c.codigo||'');return m?+m[1]:0});
+ return 'IMP-'+String(Math.max(0,...usados)+1).padStart(4,'0')}
+function onbGarantirCodigo(c){if(c&&!c.codigo){c.codigo=onbProximoCodigo();return true}return false}
+const onbLead=c=>(c&&c.leadId)?crmLeadById(c.leadId):null;
+function onbProposta(c){
+ if(!c)return null;
+ if(c.propostaId){const p=DB.crmPropostas.find(x=>x.id===c.propostaId&&!x.deletedAt);if(p)return p}
+ const l=onbLead(c);return l?comPropAtiva(l):null}
+/* ao abrir a ficha, quem veio do comercial e ainda não tem número recebe o da proposta */
+function onbSincronizarCrm(c){let mudou=onbGarantirCodigo(c);
+ const p=onbProposta(c);
+ if(p&&c.propostaNumero!==p.numero){c.propostaNumero=p.numero;c.propostaId=p.id;mudou=true}
+ if(mudou)pOnbCli(c);
+ return mudou}
+function onbVincularLead(cid,leadId){const c=DB.onbClientes.find(x=>x.id===cid);if(!c)return;
+ c.leadId=leadId||'';c.propostaId='';c.propostaNumero='';
+ onbSincronizarCrm(c);pOnbCli(c);render();
+ toast(leadId?'Vinculado a '+(crmLeadById(leadId)||{}).empresa:'Vínculo com o comercial removido')}
+
+/* --- data de início, sem abrir o cadastro inteiro --- */
+function onbSetInicio(cid,v){const c=DB.onbClientes.find(x=>x.id===cid);if(!c||!v||v===c.dataInicio)return;
+ const antes=c.dataInicio;c.dataInicio=v;pOnbCli(c);
+ const abertas=c.etapas.filter(e=>!onbFeito(e)).length;
+ render();
+ if(abertas&&confirm('Início mudou de '+fmtBR(antes)+' para '+fmtBR(v)+'.'+'\n'+'\n'
+   +'Recalcular o prazo das '+abertas+' etapa(s) ainda em aberto?')){
+  c.etapas.forEach(e=>{if(onbFeito(e))return;const off=Math.round(e.offset*(c.prazoDias/90));
+   e.prazo=diaUtil(addDias(c.dataInicio,off),'posterga')});
+  pOnbEtAll(c);render();toast('Início e prazos atualizados')}
+ else toast('Início alterado para '+fmtBR(v))}
+
+/* ===================================================================
+   Pergunta objetiva ao concluir a etapa. Marcar sem registrar o que
+   ficou definido é o que faz o checklist virar enfeite.
+   =================================================================== */
+const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['texto','Texto livre'],
+  ['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
+function etapaPergunta(e){
+ if(e.perguntaTipo)return {tipo:e.perguntaTipo,label:e.perguntaLabel||'O que ficou definido?'};
+ const t=(e.titulo||'').toLowerCase();
+ if(/respons|quem |designa|equipe/.test(t))return {tipo:'pessoa',label:'Quem ficou responsável?'};
+ if(/reuni|kickoff|kick-off|call|agendar|apresenta|alinhament/.test(t))return {tipo:'data',label:'Para que dia ficou agendada?'};
+ if(/contrato|assinat|procura/.test(t))return {tipo:'data',label:'Assinado em que data?'};
+ if(/acesso|senha|login|certificad|token/.test(t))return {tipo:'texto',label:'Qual acesso foi liberado e onde ficou guardado?'};
+ if(/document|comprovant|arquiv|receb/.test(t))return {tipo:'sim_nao',label:'Recebemos tudo o que precisava?'};
+ if(/concilia|fechament|relat/.test(t))return {tipo:'data',label:'De qual competência?'};
+ return {tipo:'texto',label:'O que ficou definido?'}}
+
+let _reCli='', _reEt='';
+function etapaPerguntar(cid,eid){
+ const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
+ if(!e)return;
+ const q=etapaPergunta(e);
+ if(q.tipo==='nenhuma')return etapaConcluir(cid,eid,'');
+ _reCli=cid;_reEt=eid;
+ gEl('reTitulo').textContent=e.num+'. '+e.titulo;
+ gEl('rePergunta').textContent=q.label;
+ const box=gEl('reCampo');
+ if(q.tipo==='pessoa'){
+  const eqp=alive(DB.onbOperadores);
+  box.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">
+    ${eqp.map(o=>`<button type="button" class="btn btn-sm" onclick="reEscolher('${esc(o.nome)}')">${esc(o.nome)}</button>`).join('')}</div>
+   <input id="reVal" placeholder="ou escreva outro nome" value="${esc(e.resposta||'')}">`}
+ else if(q.tipo==='data')box.innerHTML=`<input id="reVal" type="date" value="${esc(e.resposta||todayKey())}">`;
+ else if(q.tipo==='sim_nao')box.innerHTML=`<div style="display:flex;gap:7px">
+   <button type="button" class="btn btn-sm" onclick="reEscolher('Sim')">Sim</button>
+   <button type="button" class="btn btn-sm" onclick="reEscolher('Não, falta coisa')">Não, falta coisa</button></div>
+   <input id="reVal" type="hidden" value="${esc(e.resposta||'')}">`;
+ else box.innerHTML=`<textarea id="reVal" rows="3" placeholder="em uma linha">${esc(e.resposta||'')}</textarea>`;
+ showModal('ovRespEt');
+ setTimeout(()=>{const v=gEl('reVal');if(v&&v.type!=='hidden')v.focus()},70)}
+function reEscolher(v){const el=gEl('reVal');if(el){el.value=v}
+ if(gEl('reCampo').querySelector('input[type=hidden]'))reSalvar()}
+function reSalvar(){const el=gEl('reVal');const v=el?String(el.value||'').trim():'';
+ if(!v)return toast('Responda ou use "Só concluir"');
+ closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,v)}
+function rePular(){closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,'')}
+function etapaConcluir(cid,eid,resposta){
+ const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
+ if(!e)return;
+ e.status='realizado';e.dataConclusao=todayKey();
+ if(resposta)e.resposta=resposta;
+ pOnbEt(c,e);render();
+ toast('Etapa '+e.num+' concluída'+(resposta?' · '+resposta:''));
+ if(e.bloqueador&&onbGoLive(c))toast('🔐 Go-Live Ready: todos os bloqueadores concluídos!')}
+
 /* ===== mutações: operadores ===== */
 function openOperador(id){const o=id?onbOpById(id):null;gEl('opTitle').textContent=o?'Editar responsável':'Novo responsável';
   gEl('o_id').value=o?o.id:'';gEl('o_nome').value=o?o.nome:'';curCorOp=o?o.cor:PALETTE[DB.onbOperadores.length%PALETTE.length];
@@ -3821,7 +3966,7 @@ function restoreAtiv(id){const a=DB.crmAtividades.find(x=>x.id===id);if(a){a.del
 function purgeAtiv(id){if(!confirm('Excluir definitivamente?'))return;DB.crmAtividades=DB.crmAtividades.filter(x=>x.id!==id);onbDelRow('crm_atividades',id);render()}
 /* ===== mutações: meta ===== */
 function openMeta(id){const m=id?DB.crmMetas.find(x=>x.id===id):null;gEl('metaTitle').textContent=m?'Editar meta':'Nova meta';
-  gEl('m_id').value=m?m.id:'';gEl('m_ind').value=m?m.indicador:'';gEl('m_meta').value=m?m.meta:'';
+  gEl('mt_id').value=m?m.id:'';gEl('m_ind').value=m?m.indicador:'';gEl('m_meta').value=m?m.meta:'';
   gEl('m_metrica').innerHTML=Object.entries(CRM_METRICAS).map(([k,v])=>`<option value="${k}" ${m&&m.metrica===k?'selected':''}>${v.label}</option>`).join('');
   gEl('m_real').value=m?(m.realizado||0):0;gEl('m_moeda').checked=m?!!m.moeda:false;
   toggleManual();gEl('m_metrica').onchange=toggleManual;
@@ -3829,7 +3974,7 @@ function openMeta(id){const m=id?DB.crmMetas.find(x=>x.id===id):null;gEl('metaTi
 function toggleManual(){gEl('m_manualWrap').style.display=gEl('m_metrica').value==='manual'?'':'none'}
 function saveMeta(){const indicador=gEl('m_ind').value.trim();if(!indicador)return toast('Informe o indicador');
   const data={indicador,meta:+gEl('m_meta').value||0,metrica:gEl('m_metrica').value,realizado:+gEl('m_real').value||0,moeda:gEl('m_moeda').checked};
-  const id=gEl('m_id').value;let mt;
+  const id=gEl('mt_id').value;let mt;
   if(id){mt=DB.crmMetas.find(x=>x.id===id);Object.assign(mt,data)}else{mt=Object.assign({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),ordem:DB.crmMetas.length,deletedAt:null},data);DB.crmMetas.push(mt)}
   persistCrmMeta(mt);closeModal('ovMeta');render();toast('Meta salva')}
 function delMeta(id){const m=DB.crmMetas.find(x=>x.id===id);if(m){m.deletedAt=Date.now();persistCrmMeta(m);render();toast('Meta removida')}}
@@ -5508,6 +5653,7 @@ function comIniciarImplantacao(id){const l=crmLeadById(id);if(!l)return;
  if(l.cnpj)detalhes.push('CNPJ: '+l.cnpj);
  const c=criarCliente(l.empresa,op,perfil,todayKey(),prazo,detalhes.join(' · '));
  c.leadId=l.id;c.origem='comercial';
+ if(p){c.propostaId=p.id;c.propostaNumero=p.numero}
  DB.onbClientes.push(c);pOnbCli(c);pOnbEtAll(c);
  comLog(l,'Implantação iniciada','perfil '+perfil+' · '+prazo+' dias · '+c.etapas.length+' etapas criadas');
  onbCliente=c.id;go('onb');
@@ -6950,7 +7096,7 @@ function cliLogoRemover(px){px=px||'cl';
 function cliLogoDescartar(px){px=px||'cl';
  const url=(gEl(px+'_logo')||{}).value||'';
  if(url&&url!==_logoOrig[px])cliLogoApagarArquivo(url)}
-function cliCancelarModal(){cliLogoDescartar('cl');closeModal('ovCliente')}
+function cliCancelarModal(){cliLogoDescartar('cl');closeModal('ovCarteira')}
 function cancelarLead(){cliLogoDescartar('l');closeModal('ovLead')}
 
 /* a logo que o funil mostra: a do lead ou, se ele já virou cliente, a da carteira */
@@ -7041,7 +7187,7 @@ function cliAbrirModal(id,base){
  gEl('cl_status').value=c?(c.status||'ativo'):'ativo';
  gEl('cl_lead').value=c?(c.leadId||''):((base&&base.leadId)||'');
  gEl('cl_onb').value=c?(c.onbId||''):((base&&base.onbId)||'');
- showModal('ovCliente');setTimeout(()=>gEl('cl_nome').focus(),60)}
+ showModal('ovCarteira');setTimeout(()=>gEl('cl_nome').focus(),60)}
 
 function cliSalvar(){
  const nome=gEl('cl_nome').value.trim();if(!nome)return toast('Informe o nome do cliente');
@@ -7056,7 +7202,7 @@ function cliSalvar(){
   (DB.clientes=DB.clientes||[]).push(c)}
  persistCliente(c);
  if(_logoOrig.cl&&_logoOrig.cl!==(c.logoUrl||''))cliLogoApagarArquivo(_logoOrig.cl);
- _logoOrig.cl=c.logoUrl||'';closeModal('ovCliente');render();
+ _logoOrig.cl=c.logoUrl||'';closeModal('ovCarteira');render();
  toast(id?'Cliente atualizado':nome+' entrou na carteira')}
 
 function cliExcluir(id){const c=cliById(id);if(!c)return;
