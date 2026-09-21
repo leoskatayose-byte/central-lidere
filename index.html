@@ -3426,11 +3426,11 @@ const ETAPA_QS=[
  [/classificar perfil/,{tipo:'perfil',label:'Qual o perfil do cliente?',
    dica:'A escolha grava o perfil e o SLA na ficha do cliente e recalcula a previsão de go-live.'}],
  [/acesso banc[áa]rio|internet banking/,{tipo:'multi',label:'De quais bancos temos acesso validado?',cat:'banco'}],
- [/sistema de gest[ãa]o financeira/,{tipo:'escolha',label:'Qual sistema de gestão vamos usar?',cat:'sistema',
-   dica:'O padrão da casa é o Nibo. Se o cliente usa outro e ele não está na lista, escreva e adicione.'}],
- [/certificado digital/,{tipo:'op_data',label:'Qual certificado e até quando vale?',
+ [/sistema de gest[ãa]o financeira/,{tipo:'multi',label:'Quais sistemas vamos usar?',cat:'sistema',
+   dica:'O padrão da casa é o Nibo, e dá para marcar mais de um (Nibo e Bling, por exemplo). O que não estiver na lista, escreva e adicione.'}],
+ [/certificado digital/,{tipo:'multi_data',label:'Qual certificado e até quando vale?',
    ops:['e-CNPJ A1','e-CNPJ A3','Procuração eletrônica','Cliente já tinha'],dataRot:'Validade'}],
- [/nfse|prefeitura/,{tipo:'escolha',label:'Como fica a emissão de NFSe?',
+ [/nfse|prefeitura/,{tipo:'multi',label:'Como fica a emissão de NFSe?',
    ops:['Acesso liberado e testado','Cliente emite direto','Contador emite','Não emite NFSe']}],
  [/adquirente/,{tipo:'multi',label:'Quais adquirentes o cliente usa?',cat:'adquirente'}],
  [/sistema do cliente|erp/,{tipo:'multi',label:'Qual sistema o cliente usa?',cat:'erp'}],
@@ -3440,18 +3440,18 @@ const ETAPA_QS=[
    ops:['E-mail padrão','Grupo de WhatsApp','Formulário','Telefone direto','Reunião semanal']}],
  [/boas-vindas|boas vindas/,{tipo:'op_data',label:'E-mail de boas-vindas?',
    ops:['Enviado','Enviado e respondido'],dataRot:'Data'}],
- [/plano de contas/,{tipo:'escolha',label:'De onde saiu o plano de contas?',
+ [/plano de contas/,{tipo:'multi',label:'De onde saiu o plano de contas?',
    ops:['Padrão Lidere','Adaptado do cliente','Construído do zero','Importado do sistema anterior']}],
  [/contas correntes/,{tipo:'multi',label:'Quais contas correntes foram cadastradas?',cat:'banco'}],
- [/clientes\/fornecedores/,{tipo:'escolha',label:'Como entrou a base de clientes e fornecedores?',
+ [/clientes\/fornecedores/,{tipo:'multi',label:'Como entrou a base de clientes e fornecedores?',
    ops:['Importada por planilha','Migrada do sistema anterior','Cadastrada manualmente','Cliente não tinha base']}],
- [/produtos\/servi/,{tipo:'escolha',label:'Como entrou o catálogo de produtos e serviços?',
+ [/produtos\/servi/,{tipo:'multi',label:'Como entrou o catálogo de produtos e serviços?',
    ops:['Importado','Cadastro manual','Cliente não trabalha com catálogo']}],
  [/regra fiscal/,{tipo:'escolha',label:'Regra fiscal do contador?',
    ops:['Recebida do contador','Solicitada, aguardando','Não emite NF no sistema']}],
- [/contas a pagar/,{tipo:'escolha',label:'Como entraram as contas a pagar pendentes?',
+ [/contas a pagar/,{tipo:'multi',label:'Como entraram as contas a pagar pendentes?',
    ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
- [/contas a receber/,{tipo:'escolha',label:'Como entraram as contas a receber pendentes?',
+ [/contas a receber/,{tipo:'multi',label:'Como entraram as contas a receber pendentes?',
    ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
  [/gastos recorrentes/,{tipo:'escolha',label:'Classificação de gastos?',
    ops:['Concluída','Parcial, aguardando o cliente','Feita junto com o contador']}],
@@ -3463,11 +3463,11 @@ const ETAPA_QS=[
    ops:['Enviada','Enviada e confirmada pelo cliente'],dataRot:'Data'}],
  [/compreendeu/,{tipo:'escolha',label:'O cliente entendeu os fluxos e canais?',
    ops:['Sim, confirmou','Parcial, vamos reforçar','Precisa de nova sessão']}],
- [/agendamentos banc/,{tipo:'escolha',label:'Onde ficaram os agendamentos recorrentes?',
+ [/agendamentos banc/,{tipo:'multi',label:'Onde ficaram os agendamentos recorrentes?',
    ops:['Configurados no banco','Configurados no sistema','Cliente aprova manualmente']}],
  [/inadimpl/,{tipo:'escolha',label:'Política de inadimplência?',
    ops:['Definida e aprovada pelo cliente','Definida internamente','Cliente mantém a política dele']}],
- [/r[ée]gua de cobran/,{tipo:'escolha',label:'Onde roda a régua de cobrança?',
+ [/r[ée]gua de cobran/,{tipo:'multi',label:'Onde roda a régua de cobrança?',
    ops:['Configurada no sistema','Manual pela equipe','Cliente cobra direto']}],
  [/pagamentos a fornecedores/,{tipo:'escolha',label:'Política de pagamentos?',
    ops:['Definida, validada e formalizada','Definida, aguardando aprovação','Cliente paga direto']}],
@@ -3491,13 +3491,14 @@ const ETAPA_QS=[
  [/handoff|apto para opera/,{tipo:'pessoa',label:'Quem assume o cliente na operação?'}]];
 const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['mes','Competência (mês)'],
   ['escolha','Lista de opções (separe com | )'],['multi','Lista, pode marcar várias (separe com | )'],
+  ['multi_data','Lista com data, pode marcar várias (separe com | )'],
   ['texto','Texto livre'],['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
 function etapaPergunta(e){
  if(e.perguntaTipo){
   const p=String(e.perguntaLabel||'').split('|').map(x=>x.trim()).filter(Boolean);
   const q={tipo:e.perguntaTipo,label:p[0]||'O que ficou definido?'};
   if(p.length>1)q.ops=p.slice(1);
-  if((e.perguntaTipo==='escolha'||e.perguntaTipo==='multi')&&!q.ops)q.ops=['Sim','Não','Parcial'];
+  if(/^(escolha|multi|multi_data|op_data)$/.test(e.perguntaTipo)&&!q.ops)q.ops=['Sim','Não','Parcial'];
   return q}
  const t=(e.titulo||'').toLowerCase();
  const achou=ETAPA_QS.find(r=>r[0].test(t));
@@ -3532,7 +3533,7 @@ function reSync(){const hid=gEl('reVal');if(!hid||hid.type!=='hidden')return;
  if(tipo==='pessoa'){const sel=gEl('reSel');
   const nome=sel&&sel.value?String(sel.options[sel.selectedIndex].textContent||'').split(' · ')[0].trim():'';
   v=outro||nome}
- else if(tipo==='op_data'){const d=gEl('reData')?gEl('reData').value:'';
+ else if(tipo==='op_data'||tipo==='multi_data'){const d=gEl('reData')?gEl('reData').value:'';
   v=[marc.join(', '),d?fmtBR(d):''].filter(Boolean).join(' · ')}
  else v=marc.concat(outro?[outro]:[]).join(', ');
  hid.value=v}
@@ -3559,8 +3560,8 @@ function reCampoHTML(q,e,c){
       <button type="button" class="btn btn-sm" onclick="reAddCat()">+ Adicionar à lista</button></div>`
    :`<input id="reOutro" oninput="reSync()" placeholder="ou escreva outro">`;
   return h+hid}
- if(q.tipo==='op_data')
-  return reChipsHTML(q.ops||[],false,at.split(' · ')[0])
+ if(q.tipo==='op_data'||q.tipo==='multi_data')
+  return reChipsHTML(q.ops||[],q.tipo==='multi_data',at.split(' · ')[0])
    +`<div style="display:flex;gap:9px;align-items:center">
      <span class="muted" style="font-size:12px">${esc(q.dataRot||'Data')}</span>
      <input id="reData" type="date" value="${esc(reDataDe(at)||todayKey())}" oninput="reSync()"></div>`+hid;
@@ -3579,7 +3580,9 @@ function etapaPerguntar(cid,eid){
  gEl('reFoot').innerHTML=`<button class="btn btn-ghost" onclick="reNaoSeAplica()">Não se aplica</button>
    <button class="btn btn-ghost" onclick="rePular()">Só concluir</button>
    <button class="btn btn-gold" onclick="reSalvar()">Salvar e concluir</button>`;
- gEl('reDica').textContent=q.dica||'Clique na opção e salve. A resposta fica registrada na etapa e aparece no checklist.';
+ gEl('reDica').textContent=q.dica||((q.tipo==='multi'||q.tipo==='multi_data')
+   ?'Pode marcar mais de uma opção. Clique para marcar e clique de novo para desmarcar.'
+   :'Clique na opção e salve. A resposta fica registrada na etapa e aparece no checklist.');
  gEl('reCampo').innerHTML=reCampoHTML(q,e,c);
  showModal('ovRespEt');reSync();
  if(q.tipo==='texto'||q.tipo==='data'||q.tipo==='mes')setTimeout(()=>{const v=gEl('reVal');if(v)v.focus()},70)}
