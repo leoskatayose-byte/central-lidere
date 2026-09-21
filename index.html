@@ -1082,10 +1082,9 @@ tbody tr:hover{background:var(--panel2)}
   <div class="modal-head"><h3 id="reTitulo">Etapa</h3><button class="modal-x" onclick="closeModal('ovRespEt')">×</button></div>
   <div class="modal-body">
     <div class="field"><label id="rePergunta">Pergunta</label><div id="reCampo"></div></div>
-    <div class="muted" style="font-size:11.5px;line-height:1.6">A resposta fica registrada na etapa e aparece no checklist.
-      Se não tiver o que responder agora, use <b>Só concluir</b>.</div>
+    <div class="muted" id="reDica" style="font-size:11.5px;line-height:1.6"></div>
   </div>
-  <div class="modal-foot"><button class="btn btn-ghost" onclick="rePular()">Só concluir</button><button class="btn btn-gold" onclick="reSalvar()">Salvar e concluir</button></div>
+  <div class="modal-foot" id="reFoot"></div>
 </div></div>
 
 <!-- ===== Modal Etapa (Implantação) ===== -->
@@ -3151,9 +3150,9 @@ function viewOnbCliente(){
             <span class="chip ${late?'chip-vencido':'chip-n'}">prazo ${fmtBR(e.prazo)}</span>
             ${onbFeito(e)?`<span class="chip chip-pago">concluída ${fmtBR(e.dataConclusao)}</span>`:''}
             ${e.status==='andamento'?'<span class="chip chip-avencer">em andamento</span>':''}
-            ${e.status==='na'?'<span class="chip chip-n">não se aplica</span>':''}
+            ${e.status==='na'?'<span class="chip chip-n" style="color:var(--mut)">não se aplica</span>':''}
             <span class="chip chip-n">${esc(onbOpNome(e.responsavelId))}</span></div>
-          ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
+          ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${e.status==='na'?'Motivo:':esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
           ${e.obs?`<div class="row-meta">📝 ${esc(e.obs)}</div>`:''}</div>
         <div class="row-actions">
           <button class="iconbtn" onclick="moverEtapa('${c.id}','${e.id}',-1)" ${k===0?'disabled':''}>▲</button>
@@ -3219,9 +3218,30 @@ function viewOnbEquipe(){
       <div class="row-body"><div class="row-title">${esc(o.nome)}</div><div class="row-meta">${meus.length} cliente(s) sob responsabilidade</div>
       <div class="progress mini" style="max-width:420px"><i class="pbar-static" style="width:${pct}%"></i></div>
       <div class="row-meta"><span class="chip chip-n">${pct}% concluído</span><span class="chip chip-n">${pend} pendentes</span>${atrs?`<span class="chip chip-vencido">${atrs} atrasadas</span>`:'<span class="chip chip-pago">sem atrasos</span>'}</div></div>
-      <div class="row-actions"><button class="iconbtn" onclick="openOperador('${o.id}')">✎</button><button class="iconbtn del" onclick="delOperador('${o.id}')">🗑</button></div></div>`}).join('')
-    ||'<div class="empty">Nenhum responsável cadastrado.</div>';
-  return `<div class="panel"><div class="panel-head"><h2>Carga por responsável<small>Etapas em aberto e atrasadas de todos os clientes</small></h2><button class="btn btn-sm btn-gold" onclick="openOperador()">+ Responsável</button></div>${cards}</div>`}
+      <div class="row-actions">${o.pessoaId
+        ? `<button class="btn btn-sm btn-ghost" title="Tira o papel de implantação; a pessoa continua cadastrada" onclick="pessoaTogglePapel('${o.pessoaId}','implantacao')">Tirar da implantação</button>`
+        : `<button class="iconbtn" onclick="openOperador('${o.id}')">✎</button><button class="iconbtn del" onclick="delOperador('${o.id}')">🗑</button>`}</div></div>`}).join('')
+    ||'<div class="empty">Ninguém marcado como responsável de implantação ainda.</div>';
+  return `<div class="panel"><div class="panel-head"><h2>Carga por responsável<small>Etapas em aberto e atrasadas de todos os clientes</small></h2></div>
+    ${onbBarraEquipe()}${cards}</div>`}
+
+/* a equipe da implantação é o cadastro único de Pessoas, filtrado pelo papel.
+   Antes dava para criar um responsável só aqui, e ele sumia no próximo carregamento,
+   porque a projeção de Pessoas reescreve esta lista. */
+function onbBarraEquipe(){
+ const temCadastro=!!(DB.pessoas&&DB.pessoas.length);
+ if(!temCadastro)return `<div class="tip">Cadastre a equipe em <b>Administração › Pessoas</b> e marque o papel
+   <b>Implantação</b>. Enquanto o cadastro estiver vazio, a lista antiga daqui continua valendo.
+   <button class="btn btn-sm" style="margin-left:8px" onclick="openOperador()">+ Responsável (lista antiga)</button></div>`;
+ const fora=pessoasVivas().filter(p=>p.ativo&&!pessoaTemPapel(p,'implantacao'))
+   .sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+ return `<div class="onb-vinc" style="margin-bottom:12px">
+   <span class="muted" style="font-size:12px">Quem atua na implantação sai do cadastro de <b>Pessoas</b>.</span>
+   ${fora.length?`<select onchange="if(this.value)pessoaTogglePapel(this.value,'implantacao');this.value=''">
+     <option value="">+ Trazer alguém já cadastrado…</option>
+     ${fora.map(p=>`<option value="${p.id}">${esc(p.nome)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')}</select>`
+    :'<span class="muted" style="font-size:12px">Todo mundo do cadastro já está aqui.</span>'}
+   <button class="btn btn-sm" style="margin-left:auto" onclick="go('admin');admTab='equipe';render()">Abrir Pessoas</button></div>`}
 function viewOnbExcluidos(){
   const del=DB.onbClientes.filter(c=>c.deletedAt);
   const rows=del.map(c=>`<div class="row"><div class="row-body"><div class="row-title">${esc(c.nome)}</div>
@@ -3232,6 +3252,8 @@ function viewOnbExcluidos(){
 /* ===== mutações: etapas ===== */
 function toggleEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c&&c.etapas.find(x=>x.id===eid);if(!e)return;
   if(onbFeito(e)){e.status='pendente';e.dataConclusao=null;pOnbEt(c,e);render();return}
+  if(e.status==='na'){e.status='pendente';e.resposta='';pOnbEt(c,e);render();
+    return toast('Etapa '+e.num+' voltou para a fila')}
   etapaPerguntar(cid,eid)}
 function pickStatusE(v){curStatusE=v;document.querySelectorAll('#e_status .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===v))}
 function openEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c.etapas.find(x=>x.id===eid);if(!e)return;
@@ -3363,6 +3385,10 @@ function etapaPerguntar(cid,eid){
  _reCli=cid;_reEt=eid;
  gEl('reTitulo').textContent=e.num+'. '+e.titulo;
  gEl('rePergunta').textContent=q.label;
+ gEl('reFoot').innerHTML=`<button class="btn btn-ghost" onclick="reNaoSeAplica()">Não se aplica</button>
+   <button class="btn btn-ghost" onclick="rePular()">Só concluir</button>
+   <button class="btn btn-gold" onclick="reSalvar()">Salvar e concluir</button>`;
+ gEl('reDica').textContent='A resposta fica registrada na etapa e aparece no checklist. Sem o que responder agora, use "Só concluir".';
  const box=gEl('reCampo');
  if(q.tipo==='pessoa'){
   const eqp=alive(DB.onbOperadores);
@@ -3383,6 +3409,23 @@ function reSalvar(){const el=gEl('reVal');const v=el?String(el.value||'').trim()
  if(!v)return toast('Responda ou use "Só concluir"');
  closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,v)}
 function rePular(){closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,'')}
+
+/* etapa que não vale para este cliente: sai da conta do progresso, com ou sem motivo */
+function reNaoSeAplica(){
+ gEl('rePergunta').textContent='Por que esta etapa não se aplica a este cliente?';
+ gEl('reCampo').innerHTML='<input id="reVal" placeholder="opcional — ex: o cliente não emite nota fiscal">';
+ gEl('reDica').textContent='Pode deixar em branco. A etapa sai do cálculo do progresso e do Go-Live, e você pode reverter clicando no quadradinho de novo.';
+ gEl('reFoot').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('ovRespEt')">Voltar</button>
+   <button class="btn btn-gold" onclick="reSalvarNa()">Marcar como não se aplica</button>`;
+ setTimeout(()=>{const v=gEl('reVal');if(v)v.focus()},60)}
+function reSalvarNa(){const el=gEl('reVal');const v=el?String(el.value||'').trim():'';
+ closeModal('ovRespEt');etapaNaoSeAplica(_reCli,_reEt,v)}
+function etapaNaoSeAplica(cid,eid,motivo){
+ const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
+ if(!e)return;
+ e.status='na';e.dataConclusao=null;e.resposta=motivo||'';
+ pOnbEt(c,e);render();
+ toast('Etapa '+e.num+' não se aplica'+(motivo?' · '+motivo:''))}
 function etapaConcluir(cid,eid,resposta){
  const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
  if(!e)return;
