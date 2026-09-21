@@ -1062,7 +1062,8 @@ tbody tr:hover{background:var(--panel2)}
     <input type="hidden" id="c2_id">
     <div class="field"><label>Empresa *</label><input id="c2_nome" placeholder="Nome do cliente"></div>
     <div class="fgrid">
-      <div class="field"><label>Responsável</label><select id="c2_operador"></select></div>
+      <div class="field"><label>Responsável</label><select id="c2_operador"></select>
+        <div class="muted" id="c2_resp_dica" style="font-size:11px;margin-top:5px;line-height:1.45"></div></div>
       <div class="field"><label>Início da implantação</label><input id="c2_inicio" type="date"></div>
     </div>
     <div class="field"><label>Perfil (define o SLA padrão)</label><div class="seg" id="c2_perfil">
@@ -3260,7 +3261,7 @@ function openEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c
   gEl('etapaTitle').textContent='Etapa '+e.num;gEl('e_id').value=e.id;gEl('e_cli').value=cid;
   gEl('e_titulo').value=e.titulo;gEl('e_prazo').value=e.prazo;gEl('e_conclusao').value=e.dataConclusao||'';gEl('e_obs').value=e.obs||'';
   gEl('e_bloq').checked=!!e.bloqueador;gEl('e_obrig').checked=!!e.obrigatorio;
-  gEl('e_resp').innerHTML=alive(DB.onbOperadores).map(o=>`<option value="${o.id}" ${e.responsavelId===o.id?'selected':''}>${esc(o.nome)}</option>`).join('');
+  gEl('e_resp').innerHTML=onbRespOpcoes(e.responsavelId);
   gEl('e_fase').innerHTML=FASES.map((f,i)=>`<option value="${i}" ${e.fase===i?'selected':''}>Fase ${i+1} · ${esc(f)}</option>`).join('');
   const q=etapaPergunta(e);
   gEl('e_pergtipo').innerHTML='<option value="">Padrão pelo título ('+esc((ETAPA_PERG_TIPOS.find(x=>x[0]===q.tipo)||['','—'])[1])+')</option>'
@@ -3274,7 +3275,7 @@ function saveEtapa(){const cid=gEl('e_cli').value,eid=gEl('e_id').value;
   const t=gEl('e_titulo').value.trim();if(!t)return toast('Informe a etapa');
   e.titulo=t;e.status=curStatusE;e.prazo=gEl('e_prazo').value||e.prazo;
   e.dataConclusao=gEl('e_conclusao').value||(curStatusE==='realizado'?todayKey():null);
-  e.responsavelId=gEl('e_resp').value;e.obs=gEl('e_obs').value.trim();
+  e.responsavelId=onbRespResolver(gEl('e_resp').value);e.obs=gEl('e_obs').value.trim();
   const nf=+gEl('e_fase').value;if(nf!==e.fase){e.fase=nf;e.ordem=Math.max(-1,...c.etapas.filter(x=>x.fase===nf&&x.id!==e.id).map(x=>x.ordem))+0.5}
   e.bloqueador=gEl('e_bloq').checked;e.obrigatorio=gEl('e_obrig').checked;
   e.perguntaTipo=gEl('e_pergtipo').value;e.perguntaLabel=gEl('e_perglabel').value.trim();
@@ -3300,13 +3301,19 @@ function pickPerfil(v){curPerfil=v;document.querySelectorAll('#c2_perfil .o').fo
 function openCliente(id){const c=id?DB.onbClientes.find(x=>x.id===id):null;
   gEl('clienteTitle').textContent=c?'Editar cliente':'Novo cliente';gEl('c2_id').value=c?c.id:'';
   gEl('c2_nome').value=c?c.nome:'';gEl('c2_obs').value=c?(c.obs||''):'';gEl('c2_inicio').value=c?c.dataInicio:todayKey();
-  gEl('c2_operador').innerHTML=alive(DB.onbOperadores).map(o=>`<option value="${o.id}" ${c&&c.operadorId===o.id?'selected':''}>${esc(o.nome)}</option>`).join('');
+  gEl('c2_operador').innerHTML=onbRespOpcoes(c?c.operadorId:'');
+  {const d=gEl('c2_resp_dica');
+   if(d)d.textContent=alive(DB.onbOperadores).length
+     ?'Quem está fora da equipe de implantação entra automaticamente ao salvar.'
+     :(pessoasVivas().filter(p=>p.ativo).length
+       ?'Ninguém tem o papel de Implantação ainda. Escolha alguém do cadastro que ele passa a ter.'
+       :'Cadastro de pessoas vazio. Abra Administração › Pessoas para incluir a equipe.')}
   pickPerfil(c?c.perfil:'B');gEl('c2_prazo').value=c?c.prazoDias:PERFIS_ONB[curPerfil];
   gEl('c2_aviso').style.display=c?'none':'block';
   showModal('ovCliente');setTimeout(()=>gEl('c2_nome').focus(),60)}
 function saveCliente(){const nome=gEl('c2_nome').value.trim();if(!nome)return toast('Informe a empresa');
   const inicio=gEl('c2_inicio').value;if(!inicio)return toast('Informe a data de início');
-  const op=gEl('c2_operador').value,prazo=+gEl('c2_prazo').value||PERFIS_ONB[curPerfil],obs=gEl('c2_obs').value.trim();
+  const op=onbRespResolver(gEl('c2_operador').value),prazo=+gEl('c2_prazo').value||PERFIS_ONB[curPerfil],obs=gEl('c2_obs').value.trim();
   const id=gEl('c2_id').value;
   if(id){const c=DB.onbClientes.find(x=>x.id===id);const mudou=c.dataInicio!==inicio||c.prazoDias!==prazo;
     Object.assign(c,{nome,operadorId:op,perfil:curPerfil,dataInicio:inicio,prazoDias:prazo,obs});
@@ -3434,6 +3441,40 @@ function etapaConcluir(cid,eid,resposta){
  pOnbEt(c,e);render();
  toast('Etapa '+e.num+' concluída'+(resposta?' · '+resposta:''));
  if(e.bloqueador&&onbGoLive(c))toast('🔐 Go-Live Ready: todos os bloqueadores concluídos!')}
+
+
+/* ===================================================================
+   Seletor de responsável da implantação.
+   Ficava vazio quando ninguém tinha o papel marcado, e não havia saída
+   pela própria tela. Agora mostra quem já atua e, embaixo, quem está
+   cadastrado em Pessoas; escolher alguém de fora dá o papel na hora.
+   =================================================================== */
+function onbRespOpcoes(sel){
+ const atuais=alive(DB.onbOperadores);
+ let h=`<option value="">— sem responsável —</option>`;
+ if(atuais.length)h+='<optgroup label="Equipe de implantação">'+atuais.map(o=>
+   `<option value="${o.id}" ${sel===o.id?'selected':''}>${esc(o.nome)}</option>`).join('')+'</optgroup>';
+ const fora=pessoasVivas().filter(p=>p.ativo&&!pessoaTemPapel(p,'implantacao'))
+   .sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
+ if(fora.length)h+='<optgroup label="Cadastrados em Pessoas · entram na implantação ao salvar">'
+   +fora.map(p=>`<option value="pessoa:${p.id}">${esc(p.nome)}${p.cargo?' · '+esc(p.cargo):''}</option>`).join('')
+   +'</optgroup>';
+ if(!atuais.length&&!fora.length)h+=`<option value="" disabled>nenhuma pessoa cadastrada — veja Administração › Pessoas</option>`;
+ return h}
+/* devolve o id de implantação; se veio do cadastro geral, concede o papel antes */
+function onbRespResolver(v){
+ v=String(v||'');
+ if(!v)return '';
+ if(v.slice(0,7)!=='pessoa:')return v;
+ const p=pessoaById(v.slice(7));
+ if(!p)return '';
+ if(!pessoaTemPapel(p,'implantacao')){
+  p.papeis=(p.papeis||[]).concat('implantacao');
+  if(!p.idImplantacao){p.idImplantacao=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
+   up('onb_operadores',{id:p.idImplantacao,nome:p.nome,cor:p.cor,deleted_at:null})}
+  persistPessoa(p);pessoasProjetar();
+  toast(p.nome+' entrou na equipe de implantação')}
+ return p.idImplantacao||''}
 
 /* ===== mutações: operadores ===== */
 function openOperador(id){const o=id?onbOpById(id):null;gEl('opTitle').textContent=o?'Editar responsável':'Novo responsável';
