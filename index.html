@@ -742,7 +742,13 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 
 /* ---------- Barra de progresso em lista (Implantação) ---------- */
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.bar-row .bl{flex:0 0 auto;max-width:200px;font-size:12px;color:var(--dim);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .bl{flex:0 0 auto;max-width:215px;font-size:12px;color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;gap:7px}
+.bar-row .bl span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-card .kbt{display:flex;align-items:flex-start;gap:8px}
+.kb-card .kbt .t{padding-right:0}
+.onb-topo{display:flex;align-items:center;gap:12px;flex:1;min-width:190px}
+.onb-topo h2{flex:1;min-width:120px}
 .bar-row .bar-t{flex:1;height:8px;border-radius:5px;background:var(--panel2);overflow:hidden}
 .bar-row .bar-t>i{display:block;height:100%;border-radius:5px;transition:width .5s}
 .bar-row .bv{flex:0 0 40px;text-align:right;font-size:12px;font-weight:700;color:var(--txt)}
@@ -3162,7 +3168,7 @@ function viewOnbDashboard(){
     statCard('Atrasados',atras.length,atras.length?'exigem ação':'nenhum')+
     statCard('Etapas vencidas',etapasHoje,'incluindo hoje')+
     statCard('Dias médios',md,'de implantação em curso');
-  const bars=cs.map(c=>{const p=onbProg(c);return `<div class="bar-row"><div class="bl" onclick="abrirCliente('${c.id}')">${esc(c.nome)}</div>
+  const bars=cs.map(c=>{const p=onbProg(c);return `<div class="bar-row"><div class="bl" onclick="abrirCliente('${c.id}')" title="${esc(c.nome)}">${cliAvatar({nome:c.nome,logoUrl:onbLogo(c)},22)}<span>${esc(c.nome)}</span></div>
     <div class="bar-t"><i class="${p.pct?'viva':''}" style="width:${p.pct}%;background:${p.pct===100?'var(--pos)':'var(--acc)'}"></i></div>
     <div class="bv">${p.pct}%</div></div>`}).join('')||'<div class="empty">Nenhum cliente em implantação. Clique em "+ Novo cliente" em Clientes.</div>';
   return `<div class="stats">${stats}</div><div class="panel"><div class="panel-head"><h2>Progresso por cliente<small>Clique num nome para abrir o checklist</small></h2></div>${bars}</div>`}
@@ -3173,7 +3179,8 @@ function viewOnbKanban(){
   return `<div class="kb" style="grid-template-columns:repeat(${cols.length},1fr)">${cols.map(col=>`<div class="kb-col">
     <div class="kb-h"><span class="dot" style="background:var(--acc)"></span>${esc(col.t)}<span class="cnt">${col.cli.length}</span></div>
     ${col.cli.map(c=>{const p=onbProg(c),atr=c.etapas.filter(onbAtrasada).length;
-      return `<div class="kb-card" onclick="abrirCliente('${c.id}')"><div class="t">${esc(c.nome)}</div>
+      return `<div class="kb-card" onclick="abrirCliente('${c.id}')">
+        <div class="kbt">${cliAvatar({nome:c.nome,logoUrl:onbLogo(c)},26)}<div class="t">${esc(c.nome)}</div></div>
         <div class="m">${onbAvatar(c.operadorId)}<span class="chip chip-n">${esc(onbOpNome(c.operadorId))}</span></div>
         <div class="progress mini"><i class="pbar-static" style="width:${p.pct}%"></i></div>
         <div class="m">${p.pct}% · ${p.done}/${p.tot}${atr?` <span class="chip chip-vencido">${atr} atrasada(s)</span>`:''}</div></div>`}).join('')||''}
@@ -3225,7 +3232,7 @@ function viewOnbCliente(){
             ${e.status==='andamento'?'<span class="chip chip-avencer">em andamento</span>':''}
             ${na?'<span class="chip chip-na">não se aplica</span>':''}
             <span class="chip chip-n">${esc(onbOpNome(e.responsavelId))}</span></div>
-          ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${e.status==='na'?'Motivo:':esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
+          ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${e.status==='na'?'Motivo:':esc(etapaPergunta(e).label)}</b> ${esc(respExibe(e.resposta))}</div>`:''}
           ${etapaDesc(e)?`<div class="et-desc">${esc(etapaDesc(e))}</div>`:''}
           ${e.obs?`<div class="row-meta">📝 ${esc(e.obs)}</div>`:''}</div>
         <div class="row-actions">
@@ -3249,7 +3256,9 @@ function viewOnbCliente(){
     <label class="onb-ini">Início <input type="date" value="${esc(c.dataInicio||'')}" onchange="onbSetInicio('${c.id}',this.value)"></label>
   </div>`;
   return `<div class="crumb"><a onclick="onbCliente=null;render()">← Clientes</a> / ${esc(c.nome)}</div>
-  <div class="panel"><div class="panel-head"><h2>${esc(c.nome)}<small>${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · SLA ${c.prazoDias} dias${c.obs?' · '+esc(c.obs):''}</small></h2>
+  <div class="panel"><div class="panel-head">
+    <div class="onb-topo">${cliAvatar({nome:c.nome,logoUrl:onbLogo(c)},46)}
+    <h2>${esc(c.nome)}<small>${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · SLA ${c.prazoDias} dias${c.obs?' · '+esc(c.obs):''}</small></h2></div>
     <button class="btn btn-sm" onclick="openCliente('${c.id}')">Editar</button>
     <button class="btn btn-sm" onclick="recalcPrazos('${c.id}')" title="Recalcula os prazos das etapas não concluídas">Recalcular prazos</button>
     <button class="btn btn-sm" onclick="sincModelo('${c.id}')" title="Traz etapas novas do modelo">Sincronizar modelo</button>
@@ -3575,6 +3584,8 @@ const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['mes','Competência (
   ['multi_data','Lista com data, pode marcar várias (separe com | )'],
   ['texto','Texto livre'],['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
 /* o texto que explica como o processo funciona, casado pelo título da etapa */
+/* respostas gravadas antes do campo de data mostravam 2026-06-01; aqui só a exibição muda */
+const respExibe=v=>String(v||'').replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g,'$3/$2/$1');
 function etapaDesc(e){const t=((e&&e.titulo)||'').toLowerCase();
  const a=ETAPA_QS.find(r=>r[0].test(t));return (a&&a[1].desc)||''}
 function etapaPergunta(e){
