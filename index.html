@@ -16,6 +16,7 @@
   --pos:#2ee6c0; --neg:#ff7a7a; --warn:#f0b448;
   --txt:#e8f1f1; --dim:#93a5a6; --mut:#5f7375;
   --glow:rgba(46,230,192,.30);
+  --na:#54b6e8;
 }
 :root[data-tema="ambar"]{
   --bg:#0a0908; --bg2:#070605; --panel:#15120e; --panel2:#1c1813; --raise:#231e17;
@@ -660,6 +661,15 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .prop-it .tx b{font-size:13px;display:block;margin-bottom:2px}
 .ro-val{background:var(--bg2);border:1px dashed var(--line-f);border-radius:9px;padding:9px 11px;font-size:12.5px;color:var(--dim)}
 .chk.on{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+/* etapa que nao vale para este cliente: marcada, mas em azul, para distinguir de concluida */
+.chk.na{background:var(--na);border-color:var(--na);color:#04202e}
+.chip-na{background:color-mix(in srgb,var(--na) 16%,transparent);color:var(--na);
+  border:1px solid color-mix(in srgb,var(--na) 42%,transparent)}
+.re-ops{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.re-op{padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--dim);font-size:12.5px;font-weight:600;cursor:pointer;transition:.14s;text-align:left}
+.re-op:hover{border-color:var(--line-f);color:var(--txt)}
+.re-op.sel{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
 
 /* ---------- Avatar (responsáveis) ---------- */
 .avatar{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
@@ -1098,6 +1108,7 @@ tbody tr:hover{background:var(--panel2)}
       <div class="o" data-v="pendente" onclick="pickStatusE('pendente')">Pendente</div>
       <div class="o" data-v="andamento" onclick="pickStatusE('andamento')">Em andamento</div>
       <div class="o" data-v="realizado" onclick="pickStatusE('realizado')">Realizado</div>
+      <div class="o" data-v="na" onclick="pickStatusE('na')">Não se aplica</div>
       <div class="o" data-v="na" onclick="pickStatusE('na')">Não se aplica</div></div></div>
     <div class="fgrid">
       <div class="field"><label>Prazo</label><input id="e_prazo" type="date"></div>
@@ -3140,8 +3151,9 @@ function viewOnbCliente(){
   FASES.forEach((f,i)=>{const es=onbOrdenadas(c).filter(e=>e.fase===i);if(!es.length)return;const pf=onbProgFase(c,i);
     corpo+=`<div style="display:flex;align-items:center;gap:10px;margin:16px 0 8px"><b style="font-size:12.5px">Fase ${i+1} · ${esc(f)}</b><span class="chip ${pf===100?'chip-pago':'chip-n'}">${pf}%</span></div>`;
     corpo+=es.map((e,k)=>{const late=onbAtrasada(e);
-      return `<div class="row ${onbFeito(e)?'done':''}" style="${onbFeito(e)?'opacity:.65':''}">
-        <button class="chk ${onbFeito(e)?'on':''}" onclick="toggleEtapa('${c.id}','${e.id}')">✓</button>
+      const na=e.status==='na';
+      return `<div class="row ${onbFeito(e)?'done':''}" style="${onbFeito(e)?'opacity:.65':na?'opacity:.8':''}">
+        <button class="chk ${onbFeito(e)?'on':''}${na?' na':''}" title="${na?'não se aplica a este cliente':''}" onclick="toggleEtapa('${c.id}','${e.id}')">✓</button>
         <div class="row-body" onclick="openEtapa('${c.id}','${e.id}')" style="cursor:pointer">
           <div class="row-title" style="${onbFeito(e)?'text-decoration:line-through':''}">${e.num}. ${esc(e.titulo)}</div>
           <div class="row-meta">
@@ -3151,7 +3163,7 @@ function viewOnbCliente(){
             <span class="chip ${late?'chip-vencido':'chip-n'}">prazo ${fmtBR(e.prazo)}</span>
             ${onbFeito(e)?`<span class="chip chip-pago">concluída ${fmtBR(e.dataConclusao)}</span>`:''}
             ${e.status==='andamento'?'<span class="chip chip-avencer">em andamento</span>':''}
-            ${e.status==='na'?'<span class="chip chip-n" style="color:var(--mut)">não se aplica</span>':''}
+            ${na?'<span class="chip chip-na">não se aplica</span>':''}
             <span class="chip chip-n">${esc(onbOpNome(e.responsavelId))}</span></div>
           ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${e.status==='na'?'Motivo:':esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
           ${e.obs?`<div class="row-meta">📝 ${esc(e.obs)}</div>`:''}</div>
@@ -3370,11 +3382,126 @@ function onbSetInicio(cid,v){const c=DB.onbClientes.find(x=>x.id===cid);if(!c||!
    Pergunta objetiva ao concluir a etapa. Marcar sem registrar o que
    ficou definido é o que faz o checklist virar enfeite.
    =================================================================== */
-const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['texto','Texto livre'],
-  ['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
+
+/* ===================================================================
+   Catálogos editáveis. O padrão da casa é o Nibo, mas cliente chega com
+   Conta Azul, Bling, Omie. Em vez de digitar toda vez, escolhe na lista;
+   o que não existir entra nela ali mesmo e vale para os próximos.
+   =================================================================== */
+const CATALOGOS={
+ sistema:{rot:'sistemas de gestão',seed:['Nibo','Conta Azul','Omie','Bling','Granatum','QuickBooks','Sage','TOTVS','Planilha do cliente']},
+ banco:{rot:'bancos',seed:['Itaú','Bradesco','Banco do Brasil','Santander','Caixa','Sicoob','Sicredi','Inter','Nubank PJ','BTG','Safra','C6 Bank','Banrisul']},
+ adquirente:{rot:'adquirentes',seed:['Stone','Cielo','Rede','Getnet','PagBank','Mercado Pago','SumUp','InfinitePay','Ton']},
+ erp:{rot:'sistemas do cliente',seed:['Bling','Tiny','Omie','TOTVS','Sankhya','Senior','Protheus','Sistema próprio','Não usa ERP']}};
+const catKey=c=>'cat_'+c;
+function catLista(c){const base=((CATALOGOS[c]||{}).seed||[]).slice();
+ String((DB.config||{})[catKey(c)]||'').split('|').map(x=>x.trim()).filter(Boolean)
+  .forEach(x=>{if(!base.some(b=>b.toLowerCase()===x.toLowerCase()))base.push(x)});
+ return base}
+function catAdd(c,v){v=String(v||'').trim();if(!v)return '';
+ if(catLista(c).some(b=>b.toLowerCase()===v.toLowerCase()))return v;
+ const extra=String((DB.config||{})[catKey(c)]||'').split('|').map(x=>x.trim()).filter(Boolean);
+ extra.push(v);const val=extra.join('|');
+ DB.config=DB.config||{};DB.config[catKey(c)]=val;
+ up('app_config',{chave:catKey(c),valor:val,updated_at:new Date().toISOString()});
+ toast(v+' entrou na lista de '+((CATALOGOS[c]||{}).rot||c));return v}
+
+/* ===================================================================
+   Pergunta de cada etapa do checklist padrão. Casa pelo título, não pelo
+   número, para sobreviver a reordenação. Primeira regra que bate vence,
+   por isso as específicas vêm antes das genéricas.
+   =================================================================== */
+const ETAPA_QS=[
+ [/respons[áa]vel pela implanta/,{tipo:'pessoa',label:'Quem ficou responsável pela implantação?'}],
+ [/ata de kickoff/,{tipo:'escolha',label:'Como está a ata de kickoff?',
+   ops:['Preenchida e validada com o cliente','Preenchida, falta validar','Aguardando dados do comercial']}],
+ [/kickoff|kick-off/,{tipo:'op_data',label:'Como ficou o kickoff?',
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data'}],
+ [/contrato/,{tipo:'op_data',label:'Situação do contrato e da ata?',
+   ops:['Enviado para assinatura','Assinado pelas duas partes','Aguardando assinatura do cliente'],dataRot:'Data'}],
+ [/cronograma/,{tipo:'op_data',label:'Cronograma de ativações?',
+   ops:['Definido e enviado ao cliente','Definido internamente','Aguardando o cliente'],dataRot:'Go-live'}],
+ [/escopo do treinamento/,{tipo:'multi',label:'O que entra no treinamento?',
+   ops:['Lançamentos','Aprovação de pagamentos','Relatórios','Emissão de NF','Cobrança','Uso do Drive','Fluxo de caixa']}],
+ [/classificar perfil/,{tipo:'perfil',label:'Qual o perfil do cliente?',
+   dica:'A escolha grava o perfil e o SLA na ficha do cliente e recalcula a previsão de go-live.'}],
+ [/acesso banc[áa]rio|internet banking/,{tipo:'multi',label:'De quais bancos temos acesso validado?',cat:'banco'}],
+ [/sistema de gest[ãa]o financeira/,{tipo:'escolha',label:'Qual sistema de gestão vamos usar?',cat:'sistema',
+   dica:'O padrão da casa é o Nibo. Se o cliente usa outro e ele não está na lista, escreva e adicione.'}],
+ [/certificado digital/,{tipo:'op_data',label:'Qual certificado e até quando vale?',
+   ops:['e-CNPJ A1','e-CNPJ A3','Procuração eletrônica','Cliente já tinha'],dataRot:'Validade'}],
+ [/nfse|prefeitura/,{tipo:'escolha',label:'Como fica a emissão de NFSe?',
+   ops:['Acesso liberado e testado','Cliente emite direto','Contador emite','Não emite NFSe']}],
+ [/adquirente/,{tipo:'multi',label:'Quais adquirentes o cliente usa?',cat:'adquirente'}],
+ [/sistema do cliente|erp/,{tipo:'multi',label:'Qual sistema o cliente usa?',cat:'erp'}],
+ [/google drive|pasta estruturada/,{tipo:'escolha',label:'Como ficou a pasta do cliente?',
+   ops:['Criada e compartilhada','Criada, falta compartilhar','Cliente usa OneDrive/SharePoint']}],
+ [/canal de comunica/,{tipo:'multi',label:'Quais canais ficaram combinados?',
+   ops:['E-mail padrão','Grupo de WhatsApp','Formulário','Telefone direto','Reunião semanal']}],
+ [/boas-vindas|boas vindas/,{tipo:'op_data',label:'E-mail de boas-vindas?',
+   ops:['Enviado','Enviado e respondido'],dataRot:'Data'}],
+ [/plano de contas/,{tipo:'escolha',label:'De onde saiu o plano de contas?',
+   ops:['Padrão Lidere','Adaptado do cliente','Construído do zero','Importado do sistema anterior']}],
+ [/contas correntes/,{tipo:'multi',label:'Quais contas correntes foram cadastradas?',cat:'banco'}],
+ [/clientes\/fornecedores/,{tipo:'escolha',label:'Como entrou a base de clientes e fornecedores?',
+   ops:['Importada por planilha','Migrada do sistema anterior','Cadastrada manualmente','Cliente não tinha base']}],
+ [/produtos\/servi/,{tipo:'escolha',label:'Como entrou o catálogo de produtos e serviços?',
+   ops:['Importado','Cadastro manual','Cliente não trabalha com catálogo']}],
+ [/regra fiscal/,{tipo:'escolha',label:'Regra fiscal do contador?',
+   ops:['Recebida do contador','Solicitada, aguardando','Não emite NF no sistema']}],
+ [/contas a pagar/,{tipo:'escolha',label:'Como entraram as contas a pagar pendentes?',
+   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
+ [/contas a receber/,{tipo:'escolha',label:'Como entraram as contas a receber pendentes?',
+   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
+ [/gastos recorrentes/,{tipo:'escolha',label:'Classificação de gastos?',
+   ops:['Concluída','Parcial, aguardando o cliente','Feita junto com o contador']}],
+ [/go-live readiness/,{tipo:'op_data',label:'O cliente está apto para o go-live?',
+   ops:['Apto','Apto com ressalva','Não apto'],dataRot:'Validado em'}],
+ [/sess[ãa]o de treinamento/,{tipo:'op_data',label:'Como ficou o treinamento?',
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data'}],
+ [/pontos tratados/,{tipo:'op_data',label:'Ata do treinamento?',
+   ops:['Enviada','Enviada e confirmada pelo cliente'],dataRot:'Data'}],
+ [/compreendeu/,{tipo:'escolha',label:'O cliente entendeu os fluxos e canais?',
+   ops:['Sim, confirmou','Parcial, vamos reforçar','Precisa de nova sessão']}],
+ [/agendamentos banc/,{tipo:'escolha',label:'Onde ficaram os agendamentos recorrentes?',
+   ops:['Configurados no banco','Configurados no sistema','Cliente aprova manualmente']}],
+ [/inadimpl/,{tipo:'escolha',label:'Política de inadimplência?',
+   ops:['Definida e aprovada pelo cliente','Definida internamente','Cliente mantém a política dele']}],
+ [/r[ée]gua de cobran/,{tipo:'escolha',label:'Onde roda a régua de cobrança?',
+   ops:['Configurada no sistema','Manual pela equipe','Cliente cobra direto']}],
+ [/pagamentos a fornecedores/,{tipo:'escolha',label:'Política de pagamentos?',
+   ops:['Definida, validada e formalizada','Definida, aguardando aprovação','Cliente paga direto']}],
+ [/pol[íi]tica \+ r[ée]gua/,{tipo:'op_data',label:'Formalização por e-mail?',
+   ops:['Enviada','Confirmada pelo cliente'],dataRot:'Data'}],
+ [/vendas e faturamento/,{tipo:'escolha',label:'Como fica o faturamento?',
+   ops:['Mapeado e documentado','Cliente fatura, BPO concilia','BPO fatura integralmente']}],
+ [/in[íi]cio do faturamento/,{tipo:'data',label:'A partir de que dia a Lidere fatura?'}],
+ [/\bdda\b/,{tipo:'escolha',label:'Situação do DDA?',
+   ops:['Ativado','Solicitado ao banco','Banco não oferece','Cliente não quis']}],
+ [/pol[íi]ticas operacionais/,{tipo:'escolha',label:'Políticas implantadas?',
+   ops:['Todas implantadas','Parcial, falta formalizar','Parcial, aguardando o cliente']}],
+ [/primeiro m[êe]s/,{tipo:'mes',label:'De qual competência é a análise?'}],
+ [/diagn[óo]stico financeiro/,{tipo:'op_data',label:'Reunião de diagnóstico?',
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data'}],
+ [/indicadores/,{tipo:'op_data',label:'E-mail de indicadores?',
+   ops:['Enviado','Enviado e confirmado'],dataRot:'Data'}],
+ [/pesquisa de satisfa/,{tipo:'escolha',label:'Pesquisa de satisfação?',
+   ops:['Enviada, aguardando resposta','Respondida','Cliente não respondeu']}],
+ [/ganhos de produtividade|liga[çc][ãa]o de acompanhamento/,{tipo:'texto',label:'Que ganho o cliente citou?'}],
+ [/handoff|apto para opera/,{tipo:'pessoa',label:'Quem assume o cliente na operação?'}]];
+const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['mes','Competência (mês)'],
+  ['escolha','Lista de opções (separe com | )'],['multi','Lista, pode marcar várias (separe com | )'],
+  ['texto','Texto livre'],['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
 function etapaPergunta(e){
- if(e.perguntaTipo)return {tipo:e.perguntaTipo,label:e.perguntaLabel||'O que ficou definido?'};
+ if(e.perguntaTipo){
+  const p=String(e.perguntaLabel||'').split('|').map(x=>x.trim()).filter(Boolean);
+  const q={tipo:e.perguntaTipo,label:p[0]||'O que ficou definido?'};
+  if(p.length>1)q.ops=p.slice(1);
+  if((e.perguntaTipo==='escolha'||e.perguntaTipo==='multi')&&!q.ops)q.ops=['Sim','Não','Parcial'];
+  return q}
  const t=(e.titulo||'').toLowerCase();
+ const achou=ETAPA_QS.find(r=>r[0].test(t));
+ if(achou)return achou[1];
  if(/respons|quem |designa|equipe/.test(t))return {tipo:'pessoa',label:'Quem ficou responsável?'};
  if(/reuni|kickoff|kick-off|call|agendar|apresenta|alinhament/.test(t))return {tipo:'data',label:'Para que dia ficou agendada?'};
  if(/contrato|assinat|procura/.test(t))return {tipo:'data',label:'Assinado em que data?'};
@@ -3383,45 +3510,103 @@ function etapaPergunta(e){
  if(/concilia|fechament|relat/.test(t))return {tipo:'data',label:'De qual competência?'};
  return {tipo:'texto',label:'O que ficou definido?'}}
 
-let _reCli='', _reEt='';
+let _reCli='', _reEt='', _reQ=null;
+/* data pode ter sido gravada como ISO (respostas antigas) ou dd/mm/aaaa */
+function reDataDe(v){v=String(v||'');
+ if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;
+ const m=v.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+ return m?m[3]+'-'+m[2]+'-'+m[1]:''}
+function reChipsHTML(ops,multi,atual){
+ const sel=String(atual||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+ return `<div class="re-ops" data-multi="${multi?1:0}">`
+  +ops.map(o=>`<button type="button" class="re-op${sel.indexOf(String(o).toLowerCase())>=0?' sel':''}" onclick="reTog(this)">${esc(o)}</button>`).join('')
+  +'</div>'}
+function reTog(b){const box=b.parentNode;
+ if(box.dataset.multi!=='1')Array.prototype.forEach.call(box.children,x=>{if(x!==b)x.classList.remove('sel')});
+ b.classList.toggle('sel');reSync()}
+function reSync(){const hid=gEl('reVal');if(!hid||hid.type!=='hidden')return;
+ const marc=Array.prototype.map.call(document.querySelectorAll('#reCampo .re-op.sel'),b=>b.textContent.trim());
+ const outro=gEl('reOutro')?String(gEl('reOutro').value||'').trim():'';
+ const tipo=_reQ?_reQ.tipo:'';
+ let v='';
+ if(tipo==='pessoa'){const sel=gEl('reSel');
+  const nome=sel&&sel.value?String(sel.options[sel.selectedIndex].textContent||'').split(' · ')[0].trim():'';
+  v=outro||nome}
+ else if(tipo==='op_data'){const d=gEl('reData')?gEl('reData').value:'';
+  v=[marc.join(', '),d?fmtBR(d):''].filter(Boolean).join(' · ')}
+ else v=marc.concat(outro?[outro]:[]).join(', ');
+ hid.value=v}
+function reAddCat(){const el=gEl('reNovo');const v=el?String(el.value||'').trim():'';
+ if(!v)return toast('Escreva o nome antes de adicionar');
+ if(!_reQ||!_reQ.cat)return;
+ catAdd(_reQ.cat,v);el.value='';
+ const box=document.querySelector('#reCampo .re-ops');if(!box)return;
+ const multi=box.dataset.multi==='1',atual=gEl('reVal').value;
+ box.outerHTML=reChipsHTML(catLista(_reQ.cat),multi,multi&&atual?atual+', '+v:v);
+ reSync()}
+function reCampoHTML(q,e,c){
+ const at=String(e.resposta||''),hid=`<input id="reVal" type="hidden" value="${esc(at)}">`;
+ if(q.tipo==='pessoa')
+  return `<select id="reSel" onchange="reSync()">${onbRespOpcoes(e.responsavelId)}</select>
+   <input id="reOutro" style="margin-top:7px" oninput="reSync()" placeholder="ou escreva outro nome, alguém do cliente por exemplo">${hid}`;
+ if(q.tipo==='perfil'){const rot=x=>x+' · SLA '+PERFIS_ONB[x]+' dias';
+  return reChipsHTML(['A','B','C'].map(rot),false,rot((c&&c.perfil)||'B'))+hid}
+ if(q.tipo==='escolha'||q.tipo==='multi'){
+  let h=reChipsHTML(q.cat?catLista(q.cat):(q.ops||[]),q.tipo==='multi',at);
+  h+=q.cat
+   ?`<div style="display:flex;gap:6px"><input id="reNovo" placeholder="Não está na lista? escreva aqui"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();reAddCat()}">
+      <button type="button" class="btn btn-sm" onclick="reAddCat()">+ Adicionar à lista</button></div>`
+   :`<input id="reOutro" oninput="reSync()" placeholder="ou escreva outro">`;
+  return h+hid}
+ if(q.tipo==='op_data')
+  return reChipsHTML(q.ops||[],false,at.split(' · ')[0])
+   +`<div style="display:flex;gap:9px;align-items:center">
+     <span class="muted" style="font-size:12px">${esc(q.dataRot||'Data')}</span>
+     <input id="reData" type="date" value="${esc(reDataDe(at)||todayKey())}" oninput="reSync()"></div>`+hid;
+ if(q.tipo==='data')return `<input id="reVal" type="date" value="${esc(reDataDe(at)||todayKey())}">`;
+ if(q.tipo==='mes')return `<input id="reVal" type="month" value="${esc(/^\d{4}-\d{2}$/.test(at)?at:todayKey().slice(0,7))}">`;
+ if(q.tipo==='sim_nao')return reChipsHTML(q.ops||['Sim','Não, falta coisa'],false,at)+hid;
+ return `<textarea id="reVal" rows="3" placeholder="em uma linha">${esc(at)}</textarea>`}
 function etapaPerguntar(cid,eid){
  const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
  if(!e)return;
  const q=etapaPergunta(e);
  if(q.tipo==='nenhuma')return etapaConcluir(cid,eid,'');
- _reCli=cid;_reEt=eid;
+ _reCli=cid;_reEt=eid;_reQ=q;
  gEl('reTitulo').textContent=e.num+'. '+e.titulo;
  gEl('rePergunta').textContent=q.label;
  gEl('reFoot').innerHTML=`<button class="btn btn-ghost" onclick="reNaoSeAplica()">Não se aplica</button>
    <button class="btn btn-ghost" onclick="rePular()">Só concluir</button>
    <button class="btn btn-gold" onclick="reSalvar()">Salvar e concluir</button>`;
- gEl('reDica').textContent='A resposta fica registrada na etapa e aparece no checklist. Sem o que responder agora, use "Só concluir".';
- const box=gEl('reCampo');
- if(q.tipo==='pessoa'){
-  const eqp=alive(DB.onbOperadores);
-  box.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">
-    ${eqp.map(o=>`<button type="button" class="btn btn-sm" onclick="reEscolher('${esc(o.nome)}')">${esc(o.nome)}</button>`).join('')}</div>
-   <input id="reVal" placeholder="ou escreva outro nome" value="${esc(e.resposta||'')}">`}
- else if(q.tipo==='data')box.innerHTML=`<input id="reVal" type="date" value="${esc(e.resposta||todayKey())}">`;
- else if(q.tipo==='sim_nao')box.innerHTML=`<div style="display:flex;gap:7px">
-   <button type="button" class="btn btn-sm" onclick="reEscolher('Sim')">Sim</button>
-   <button type="button" class="btn btn-sm" onclick="reEscolher('Não, falta coisa')">Não, falta coisa</button></div>
-   <input id="reVal" type="hidden" value="${esc(e.resposta||'')}">`;
- else box.innerHTML=`<textarea id="reVal" rows="3" placeholder="em uma linha">${esc(e.resposta||'')}</textarea>`;
- showModal('ovRespEt');
- setTimeout(()=>{const v=gEl('reVal');if(v&&v.type!=='hidden')v.focus()},70)}
-function reEscolher(v){const el=gEl('reVal');if(el){el.value=v}
- if(gEl('reCampo').querySelector('input[type=hidden]'))reSalvar()}
-function reSalvar(){const el=gEl('reVal');const v=el?String(el.value||'').trim():'';
- if(!v)return toast('Responda ou use "Só concluir"');
+ gEl('reDica').textContent=q.dica||'Clique na opção e salve. A resposta fica registrada na etapa e aparece no checklist.';
+ gEl('reCampo').innerHTML=reCampoHTML(q,e,c);
+ showModal('ovRespEt');reSync();
+ if(q.tipo==='texto'||q.tipo==='data'||q.tipo==='mes')setTimeout(()=>{const v=gEl('reVal');if(v)v.focus()},70)}
+function reSalvar(){const el=gEl('reVal');let v=el?String(el.value||'').trim():'';
+ const tipo=_reQ?_reQ.tipo:'';
+ if(tipo==='data'&&v)v=fmtBR(v);
+ if(tipo==='mes'&&/^\d{4}-\d{2}$/.test(v))v='competência '+v.slice(5,7)+'/'+v.slice(0,4);
+ if(!v)return toast('Escolha uma opção ou use "Só concluir"');
+ const c=DB.onbClientes.find(x=>x.id===_reCli),e=c&&c.etapas.find(x=>x.id===_reEt);
+ if(e&&tipo==='pessoa'){const sel=gEl('reSel');
+  if(sel&&sel.value){const id=onbRespResolver(sel.value);if(id)e.responsavelId=id}}
+ if(c&&tipo==='perfil'){const p=(v.match(/^[ABC]/)||[''])[0];
+  if(p&&PERFIS_ONB[p]){c.perfil=p;c.prazoDias=PERFIS_ONB[p];pOnbCli(c);
+   toast('Perfil '+p+' · SLA de '+PERFIS_ONB[p]+' dias gravado na ficha')}}
  closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,v)}
 function rePular(){closeModal('ovRespEt');etapaConcluir(_reCli,_reEt,'')}
 
 /* etapa que não vale para este cliente: sai da conta do progresso, com ou sem motivo */
 function reNaoSeAplica(){
+ _reQ={tipo:'na'};
  gEl('rePergunta').textContent='Por que esta etapa não se aplica a este cliente?';
- gEl('reCampo').innerHTML='<input id="reVal" placeholder="opcional — ex: o cliente não emite nota fiscal">';
- gEl('reDica').textContent='Pode deixar em branco. A etapa sai do cálculo do progresso e do Go-Live, e você pode reverter clicando no quadradinho de novo.';
+ gEl('reCampo').innerHTML=reChipsHTML(['O cliente não emite nota fiscal','O cliente não usa maquininha',
+   'O contador já faz','Não se aplica ao porte do cliente','Já estava pronto antes da implantação',
+   'O cliente não quis'],false,'')
+  +`<input id="reOutro" oninput="reSync()" placeholder="ou escreva o motivo (opcional)">
+    <input id="reVal" type="hidden">`;
+ gEl('reDica').textContent='Pode deixar em branco. A etapa fica marcada em azul, sai do cálculo do progresso e do Go-Live, e você reverte clicando no quadradinho de novo.';
  gEl('reFoot').innerHTML=`<button class="btn btn-ghost" onclick="closeModal('ovRespEt')">Voltar</button>
    <button class="btn btn-gold" onclick="reSalvarNa()">Marcar como não se aplica</button>`;
  setTimeout(()=>{const v=gEl('reVal');if(v)v.focus()},60)}
