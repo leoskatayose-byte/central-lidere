@@ -748,6 +748,31 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .bar-row .bv{flex:0 0 40px;text-align:right;font-size:12px;font-weight:700;color:var(--txt)}
 .progress.mini{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;margin:8px 0}
 .progress.mini .pbar-static{display:block;height:100%;border-radius:4px;background:var(--acc)}
+/* barra viva: o brilho pulsa e um reflexo atravessa a parte preenchida */
+.progress.mini{overflow:visible}
+.progress.mini .pbar-live{position:relative;overflow:hidden;
+  box-shadow:0 0 8px var(--glow);animation:pbarPulsa 2.6s ease-in-out infinite}
+.progress.mini .pbar-live::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:translateX(-140%);animation:pbarReflexo 2.9s ease-in-out infinite}
+@keyframes pbarPulsa{0%,100%{box-shadow:0 0 6px var(--glow);filter:brightness(1)}
+  50%{box-shadow:0 0 16px var(--glow);filter:brightness(1.26)}}
+@keyframes pbarReflexo{0%{transform:translateX(-140%)}55%,100%{transform:translateX(320%)}}
+/* 100%: fica dourada e pulsa mais forte, sem o reflexo correndo */
+.progress.mini .pbar-live.done{background:linear-gradient(90deg,var(--acc),var(--meta));
+  animation:pbarFesta 1.9s ease-in-out infinite}
+.progress.mini .pbar-live.done::after{display:none}
+@keyframes pbarFesta{0%,100%{box-shadow:0 0 8px var(--glow)}
+  50%{box-shadow:0 0 22px color-mix(in srgb,var(--meta) 65%,transparent)}}
+.chip-festa{background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 24%,transparent),
+  color-mix(in srgb,var(--meta) 24%,transparent));color:var(--txt);font-weight:800;
+  border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);animation:chipFesta 2.2s ease-in-out infinite}
+@keyframes chipFesta{0%,100%{box-shadow:0 0 0 rgba(0,0,0,0)}50%{box-shadow:0 0 13px var(--glow)}}
+.row.onb-ok{border-color:color-mix(in srgb,var(--acc) 38%,transparent);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 7%,transparent),transparent)}
+@media(prefers-reduced-motion:reduce){
+  .progress.mini .pbar-live,.progress.mini .pbar-live.done,.chip-festa{animation:none}
+  .progress.mini .pbar-live::after{display:none}}
 
 /* ---------- Tabela ---------- */
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -3135,14 +3160,16 @@ function viewOnbKanban(){
 function viewOnbClientes(){
   const cs=alive(DB.onbClientes);
   const rows=cs.map(c=>{const p=onbProg(c),atr=c.etapas.filter(onbAtrasada).length,fa=onbFaseAtual(c);
-    return `<div class="row" style="cursor:pointer" onclick="abrirCliente('${c.id}')">
-      ${onbAvatar(c.operadorId)}
+    const pronto=onbConcluida(c);
+    return `<div class="row ${pronto?'onb-ok':''}" style="cursor:pointer" onclick="abrirCliente('${c.id}')">
+      ${cliAvatar({nome:c.nome,logoUrl:onbLogo(c)},42)}
       <div class="row-body"><div class="row-title">${esc(c.nome)} ${c.codigo?`<span class="chip chip-n" style="color:var(--acc)">${esc(c.codigo)}</span>`:''}</div>
-        <div class="row-meta">${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · início ${fmtBR(c.dataInicio)} · go-live previsto ${fmtBR(onbPrevisao(c))}${c.propostaNumero?' · proposta '+esc(c.propostaNumero):''}</div>
-        <div class="progress mini" style="max-width:420px"><i class="pbar-static" style="width:${p.pct}%"></i></div>
-        <div class="row-meta">${badgePrazoOnb(c)}<span class="chip chip-n">${fa===5?'Concluído':FASE_CURTA[fa]}</span>
+        <div class="row-meta">${onbAvatar(c.operadorId)}${esc(onbOpNome(c.operadorId))} · Perfil ${c.perfil} · início ${fmtBR(c.dataInicio)} · go-live previsto ${fmtBR(onbPrevisao(c))}${c.propostaNumero?' · proposta '+esc(c.propostaNumero):''}</div>
+        <div class="progress mini" style="max-width:420px"><i class="pbar-static ${p.pct?'pbar-live':''} ${pronto?'done':''}" style="width:${p.pct}%"></i></div>
+        <div class="row-meta">${badgePrazoOnb(c)}
+        ${pronto?'<span class="chip chip-festa">🎉 Implantação concluída</span>':`<span class="chip chip-n">${FASE_CURTA[fa]}</span>`}
         <span class="chip chip-n">${p.pct}% · ${p.done}/${p.tot}</span>
-        ${atr?`<span class="chip chip-vencido">${atr} atrasada(s)</span>`:''}${onbGoLive(c)?'<span class="chip chip-pago">Go-Live Ready</span>':''}</div></div>
+        ${atr?`<span class="chip chip-vencido">${atr} atrasada(s)</span>`:''}${onbGoLive(c)&&!pronto?'<span class="chip chip-pago">Go-Live Ready</span>':''}</div></div>
       <div class="row-actions"><button class="iconbtn" onclick="event.stopPropagation();openCliente('${c.id}')">✎</button>
       <button class="iconbtn del" onclick="event.stopPropagation();delCliente('${c.id}')">🗑</button></div></div>`}).join('')
     ||'<div class="empty">Nenhum cliente cadastrado.</div>';
@@ -3240,7 +3267,7 @@ function viewOnbEquipe(){
     const tot=pend+ok,pct=tot?Math.round(ok/tot*100):0;
     return `<div class="row"><span class="avatar" style="background:${o.cor}">${esc(initials(o.nome))}</span>
       <div class="row-body"><div class="row-title">${esc(o.nome)}</div><div class="row-meta">${meus.length} cliente(s) sob responsabilidade</div>
-      <div class="progress mini" style="max-width:420px"><i class="pbar-static" style="width:${pct}%"></i></div>
+      <div class="progress mini" style="max-width:420px"><i class="pbar-static ${pct?'pbar-live':''} ${pct>=100?'done':''}" style="width:${pct}%"></i></div>
       <div class="row-meta"><span class="chip chip-n">${pct}% concluído</span><span class="chip chip-n">${pend} pendentes</span>${atrs?`<span class="chip chip-vencido">${atrs} atrasadas</span>`:'<span class="chip chip-pago">sem atrasos</span>'}</div></div>
       <div class="row-actions">${o.pessoaId
         ? `<button class="btn btn-sm btn-ghost" title="Tira o papel de implantação; a pessoa continua cadastrada" onclick="pessoaTogglePapel('${o.pessoaId}','implantacao')">Tirar da implantação</button>`
@@ -3362,6 +3389,19 @@ function onbProximoCodigo(){
  return 'IMP-'+String(Math.max(0,...usados)+1).padStart(4,'0')}
 function onbGarantirCodigo(c){if(c&&!c.codigo){c.codigo=onbProximoCodigo();return true}return false}
 const onbLead=c=>(c&&c.leadId)?crmLeadById(c.leadId):null;
+/* a logo do cliente em implantação: a do lead que o originou ou, se ele já está
+   na carteira, a de lá. Sem logo, cai nas iniciais coloridas. */
+function onbLogo(c){
+ if(!c)return '';
+ const l=onbLead(c),u=l?leadLogo(l):'';
+ if(u)return u;
+ const nome=String(c.nome||'').trim().toLowerCase();
+ const cli=(DB.clientes||[]).find(x=>!x.deletedAt&&((c.leadId&&x.leadId===c.leadId)
+   ||String(x.nome||'').trim().toLowerCase()===nome));
+ return (cli&&cli.logoUrl)||''}
+const onbConcluida=c=>!!c&&onbProg(c).tot>0&&onbFaseAtual(c)===5;
+/* a festa toca uma vez por cliente: desmarcar e remarcar uma etapa nao repete o confete */
+const _festaOnb={};
 function onbProposta(c){
  if(!c)return null;
  if(c.propostaId){const p=DB.crmPropostas.find(x=>x.id===c.propostaId&&!x.deletedAt);if(p)return p}
@@ -3670,11 +3710,14 @@ function etapaNaoSeAplica(cid,eid,motivo){
 function etapaConcluir(cid,eid,resposta,quando){
  const c=DB.onbClientes.find(x=>x.id===cid),e=c&&c.etapas.find(x=>x.id===eid);
  if(!e)return;
+ const jaEstava=onbConcluida(c);
  e.status='realizado';e.dataConclusao=quando||todayKey();
  if(resposta)e.resposta=resposta;
  pOnbEt(c,e);render();
  toast('Etapa '+e.num+' concluída em '+fmtBR(e.dataConclusao)+(resposta?' · '+resposta:''));
- if(e.bloqueador&&onbGoLive(c))toast('🔐 Go-Live Ready: todos os bloqueadores concluídos!')}
+ if(!jaEstava&&onbConcluida(c)&&!_festaOnb[c.id]){_festaOnb[c.id]=1;
+  festa(c.nome,0,'implantação concluída · '+onbProg(c).tot+' etapas em '+onbDiasCorridos(c)+' dias')}
+ else if(e.bloqueador&&onbGoLive(c))toast('🔐 Go-Live Ready: todos os bloqueadores concluídos!')}
 
 
 /* ===================================================================
@@ -6133,7 +6176,8 @@ function comLimpar(l,motivo,silencioso){
 
 /* ===== festinha de cliente fechado ===== */
 const FESTA_CORES=['#d4a840','#f2c94c','#3ea06b','#06b6d4','#8a7cf2','#ec4899','#ffffff'];
-function festa(nome,valor){
+/* sub: quando a festa não é de venda fechada, o subtítulo vem pronto */
+function festa(nome,valor,sub){
  const el=gEl('festa');if(!el)return;
  const reduz=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
  const n=reduz?0:90;
@@ -6149,7 +6193,7 @@ function festa(nome,valor){
   html+=`<i class="cf ${forma}" style="left:${esq.toFixed(1)}%;background:${cor};
     --dx:${dx}vw;--rot:${rot}deg;animation-duration:${dur}s;animation-delay:${atraso}s"></i>`}
  html+=`<div class="msg"><span class="em">🎉</span><b>${esc(nome||'Cliente fechado')}</b>
-   <span>${valor?brl(valor)+' por mês entram na casa':'mais um cliente na casa'}</span></div>`;
+   <span>${sub?esc(sub):(valor?brl(valor)+' por mês entram na casa':'mais um cliente na casa')}</span></div>`;
  el.innerHTML=html;el.classList.add('on');
  clearTimeout(festa._t);
  festa._t=setTimeout(()=>{el.classList.remove('on');el.innerHTML=''},reduz?2200:4200)}
