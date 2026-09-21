@@ -750,18 +750,37 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .progress.mini .pbar-static{display:block;height:100%;border-radius:4px;background:var(--acc)}
 /* barra viva: o brilho pulsa e um reflexo atravessa a parte preenchida */
 .progress.mini{overflow:visible}
-.progress.mini .pbar-live{position:relative;overflow:hidden;
+/* barra grande da ficha do cliente: existia no HTML e nunca teve altura */
+.progress{height:14px;border-radius:9px;background:var(--panel2);overflow:visible;margin:4px 0 2px}
+.progress .pbar{display:block;height:100%;border-radius:9px;background:var(--acc);
+  transition:width .6s cubic-bezier(.22,1,.36,1)}
+.onb-barra{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+.onb-barra b{font-size:13px}
+.onb-barra .pct{font-size:22px;font-weight:800;color:var(--acc);line-height:1}
+.onb-pes{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--mut);margin-top:7px}
+.progress .pbar-live{position:relative;overflow:hidden;
   box-shadow:0 0 8px var(--glow);animation:pbarPulsa 2.6s ease-in-out infinite}
-.progress.mini .pbar-live::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;
+.progress .pbar-live::after{content:'';position:absolute;top:0;bottom:0;left:0;width:42%;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
   transform:translateX(-140%);animation:pbarReflexo 2.9s ease-in-out infinite}
+/* as barrinhas do painel "Progresso por cliente" pulsam junto */
+.bar-row .bar-t>i.viva{position:relative;overflow:hidden;box-shadow:0 0 7px var(--glow);
+  animation:pbarPulsa 2.6s ease-in-out infinite}
+.bar-row .bar-t>i.viva::after{content:'';position:absolute;top:0;bottom:0;left:0;width:45%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:translateX(-140%);animation:pbarReflexo 2.9s ease-in-out infinite}
+/* a descrição do processo em cada etapa */
+.et-desc{font-size:11.5px;color:var(--mut);line-height:1.5;margin-top:5px;padding-left:9px;
+  border-left:2px solid var(--line-f)}
+.re-desc{font-size:12px;color:var(--dim);line-height:1.55;background:var(--panel2);
+  border:1px solid var(--line);border-left:2px solid var(--acc);border-radius:8px;padding:9px 11px;margin-bottom:13px}
 @keyframes pbarPulsa{0%,100%{box-shadow:0 0 6px var(--glow);filter:brightness(1)}
   50%{box-shadow:0 0 16px var(--glow);filter:brightness(1.26)}}
 @keyframes pbarReflexo{0%{transform:translateX(-140%)}55%,100%{transform:translateX(320%)}}
 /* 100%: fica dourada e pulsa mais forte, sem o reflexo correndo */
-.progress.mini .pbar-live.done{background:linear-gradient(90deg,var(--acc),var(--meta));
+.progress .pbar-live.done{background:linear-gradient(90deg,var(--acc),var(--meta));
   animation:pbarFesta 1.9s ease-in-out infinite}
-.progress.mini .pbar-live.done::after{display:none}
+.progress .pbar-live.done::after{display:none}
 @keyframes pbarFesta{0%,100%{box-shadow:0 0 8px var(--glow)}
   50%{box-shadow:0 0 22px color-mix(in srgb,var(--meta) 65%,transparent)}}
 .chip-festa{background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 24%,transparent),
@@ -771,8 +790,8 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .row.onb-ok{border-color:color-mix(in srgb,var(--acc) 38%,transparent);
   background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 7%,transparent),transparent)}
 @media(prefers-reduced-motion:reduce){
-  .progress.mini .pbar-live,.progress.mini .pbar-live.done,.chip-festa{animation:none}
-  .progress.mini .pbar-live::after{display:none}}
+  .progress .pbar-live,.progress .pbar-live.done,.chip-festa,.bar-row .bar-t>i.viva{animation:none}
+  .progress .pbar-live::after,.bar-row .bar-t>i.viva::after{display:none}}
 
 /* ---------- Tabela ---------- */
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -1127,6 +1146,7 @@ tbody tr:hover{background:var(--panel2)}
 <div class="overlay" id="ovRespEt"><div class="modal">
   <div class="modal-head"><h3 id="reTitulo">Etapa</h3><button class="modal-x" onclick="closeModal('ovRespEt')">×</button></div>
   <div class="modal-body">
+    <div id="reComo"></div>
     <div class="field"><label id="rePergunta">Pergunta</label><div id="reCampo"></div></div>
     <div class="field" id="reFeitoBox"><label>Realizado em</label><div id="reFeitoCampo"></div></div>
     <div class="muted" id="reDica" style="font-size:11.5px;line-height:1.6"></div>
@@ -1139,6 +1159,7 @@ tbody tr:hover{background:var(--panel2)}
   <div class="modal-head"><h3 id="etapaTitle">Etapa</h3><button class="modal-x" onclick="closeModal('ovEtapa')">×</button></div>
   <div class="modal-body">
     <input type="hidden" id="e_id"><input type="hidden" id="e_cli">
+    <div id="e_como"></div>
     <div class="field"><label>Título *</label><input id="e_titulo"></div>
     <div class="field"><label>Status</label><div class="seg" id="e_status">
       <div class="o" data-v="pendente" onclick="pickStatusE('pendente')">Pendente</div>
@@ -3142,7 +3163,7 @@ function viewOnbDashboard(){
     statCard('Etapas vencidas',etapasHoje,'incluindo hoje')+
     statCard('Dias médios',md,'de implantação em curso');
   const bars=cs.map(c=>{const p=onbProg(c);return `<div class="bar-row"><div class="bl" onclick="abrirCliente('${c.id}')">${esc(c.nome)}</div>
-    <div class="bar-t"><i style="width:${p.pct}%;background:${p.pct===100?'var(--pos)':'var(--acc)'}"></i></div>
+    <div class="bar-t"><i class="${p.pct?'viva':''}" style="width:${p.pct}%;background:${p.pct===100?'var(--pos)':'var(--acc)'}"></i></div>
     <div class="bv">${p.pct}%</div></div>`}).join('')||'<div class="empty">Nenhum cliente em implantação. Clique em "+ Novo cliente" em Clientes.</div>';
   return `<div class="stats">${stats}</div><div class="panel"><div class="panel-head"><h2>Progresso por cliente<small>Clique num nome para abrir o checklist</small></h2></div>${bars}</div>`}
 function viewOnbKanban(){
@@ -3179,6 +3200,7 @@ function viewOnbCliente(){
   if(!c){onbCliente=null;onbTab='clientes';return viewOnb()}
   const p=onbProg(c),fa=onbFaseAtual(c),atr=c.etapas.filter(onbAtrasada);
   const bloq=c.etapas.filter(e=>e.bloqueador&&onbAplic(e)),bloqOk=bloq.filter(onbFeito).length;
+  const naoAplic=c.etapas.filter(e=>e.status==='na').length,pronto=onbConcluida(c);
   const stats=statCard('Progresso',p.pct+'%',p.done+' de '+p.tot+' etapas')+
     statCard('Fase atual',fa===5?'Go-Live':FASE_CURTA[fa],fa===5?'handoff concluído':FASES[fa],true)+
     statCard('Go-Live Ready',onbGoLive(c)?'Apto':'Pendente',bloqOk+'/'+bloq.length+' bloqueadores',true)+
@@ -3204,6 +3226,7 @@ function viewOnbCliente(){
             ${na?'<span class="chip chip-na">não se aplica</span>':''}
             <span class="chip chip-n">${esc(onbOpNome(e.responsavelId))}</span></div>
           ${e.resposta?`<div class="row-meta">💬 <b style="color:var(--txt)">${e.status==='na'?'Motivo:':esc(etapaPergunta(e).label)}</b> ${esc(e.resposta)}</div>`:''}
+          ${etapaDesc(e)?`<div class="et-desc">${esc(etapaDesc(e))}</div>`:''}
           ${e.obs?`<div class="row-meta">📝 ${esc(e.obs)}</div>`:''}</div>
         <div class="row-actions">
           <button class="iconbtn" onclick="moverEtapa('${c.id}','${e.id}',-1)" ${k===0?'disabled':''}>▲</button>
@@ -3234,7 +3257,13 @@ function viewOnbCliente(){
     <button class="btn btn-sm btn-ghost" onclick="delCliente('${c.id}')">Excluir cliente</button></div>
     ${vinculo}
     <div class="stats">${stats}</div>
-    <div class="progress"><i class="pbar" data-target="${p.pct}" style="width:${p.pct}%"></i></div>
+    <div class="onb-barra"><div><b>Progresso da implantação</b>
+      <div class="muted" style="font-size:11.5px;margin-top:3px">${p.done} de ${p.tot} etapas concluídas${naoAplic?' · '+naoAplic+' não se aplica':''}</div></div>
+      <div class="pct">${p.pct}%${pronto?' <span class="chip chip-festa">🎉 concluída</span>':''}</div></div>
+    <div class="progress"><i class="pbar ${p.pct?'pbar-live':''} ${pronto?'done':''}" style="width:${p.pct}%"></i></div>
+    <div class="onb-pes"><span>início ${fmtBR(c.dataInicio)}</span>
+      <span>${pronto?'handoff concluído':(p.tot-p.done)+' em aberto'+(atr.length?' · '+atr.length+' vencida(s)':'')}</span>
+      <span>go-live ${fmtBR(onbPrevisao(c))}</span></div>
     ${corpo}</div>${alerta}`}
 function viewOnbAgenda(){
   const h=todayKey();let itens=[];
@@ -3319,6 +3348,7 @@ function openEtapa(cid,eid){const c=DB.onbClientes.find(x=>x.id===cid);const e=c
   gEl('e_perglabel').value=e.perguntaLabel||'';
   gEl('e_perglabel').placeholder=q.label;
   gEl('e_resposta').value=e.resposta||'';
+  {const d=etapaDesc(e);gEl('e_como').innerHTML=d?`<div class="re-desc">${esc(d)}</div>`:''}
   pickStatusE(e.status);showModal('ovEtapa')}
 function saveEtapa(){const cid=gEl('e_cli').value,eid=gEl('e_id').value;
   const c=DB.onbClientes.find(x=>x.id===cid),e=c.etapas.find(x=>x.id===eid);
@@ -3463,87 +3493,90 @@ function catAdd(c,v){v=String(v||'').trim();if(!v)return '';
    por isso as específicas vêm antes das genéricas.
    =================================================================== */
 const ETAPA_QS=[
- [/respons[áa]vel pela implanta/,{tipo:'pessoa',label:'Quem ficou responsável pela implantação?'}],
+ [/respons[áa]vel pela implanta/,{tipo:'pessoa',label:'Quem ficou responsável pela implantação?',desc:'Uma pessoa da equipe responde pelo cliente do kickoff ao handoff: cobra prazo, fala com o cliente e assume as etapas sem dono.'}],
  [/ata de kickoff/,{tipo:'escolha',label:'Como está a ata de kickoff?',
-   ops:['Preenchida e validada com o cliente','Preenchida, falta validar','Aguardando dados do comercial']}],
+   ops:['Preenchida e validada com o cliente','Preenchida, falta validar','Aguardando dados do comercial'],desc:'Registro escrito do que foi combinado, alimentado pelo mapeamento que o comercial já fez. É a base do cronograma e evita discussão de escopo depois.'}],
  [/kickoff|kick-off/,{tipo:'op_data',label:'Como ficou o kickoff?',
-   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data da reunião'}],
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data da reunião',desc:'Primeira reunião formal com o cliente: apresenta o time, confirma o escopo contratado, levanta sistemas, bancos e rotinas atuais, e combina os canais de contato.'}],
  [/contrato/,{tipo:'op_data',label:'Situação do contrato e da ata?',
-   ops:['Enviado para assinatura','Assinado pelo cliente','Assinado pelas duas partes'],dataRot:'Data da assinatura'}],
+   ops:['Enviado para assinatura','Assinado pelo cliente','Assinado pelas duas partes'],dataRot:'Data da assinatura',desc:'Contrato e ata seguem juntos para assinatura eletrônica. O documento assinado fica guardado na pasta do cliente.'}],
  [/cronograma/,{tipo:'op_data',label:'Cronograma de ativações?',
-   ops:['Definido e enviado ao cliente','Definido internamente','Aguardando o cliente'],dataRot:'Go-live previsto'}],
+   ops:['Definido e enviado ao cliente','Definido internamente','Aguardando o cliente'],dataRot:'Go-live previsto',desc:'Data de cada ativação combinada com o cliente, do acesso bancário ao go-live. É o que sustenta a previsão e o SLA do perfil.'}],
  [/escopo do treinamento/,{tipo:'multi',label:'O que entra no treinamento?',
-   ops:['Lançamentos','Aprovação de pagamentos','Relatórios','Emissão de NF','Cobrança','Uso do Drive','Fluxo de caixa']}],
+   ops:['Lançamentos','Aprovação de pagamentos','Relatórios','Emissão de NF','Cobrança','Uso do Drive','Fluxo de caixa'],desc:'O que o cliente precisa saber fazer sozinho depois do go-live, ajustado ao tamanho e à rotina dele.'}],
  [/classificar perfil/,{tipo:'perfil',label:'Qual o perfil do cliente?',
-   dica:'A escolha grava o perfil e o SLA na ficha do cliente e recalcula a previsão de go-live.'}],
- [/acesso banc[áa]rio|internet banking/,{tipo:'multi',label:'De quais bancos temos acesso validado?',cat:'banco'}],
+   dica:'A escolha grava o perfil e o SLA na ficha do cliente e recalcula a previsão de go-live.',desc:'O perfil define o SLA da implantação conforme o cadastro do sistema: A 60 dias, B 90 e C 120.'}],
+ [/acesso banc[áa]rio|internet banking/,{tipo:'multi',label:'De quais bancos temos acesso validado?',cat:'banco',desc:'Login próprio da Lidere em cada banco, com poder de consulta e, quando contratado, de pagamento. Validar é entrar e conferir saldo e extrato antes de marcar.'}],
  [/sistema de gest[ãa]o financeira/,{tipo:'multi',label:'Quais sistemas vamos usar?',cat:'sistema',
-   dica:'O padrão da casa é o Nibo, e dá para marcar mais de um (Nibo e Bling, por exemplo). O que não estiver na lista, escreva e adicione.'}],
+   dica:'O padrão da casa é o Nibo, e dá para marcar mais de um (Nibo e Bling, por exemplo). O que não estiver na lista, escreva e adicione.',desc:'Onde a escrituração vai acontecer. O padrão da casa é o Nibo; se o cliente já usa outro, registre qual e garanta acesso de administrador.'}],
  [/certificado digital/,{tipo:'multi_data',label:'Qual certificado e até quando vale?',
-   ops:['e-CNPJ A1','e-CNPJ A3','e-CPF do sócio','Procuração eletrônica'],dataRot:'Vence em'}],
+   ops:['e-CNPJ A1','e-CNPJ A3','e-CPF do sócio','Procuração eletrônica'],dataRot:'Vence em',desc:'Necessário para emitir nota e acessar portais do governo. Anote a validade: certificado vencido para a operação no meio do mês.'}],
  [/nfse|prefeitura/,{tipo:'escolha',label:'Como ficou o acesso ao portal de NFSe?',
-   ops:['Liberado e testado','Liberado, falta testar','Quem emite é o contador','Quem emite é o cliente']}],
- [/adquirente/,{tipo:'multi',label:'Quais adquirentes o cliente usa?',cat:'adquirente'}],
- [/sistema do cliente|erp/,{tipo:'multi',label:'Qual sistema o cliente usa?',cat:'erp'}],
+   ops:['Liberado e testado','Liberado, falta testar','Quem emite é o contador','Quem emite é o cliente'],desc:'Acesso ao portal da prefeitura do município do cliente. Teste emitindo uma nota antes de marcar, ou registre quem emite quando não for a Lidere.'}],
+ [/adquirente/,{tipo:'multi',label:'Quais adquirentes o cliente usa?',cat:'adquirente',desc:'Portal de cada maquininha, para conferir recebíveis, taxas e antecipações. Sem ele a conciliação de cartão fica no escuro.'}],
+ [/sistema do cliente|erp/,{tipo:'multi',label:'Qual sistema o cliente usa?',cat:'erp',desc:'Quando o cliente vende por um sistema próprio, é de lá que saem as vendas a faturar e a conciliar.'}],
  [/google drive|pasta estruturada/,{tipo:'escolha',label:'Como ficou a pasta do cliente?',
-   ops:['Criada e compartilhada','Criada, falta compartilhar','O cliente usa outra nuvem']}],
+   ops:['Criada e compartilhada','Criada, falta compartilhar','O cliente usa outra nuvem'],desc:'Pasta compartilhada com a estrutura padrão: contratos, comprovantes, extratos e relatórios. É o caminho oficial de troca de arquivo.'}],
  [/canal de comunica/,{tipo:'multi',label:'Quais canais ficaram combinados?',
-   ops:['E-mail padrão','Grupo de WhatsApp','Formulário','Telefone direto','Reunião semanal']}],
+   ops:['E-mail padrão','Grupo de WhatsApp','Formulário','Telefone direto','Reunião semanal'],desc:'Define por onde o cliente pede e aprova. Pedido que chega fora do canal combinado não entra na fila.'}],
  [/boas-vindas|boas vindas/,{tipo:'op_data',label:'E-mail de boas-vindas?',
-   ops:['Enviado','Enviado e respondido'],dataRot:'Data do envio'}],
+   ops:['Enviado','Enviado e respondido'],dataRot:'Data do envio',desc:'E-mail que apresenta a equipe, os canais e o que o cliente precisa enviar nos primeiros dias.'}],
  [/plano de contas/,{tipo:'multi',label:'De onde saiu o plano de contas?',
-   ops:['Padrão Lidere','Adaptado do cliente','Construído do zero','Importado do sistema anterior']}],
- [/contas correntes/,{tipo:'multi',label:'Quais contas correntes foram cadastradas?',cat:'banco'}],
+   ops:['Padrão Lidere','Adaptado do cliente','Construído do zero','Importado do sistema anterior'],desc:'Estrutura de receitas e despesas que sustenta todo relatório. Fechar antes do primeiro lançamento evita reclassificar o mês inteiro depois.'}],
+ [/contas correntes/,{tipo:'multi',label:'Quais contas correntes foram cadastradas?',cat:'banco',desc:'Cadastrar cada conta no sistema com o saldo inicial conferido contra o extrato do dia.'}],
  [/clientes\/fornecedores/,{tipo:'multi',label:'Como entrou a base de clientes e fornecedores?',
-   ops:['Importada por planilha','Migrada do sistema anterior','Cadastrada manualmente','Cliente não tinha base']}],
+   ops:['Importada por planilha','Migrada do sistema anterior','Cadastrada manualmente','Cliente não tinha base'],desc:'Base de cadastros com CNPJ e dados bancários. Cadastro incompleto trava pagamento e cobrança lá na frente.'}],
  [/produtos\/servi/,{tipo:'multi',label:'Como entrou o catálogo de produtos e serviços?',
-   ops:['Importado por planilha','Cadastrado manualmente','Cliente não trabalha com catálogo']}],
+   ops:['Importado por planilha','Cadastrado manualmente','Cliente não trabalha com catálogo'],desc:'Catálogo usado no faturamento. Só vale quando a Lidere emite nota pelo sistema.'}],
  [/regra fiscal/,{tipo:'escolha',label:'Regra fiscal do contador?',
-   ops:['Recebida do contador','Solicitada, aguardando retorno','O contador configura direto']}],
+   ops:['Recebida do contador','Solicitada, aguardando retorno','O contador configura direto'],desc:'Impostos, CFOP e alíquotas vêm do contador do cliente. Sem a regra, a nota sai errada.'}],
  [/contas a pagar/,{tipo:'multi',label:'Como entraram as contas a pagar pendentes?',
-   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
+   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências'],desc:'Importar o que está em aberto na virada, com vencimento, valor e fornecedor conferidos contra os documentos.'}],
  [/contas a receber/,{tipo:'multi',label:'Como entraram as contas a receber pendentes?',
-   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências']}],
+   ops:['Importadas por planilha','Lançadas manualmente','Não havia pendências'],desc:'Mesmo caminho do contas a pagar, incluindo parcelas futuras e o que já está inadimplente.'}],
  [/gastos recorrentes/,{tipo:'escolha',label:'Classificação de gastos?',
-   ops:['Concluída','Parcial, aguardando o cliente','Parcial, aguardando o contador']}],
+   ops:['Concluída','Parcial, aguardando o cliente','Parcial, aguardando o contador'],desc:'Separar o que se repete todo mês do que é eventual. É isso que permite prever o caixa e pedir aprovação só do que foge do padrão.'}],
  [/go-live readiness/,{tipo:'op_data',label:'O cliente está apto para o go-live?',
-   ops:['Apto','Apto com ressalva','Não apto'],dataRot:'Validado em'}],
+   ops:['Apto','Apto com ressalva','Não apto'],dataRot:'Validado em',desc:'Confere se todos os bloqueadores estão concluídos. Enquanto faltar um, a operação não assume o cliente.'}],
  [/sess[ãa]o de treinamento/,{tipo:'op_data',label:'Como ficou o treinamento?',
-   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data do treinamento'}],
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data do treinamento',desc:'Reunião prática mostrando o fluxo de aprovação, os relatórios e os canais de pedido.'}],
  [/pontos tratados/,{tipo:'op_data',label:'Ata do treinamento?',
-   ops:['Enviada','Enviada e confirmada pelo cliente'],dataRot:'Data do envio'}],
+   ops:['Enviada','Enviada e confirmada pelo cliente'],dataRot:'Data do envio',desc:'E-mail com o que foi tratado no treinamento, o que ficou pendente e quem faz o quê.'}],
  [/compreendeu/,{tipo:'escolha',label:'O cliente entendeu os fluxos e canais?',
-   ops:['Sim, confirmou','Parcial, vamos reforçar','Precisa de nova sessão']}],
+   ops:['Sim, confirmou','Parcial, vamos reforçar','Precisa de nova sessão'],desc:'Confirmar com o cliente antes do go-live. Dúvida não resolvida aqui vira pedido fora do canal depois.'}],
  [/agendamentos banc/,{tipo:'multi',label:'Por onde saem os pagamentos recorrentes?',
-   ops:['Agendados no banco','Agendados no sistema','Enviados para o cliente aprovar']}],
+   ops:['Agendados no banco','Agendados no sistema','Enviados para o cliente aprovar'],desc:'Define por onde os pagamentos recorrentes saem e quem aprova cada lote.'}],
  [/inadimpl/,{tipo:'escolha',label:'Política de inadimplência?',
-   ops:['Definida e aprovada pelo cliente','Definida internamente','Cliente mantém a política dele']}],
+   ops:['Definida e aprovada pelo cliente','Definida internamente','Cliente mantém a política dele'],desc:'Quando cobrar, como negociar e a partir de quando suspender. Quem aprova é o cliente, porque a decisão comercial é dele.'}],
  [/r[ée]gua de cobran/,{tipo:'multi',label:'Quem executa a régua de cobrança?',
-   ops:['Automática no sistema','Manual pela equipe Lidere','O próprio cliente cobra']}],
+   ops:['Automática no sistema','Manual pela equipe Lidere','O próprio cliente cobra'],desc:'Sequência de avisos antes e depois do vencimento, com prazo e canal definidos para cada toque.'}],
  [/pagamentos a fornecedores/,{tipo:'escolha',label:'Política de pagamentos?',
-   ops:['Definida, validada e formalizada','Definida, aguardando aprovação','Cliente paga direto']}],
+   ops:['Definida, validada e formalizada','Definida, aguardando aprovação','Cliente paga direto'],desc:'Dias de pagamento, limite de alçada e o que precisa de aprovação antes de sair da conta.'}],
  [/pol[íi]tica \+ r[ée]gua/,{tipo:'op_data',label:'Formalização por e-mail?',
-   ops:['Enviada','Confirmada pelo cliente'],dataRot:'Data do envio'}],
+   ops:['Enviada','Confirmada pelo cliente'],dataRot:'Data do envio',desc:'Manda por escrito o que foi combinado e confirma os dados bancários que vão nos boletos.'}],
  [/vendas e faturamento/,{tipo:'escolha',label:'Quem emite o faturamento a partir de agora?',
-   ops:['A Lidere fatura','O cliente fatura e a Lidere concilia','O cliente fatura sozinho']}],
- [/in[íi]cio do faturamento/,{tipo:'data',label:'A partir de que dia a Lidere fatura?'}],
+   ops:['A Lidere fatura','O cliente fatura e a Lidere concilia','O cliente fatura sozinho'],desc:'Define quem emite a nota, com que prazo e a partir de qual documento do cliente.'}],
+ [/in[íi]cio do faturamento/,{tipo:'data',label:'A partir de que dia a Lidere fatura?',desc:'Data em que a Lidere passa a emitir. Antes dela a responsabilidade ainda é do cliente.'}],
  [/\bdda\b/,{tipo:'escolha',label:'Situação do DDA?',
-   ops:['Ativado','Solicitado ao banco','Banco não oferece','Cliente não quis']}],
+   ops:['Ativado','Solicitado ao banco','Banco não oferece','Cliente não quis'],desc:'Boleto em nome do CNPJ chega direto no banco. Reduz boleto perdido e pagamento em duplicidade.'}],
  [/pol[íi]ticas operacionais/,{tipo:'escolha',label:'Políticas implantadas?',
-   ops:['Todas implantadas','Parcial, falta formalizar','Parcial, aguardando o cliente']}],
- [/primeiro m[êe]s/,{tipo:'mes',label:'De qual competência é a análise?'}],
+   ops:['Todas implantadas','Parcial, falta formalizar','Parcial, aguardando o cliente'],desc:'Coloca em prática o que foi definido nas etapas anteriores e formaliza tudo com o cliente.'}],
+ [/primeiro m[êe]s/,{tipo:'mes',label:'De qual competência é a análise?',desc:'Fecha o primeiro mês completo e compara com o que o cliente esperava. É aqui que aparece o ajuste fino do plano de contas.'}],
  [/diagn[óo]stico financeiro/,{tipo:'op_data',label:'Reunião de diagnóstico?',
-   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data da reunião'}],
+   ops:['Agendada','Realizada','Remarcada','Cliente não compareceu'],dataRot:'Data da reunião',desc:'Apresenta os números do primeiro mês, os pontos de atenção e os cenários à frente.'}],
  [/indicadores/,{tipo:'op_data',label:'E-mail de indicadores?',
-   ops:['Enviado','Enviado e confirmado'],dataRot:'Data do envio'}],
+   ops:['Enviado','Enviado e confirmado'],dataRot:'Data do envio',desc:'Registra por escrito os indicadores que serão acompanhados e o que ficou combinado.'}],
  [/pesquisa de satisfa/,{tipo:'escolha',label:'Pesquisa de satisfação?',
-   ops:['Enviada, aguardando resposta','Respondida','Cliente não respondeu']}],
- [/ganhos de produtividade|liga[çc][ãa]o de acompanhamento/,{tipo:'texto',label:'Que ganho o cliente citou?'}],
- [/handoff|apto para opera/,{tipo:'pessoa',label:'Quem assume o cliente na operação?'}]];
+   ops:['Enviada, aguardando resposta','Respondida','Cliente não respondeu'],desc:'Mede a implantação enquanto está fresca. Nota baixa aqui é problema que a operação vai herdar.'}],
+ [/ganhos de produtividade|liga[çc][ãa]o de acompanhamento/,{tipo:'texto',label:'Que ganho o cliente citou?',desc:'Contato fora de reunião para ouvir o que melhorou na rotina. Ganho registrado aqui vira caso para o comercial.'}],
+ [/handoff|apto para opera/,{tipo:'pessoa',label:'Quem assume o cliente na operação?',desc:'Passa o cliente para o squad que atende no dia a dia, com tudo documentado e sem pendência aberta.'}]];
 const ETAPA_PERG_TIPOS=[['pessoa','Quem'],['data','Data'],['mes','Competência (mês)'],
   ['escolha','Lista de opções (separe com | )'],['multi','Lista, pode marcar várias (separe com | )'],
   ['multi_data','Lista com data, pode marcar várias (separe com | )'],
   ['texto','Texto livre'],['sim_nao','Sim ou não'],['nenhuma','Não perguntar']];
+/* o texto que explica como o processo funciona, casado pelo título da etapa */
+function etapaDesc(e){const t=((e&&e.titulo)||'').toLowerCase();
+ const a=ETAPA_QS.find(r=>r[0].test(t));return (a&&a[1].desc)||''}
 function etapaPergunta(e){
  if(e.perguntaTipo){
   const p=String(e.perguntaLabel||'').split('|').map(x=>x.trim()).filter(Boolean);
@@ -3659,6 +3692,7 @@ function etapaPerguntar(cid,eid){
  gEl('reDica').textContent=q.dica||((q.tipo==='multi'||q.tipo==='multi_data')
    ?'Pode marcar mais de uma opção. Clique para marcar e clique de novo para desmarcar.'
    :'Clique na opção e salve. A resposta fica registrada na etapa e aparece no checklist.');
+ {const d=etapaDesc(e);gEl('reComo').innerHTML=d?`<div class="re-desc">${esc(d)}</div>`:''}
  gEl('reCampo').innerHTML=reCampoHTML(q,e,c);
  gEl('reFeitoBox').style.display='';
  gEl('reFeitoCampo').innerHTML=dtHTML('reFeito',e.dataConclusao||todayKey(),'')
