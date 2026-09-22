@@ -581,6 +581,15 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .tab.active{background:var(--panel2);border-color:var(--acc);color:var(--txt);box-shadow:inset 2px 0 0 var(--acc)}
 .tab .cnt{color:var(--mut);font-size:11px;font-variant-numeric:tabular-nums}
 .tab.active .cnt{color:var(--acc)}
+/* aba com a cor da empresa: ponto colorido sempre, fundo e barra quando ativa */
+.tab.cor{border-color:color-mix(in srgb,var(--tc) 30%,transparent)}
+.tab.cor:hover{border-color:var(--tc);color:var(--txt)}
+.tab.cor .pt{width:9px;height:9px;border-radius:50%;background:var(--tc);flex:0 0 9px}
+.tab.cor.active{background:color-mix(in srgb,var(--tc) 13%,transparent);border-color:var(--tc);
+  color:var(--txt);box-shadow:inset 2px 0 0 var(--tc)}
+.tab.cor.active .pt{box-shadow:0 0 9px var(--tc)}
+.tabs .div{flex:1 1 18px;min-width:18px}
+@media(max-width:760px){.tabs .div{display:none}}
 
 /* ---------- Layout dividido (calendário/responsáveis + painel lateral) ---------- */
 .split2{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start}
@@ -2928,13 +2937,6 @@ function cpMediaPaga(cid,nMeses){
 function cpPagosDoMes(dref){
  return cpContasDoMes(dref||cpMesRef).filter(x=>x.st==='pago'&&x.pg)
   .sort((a,b)=>String((a.pg&&a.pg.dataPgto)||'').localeCompare(String((b.pg&&b.pg.dataPgto)||'')))}
-/* marca de conferência: serve para você bater a lista com o extrato sem mexer no pagamento */
-function cpToggleConf(id){const mk=monthKey(cpMesRef),pg=cpPagto(mk,id);
- if(!pg)return;
- pg.conferido=!pg.conferido;
- pg.conferidoEm=pg.conferido?new Date().toISOString():null;
- saveCP();render();
- toast(pg.conferido?'Conferido':'Conferência desfeita')}
 
 /* ===================================================================
    Lista mensal do que foi pago: o que saiu do caixa, contra a base.
@@ -2943,16 +2945,17 @@ function viewCpPagos(){
  const mk=monthKey(cpMesRef),list=cpPagosDoMes();
  const totPago=list.reduce((t,x)=>t+(+((x.pg&&x.pg.valorPago)||0)),0);
  const totBase=list.reduce((t,x)=>t+cpBase(x.c),0);
- const dif=totPago-totBase,conf=list.filter(x=>x.pg&&x.pg.conferido).length;
+ const dif=totPago-totBase;
+ const fora=list.filter(x=>cpDif(x)),acima=fora.filter(x=>cpDif(x)>0).length;
  const stats=`<div class="stats">
    <div class="stat"><div class="k">Pago em ${esc(mesNome(mk))}</div><div class="v" style="color:var(--pos)">${brl(totPago)}</div><div class="sub">${list.length} conta(s)</div></div>
    <div class="stat"><div class="k">Base dessas contas</div><div class="v">${brl(totBase)}</div><div class="sub">valor de referência</div></div>
    <div class="stat"><div class="k">Diferença</div><div class="v" style="color:${dif>0?'var(--neg)':dif<0?'var(--pos)':'var(--dim)'}">${dif>0?'+':dif<0?'−':''}${brl(Math.abs(dif))}</div><div class="sub">${dif>0?'acima da base':dif<0?'abaixo da base':'igual à base'}</div></div>
-   <div class="stat"><div class="k">Conferidas</div><div class="v" style="color:${conf===list.length&&list.length?'var(--pos)':'var(--meta)'}">${conf}/${list.length}</div><div class="sub">batidas com o extrato</div></div></div>`;
+   <div class="stat"><div class="k">Fora da base</div><div class="v" style="color:${fora.length?'var(--meta)':'var(--pos)'}">${fora.length}</div><div class="sub">${fora.length?acima+' acima · '+(fora.length-acima)+' abaixo':'todas saíram no valor base'}</div></div></div>`;
  const rows=list.map(x=>{const c=x.c,pg=x.pg,d=cpDif(x),v=+pg.valorPago||0;
    const anx=(c.anexos||[]).length;
    return `<div class="row">
-     <button class="chk ${pg.conferido?'on':''}" title="${pg.conferido?'Conferido com o extrato':'Marcar como conferido'}" onclick="cpToggleConf('${c.id}')">✓</button>
+     <span class="chk on" title="pagamento lançado" style="cursor:default">✓</span>
      <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div>
        <div class="row-meta">
          <span class="chip chip-pago">pago ${pg.dataPgto?fmtBR(pg.dataPgto):'sem data'}</span>
@@ -3004,13 +3007,13 @@ function cpPagosCSV(){
  if(!list.length)return toast('Nenhum pagamento em '+mesNome(mk));
  const num=v=>String((+v||0).toFixed(2)).replace('.',',');
  const linhas=[['Fornecedor','Empresa','Classificação','Vencimento','Pago em','Valor base','Valor pago',
-   'Diferença','Desconto','Juros','Forma','Conferido','Observação'].join(';')]
+   'Diferença','Desconto','Juros','Forma','Observação'].join(';')]
   .concat(list.map(x=>{const c=x.c,pg=x.pg;
     return [c.fornecedor,cpGrupoNome(c.grupoId),c.classeId?cpClasseNome(c.classeId):'',
       pad(x.eff.getDate())+'/'+pad(x.eff.getMonth()+1)+'/'+x.eff.getFullYear(),
       pg.dataPgto?fmtBR(pg.dataPgto):'',num(cpBase(c)),num(pg.valorPago),num(cpDif(x)),
       num(pg.desconto),num(pg.juros),c.formaPgto?formaLabel(c.formaPgto):'',
-      pg.conferido?'sim':'não',String(c.obs||'').replace(/[\r\n;]+/g,' ')]
+      String(c.obs||'').replace(/[\r\n;]+/g,' ')]
      .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')}));
  const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
  const el=document.createElement('a');el.href=URL.createObjectURL(b);
@@ -3077,8 +3080,15 @@ function cpBarraDesfazer(){
       <button class="btn btn-sm btn-ghost" onclick="cpDescartarLixo()">Foi de propósito</button></span></div>`}
 function setCpTab(id){cpTab=id;cpBusca='';cpFiltroStatus='';render()}
 function viewContas(){
-  const tabs=[['resumo','Resumo'],['pagos','Pagos do mês']].concat(DB.grupos.map(g=>['emp:'+g.id,g.nome])).concat([['empresas','Empresas'],['excluidos','Excluídos']]);
-  const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${cpTab===id?'active':''}" onclick="setCpTab('${id}')">${esc(lbl)}</button>`).join('')}</div>
+  /* Resumo, depois cada empresa na cor dela, e Pagos do mês fechando.
+     Empresas e Excluídos são configuração: vão separados, do lado direito. */
+  const aba=(id,lbl,cor)=>`<button class="tab ${cor?'cor':''} ${cpTab===id?'active':''}"
+    ${cor?`style="--tc:${cor}"`:''} onclick="setCpTab('${id}')">${cor?'<span class="pt"></span>':''}${esc(lbl)}</button>`;
+  const esquerda=[aba('resumo','Resumo','')]
+    .concat(DB.grupos.map(g=>aba('emp:'+g.id,g.nome,cpGrupoCor(g.id))))
+    .concat([aba('pagos','Pagos do mês','var(--pos)')]).join('');
+  const direita=aba('empresas','Empresas','')+aba('excluidos','Excluídos','var(--neg)');
+  const tabsHTML=`<div class="tabs">${esquerda}<span class="div"></span>${direita}</div>
     <div class="row-meta" style="margin:-6px 0 14px">📅 O calendário de vencimentos agora é único — veja em <a onclick="go('cal')" style="color:var(--acc);cursor:pointer;text-decoration:underline">Calendário</a>, no menu "Dia a dia".</div>`;
   let body;
   if(cpTab.startsWith('emp:'))body=viewCpEmpresa(cpTab.slice(4));
@@ -3170,12 +3180,22 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
           <button class="iconbtn" title="Encerrar a partir do mês que vem" onclick="cpEncerrar('${c.id}')">⏻</button>`:''}
      ${c.deletedAt?'':`<button class="iconbtn del" onclick="delConta('${c.id}')">🗑</button>`}</div></div>`}
 /* viewCpCalendario removida — o calendário de Contas a Pagar foi unificado com o de Pendências (ver viewCalendar). */
+/* cada empresa com a cor dela nas abas só funciona se as cores forem diferentes */
+function cpCoresDistintas(){
+  if(!confirm('Dar uma cor diferente para cada empresa?'+'\n'+'\n'
+    +'Só a cor muda. Contas, pagamentos e anexos ficam como estão.'))return;
+  DB.grupos.forEach((g,i)=>{g.cor=PALETTE[i%PALETTE.length]});
+  saveCP();render();toast('Cada empresa com a sua cor')}
 function viewCpEmpresas(){
+  const usadas={};DB.grupos.forEach(g=>{usadas[g.cor]=(usadas[g.cor]||0)+1});
+  const repete=Object.keys(usadas).some(c=>usadas[c]>1);
+  const avisoCor=repete?`<div class="tip">Duas ou mais empresas estão com a mesma cor, então as abas ficam parecidas.
+    <button class="btn btn-sm" style="margin-left:8px" onclick="cpCoresDistintas()">Dar cores diferentes</button></div>`:'';
   const cards=DB.grupos.map(g=>{const n=alive(DB.contas).filter(c=>c.grupoId===g.id).length;
     return `<div class="row"><span class="avatar" style="background:${g.cor}">${esc(g.nome.slice(0,2).toUpperCase())}</span><div class="row-body"><div class="row-title">${esc(g.nome)}</div><div class="row-meta">${n} conta(s)</div></div><div class="row-actions"><button class="iconbtn" onclick="openGrupo('${g.id}')">✎</button></div></div>`}).join('')||'<div class="empty">Nenhuma empresa. Clique em "+ Nova empresa".</div>';
   const clsCards=DB.classes.map(cl=>{const n=alive(DB.contas).filter(c=>c.classeId===cl.id).length;
     return `<div class="row"><span class="avatar" style="background:${cl.cor}">${esc(cl.nome.slice(0,2).toUpperCase())}</span><div class="row-body"><div class="row-title">${esc(cl.nome)}</div><div class="row-meta">${n} conta(s)</div></div><div class="row-actions"><button class="iconbtn" onclick="editClasse('${cl.id}')">✎</button><button class="iconbtn del" onclick="delClasse('${cl.id}')">🗑</button></div></div>`}).join('');
-  return `<div class="panel"><div class="panel-head"><h2>Empresas<small>cada empresa vira uma aba aqui em cima</small></h2><button class="btn btn-sm btn-gold" onclick="openGrupo()">+ Nova empresa</button></div>${cards}</div>
+  return avisoCor+`<div class="panel"><div class="panel-head"><h2>Empresas<small>cada empresa vira uma aba, na cor escolhida aqui</small></h2><button class="btn btn-sm btn-gold" onclick="openGrupo()">+ Nova empresa</button></div>${cards}</div>
     <div class="panel"><div class="panel-head"><h2>Classificações<small>ex.: Fixa, Variável, Imposto</small></h2><button class="btn btn-sm btn-gold" onclick="addClasseBtn()">+ Nova</button></div>${clsCards}</div>`}
 function addClasseBtn(){const nome=prompt('Nome da nova classificação:');if(!nome||!nome.trim())return;DB.classes.push({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),nome:nome.trim(),cor:PALETTE[DB.classes.length%PALETTE.length]});saveCP();render();toast('Classificação criada')}
 function editClasse(id){const cl=cpClasse(id);if(!cl)return;const nome=prompt('Nome da classificação:',cl.nome);if(nome&&nome.trim()){cl.nome=nome.trim();saveCP();render()}}
