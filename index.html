@@ -663,6 +663,12 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
 .chk.on{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
 /* etapa que nao vale para este cliente: marcada, mas em azul, para distinguir de concluida */
 .chk.na{background:var(--na);border-color:var(--na);color:#04202e}
+.cp-anx{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:9px;background:var(--panel2);margin-bottom:6px;font-size:12px}
+.cp-anx .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--txt)}
+.cp-anx .nm:hover{color:var(--acc);text-decoration:underline}
+.cp-val{font-weight:700;font-variant-numeric:tabular-nums;padding:0 6px;text-align:right;min-width:104px}
+.cp-val small{display:block;font-size:10.5px;font-weight:600;color:var(--mut);margin-top:2px}
 .chip-na{background:color-mix(in srgb,var(--na) 16%,transparent);color:var(--na);
   border:1px solid color-mix(in srgb,var(--na) 42%,transparent)}
 /* as opções ficam numa grade: mesma largura, alinhadas, sem sobra pendurada */
@@ -1065,7 +1071,8 @@ tbody tr:hover{background:var(--panel2)}
     </div>
     <div class="fgrid">
       <div class="field"><label>Dia do vencimento</label><input id="c_dia" type="number" min="1" max="31" value="1"></div>
-      <div class="field"><label>Valor</label><input id="c_valor" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Valor base</label><input id="c_valor" type="number" step="0.01" placeholder="0,00">
+        <div class="muted" id="c_media" style="font-size:11.5px;margin-top:5px;line-height:1.45"></div></div>
     </div>
     <div class="field"><label>Se cair em fim de semana/feriado</label><div class="seg" id="c_aj">
       <div class="o" data-v="antecipa" onclick="pickAjC('antecipa')">Antecipa</div>
@@ -1084,6 +1091,13 @@ tbody tr:hover{background:var(--panel2)}
       <div class="field"><label>Mês da 1ª parcela</label><input id="c_parcIni" type="month"></div>
     </div>
     <div class="field" id="c_unicaWrap" style="display:none"><label>Mês desta conta</label><input id="c_mesUnico" type="month"></div>
+    <div class="field"><label>Carnê e documentos desta conta</label>
+      <div id="c_anexos"></div>
+      <div style="display:flex;gap:9px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <input type="file" id="c_arq" style="display:none" onchange="cpAnexoSubir(this)">
+        <button type="button" class="btn btn-sm" onclick="gEl('c_arq').click()">📎 Anexar carnê</button>
+        <span class="muted" style="font-size:11px">PDF ou imagem, até 20 MB. Fica no bucket fechado, aberto por link de uma hora.</span>
+      </div></div>
     <div class="fgrid">
       <div class="field"><label>Forma de pagamento</label><select id="c_forma"></select></div>
       <div class="field"><label>Conta / chave (opcional)</label><input id="c_conta" placeholder="Ex.: conta corrente, chave PIX"></div>
@@ -2890,6 +2904,164 @@ function cpContasDoMes(dref){const d=dref||cpMesRef;const y=d.getFullYear(),m=d.
     const eff=mensalEff(y,m,c),st=cpStatusConta(c,y,m),pg=cpPagto(mk,c.id);
     out.push({c,eff,st,pg,valorPago:pg?pg.valorPago||0:0,parcela})});
   return out.sort((a,b)=>a.eff-b.eff)}
+
+/* ===================================================================
+   Valor base x valor pago.
+   O valor cadastrado na conta é a referência: quanto aquela conta
+   costuma custar. O que sai do caixa é o valor pago daquele mês, que
+   pode ser diferente. Os dois ficam guardados e a diferença aparece.
+   =================================================================== */
+const cpBase=c=>+((c&&c.valor)||0);
+const cpDif=x=>(+((x.pg&&x.pg.valorPago)||0))-cpBase(x.c);
+function cpChipDif(d){
+ if(!d)return '<span class="chip chip-n" title="saiu exatamente o valor base">= base</span>';
+ return `<span class="chip ${d>0?'chip-vencido':'chip-pago'}" title="${d>0?'acima':'abaixo'} do valor base">${d>0?'+':'−'}${brl(Math.abs(d))}</span>`}
+/* o que essa conta costuma custar, olhando os meses já pagos */
+function cpMediaPaga(cid,nMeses){
+ const n=nMeses||12,hoje=new Date(),vals=[];let ultimo=null;
+ for(let i=0;i<n;i++){const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+  const pg=cpPagto(monthKey(d),cid);
+  if(pg&&pg.pago&&+pg.valorPago>0){vals.push(+pg.valorPago);if(ultimo===null)ultimo=+pg.valorPago}}
+ if(!vals.length)return null;
+ return {media:vals.reduce((a,b)=>a+b,0)/vals.length,meses:vals.length,ultimo:ultimo,
+   min:Math.min.apply(null,vals),max:Math.max.apply(null,vals)}}
+function cpPagosDoMes(dref){
+ return cpContasDoMes(dref||cpMesRef).filter(x=>x.st==='pago'&&x.pg)
+  .sort((a,b)=>String((a.pg&&a.pg.dataPgto)||'').localeCompare(String((b.pg&&b.pg.dataPgto)||'')))}
+/* marca de conferência: serve para você bater a lista com o extrato sem mexer no pagamento */
+function cpToggleConf(id){const mk=monthKey(cpMesRef),pg=cpPagto(mk,id);
+ if(!pg)return;
+ pg.conferido=!pg.conferido;
+ pg.conferidoEm=pg.conferido?new Date().toISOString():null;
+ saveCP();render();
+ toast(pg.conferido?'Conferido':'Conferência desfeita')}
+
+/* ===================================================================
+   Lista mensal do que foi pago: o que saiu do caixa, contra a base.
+   =================================================================== */
+function viewCpPagos(){
+ const mk=monthKey(cpMesRef),list=cpPagosDoMes();
+ const totPago=list.reduce((t,x)=>t+(+((x.pg&&x.pg.valorPago)||0)),0);
+ const totBase=list.reduce((t,x)=>t+cpBase(x.c),0);
+ const dif=totPago-totBase,conf=list.filter(x=>x.pg&&x.pg.conferido).length;
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Pago em ${esc(mesNome(mk))}</div><div class="v" style="color:var(--pos)">${brl(totPago)}</div><div class="sub">${list.length} conta(s)</div></div>
+   <div class="stat"><div class="k">Base dessas contas</div><div class="v">${brl(totBase)}</div><div class="sub">valor de referência</div></div>
+   <div class="stat"><div class="k">Diferença</div><div class="v" style="color:${dif>0?'var(--neg)':dif<0?'var(--pos)':'var(--dim)'}">${dif>0?'+':dif<0?'−':''}${brl(Math.abs(dif))}</div><div class="sub">${dif>0?'acima da base':dif<0?'abaixo da base':'igual à base'}</div></div>
+   <div class="stat"><div class="k">Conferidas</div><div class="v" style="color:${conf===list.length&&list.length?'var(--pos)':'var(--meta)'}">${conf}/${list.length}</div><div class="sub">batidas com o extrato</div></div></div>`;
+ const rows=list.map(x=>{const c=x.c,pg=x.pg,d=cpDif(x),v=+pg.valorPago||0;
+   const anx=(c.anexos||[]).length;
+   return `<div class="row">
+     <button class="chk ${pg.conferido?'on':''}" title="${pg.conferido?'Conferido com o extrato':'Marcar como conferido'}" onclick="cpToggleConf('${c.id}')">✓</button>
+     <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div>
+       <div class="row-meta">
+         <span class="chip chip-pago">pago ${pg.dataPgto?fmtBR(pg.dataPgto):'sem data'}</span>
+         <span class="chip chip-n">venc. ${pad(x.eff.getDate())}/${pad(x.eff.getMonth()+1)}</span>
+         <span class="chip chip-n" style="color:${cpGrupoCor(c.grupoId)}">${esc(cpGrupoNome(c.grupoId))}</span>
+         ${c.classeId?`<span class="chip chip-n" style="color:${cpClasseCor(c.classeId)}">${esc(cpClasseNome(c.classeId))}</span>`:''}
+         ${c.formaPgto?`<span class="chip chip-n">${formaIcon(c.formaPgto)} ${formaLabel(c.formaPgto)}</span>`:''}
+         ${x.parcela?`<span class="chip chip-n">Parc. ${x.parcela}</span>`:''}
+         ${anx?`<span class="chip chip-n" style="cursor:pointer" title="abrir o carnê" onclick="cpAnexoAbrir('${c.id}','${c.anexos[0].id}')">📎 carnê</span>`:''}
+         ${+pg.desconto?`<span class="chip chip-pago">desc. ${brl(pg.desconto)}</span>`:''}
+         ${+pg.juros?`<span class="chip chip-vencido">juros ${brl(pg.juros)}</span>`:''}
+         ${cpChipDif(d)}</div></div>
+     <div class="cp-val">${brl(v)}<small>base ${brl(cpBase(c))}</small></div>
+     <div class="row-actions"><button class="iconbtn" title="Rever o lançamento" onclick="cpTogglePay('${c.id}')">✎</button></div></div>`}).join('')
+   ||`<div class="empty">Nenhum pagamento lançado em ${esc(mesNome(mk))}. Marque as contas na aba da empresa e elas aparecem aqui.</div>`;
+ /* subtotal por empresa, do jeito que o caixa enxerga */
+ const byG={};list.forEach(x=>{const g=x.c.grupoId;byG[g]=byG[g]||{pago:0,base:0,n:0};
+   byG[g].pago+=+((x.pg&&x.pg.valorPago)||0);byG[g].base+=cpBase(x.c);byG[g].n++});
+ const sub=Object.keys(byG).sort((a,b)=>byG[b].pago-byG[a].pago).map(g=>{const d=byG[g],df=d.pago-d.base;
+   return `<div class="row"><div class="row-body"><div class="row-title" style="font-size:13px">${esc(cpGrupoNome(g))}</div>
+     <div class="row-meta"><span class="chip chip-n">${d.n} conta(s)</span><span class="chip chip-n">base ${brl(d.base)}</span>${cpChipDif(df)}</div></div>
+     <div class="cp-val">${brl(d.pago)}</div></div>`}).join('');
+ const blocoSub=sub?`<div class="panel"><div class="panel-head"><h2>Por empresa<small>o que saiu do caixa em ${esc(mesNome(mk))}</small></h2></div>${sub}</div>`:'';
+ /* conta sem valor base: a média do que já foi pago resolve em um clique */
+ const semBase=alive(DB.contas).filter(c=>!cpBase(c));
+ const blocoBase=semBase.length?`<div class="panel"><div class="panel-head"><h2>Contas sem valor base<small>sem referência não dá para ver a diferença do mês</small></h2></div>
+   ${semBase.map(c=>{const m=cpMediaPaga(c.id);
+     return `<div class="row"><div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div>
+       <div class="row-meta"><span class="chip chip-n" style="color:${cpGrupoCor(c.grupoId)}">${esc(cpGrupoNome(c.grupoId))}</span>
+       <span class="chip chip-n">dia ${c.dia}</span>
+       ${m?`<span class="chip chip-n">média paga ${brl(m.media)} em ${m.meses} mês(es)</span>`:'<span class="chip chip-n" style="color:var(--mut)">ainda sem histórico de pagamento</span>'}</div></div>
+       <div class="row-actions">${m?`<button class="btn btn-sm" onclick="cpUsarMedia('${c.id}')">Usar a média como base</button>`:''}
+       <button class="iconbtn" onclick="openConta('${c.id}')">✎</button></div></div>`}).join('')}</div>`:'';
+ return cpMonthBar()
+   +`<div class="row-meta" style="margin:-4px 0 14px">O valor base é quanto a conta costuma custar. O valor pago é o que saiu de fato no mês, e a diferença entre os dois fica registrada aqui.</div>`
+   +stats
+   +`<div class="panel"><div class="panel-head"><h2>Pagamentos de ${esc(mesNome(mk))}<small>na ordem em que saíram</small></h2>
+     ${list.length?'<button class="btn btn-sm" onclick="cpPagosCSV()">↓ Baixar CSV</button>':''}</div>${rows}</div>`
+   +blocoSub+blocoBase}
+function cpUsarMedia(id){const c=DB.contas.find(x=>x.id===id);if(!c)return;
+ const m=cpMediaPaga(id);if(!m)return toast('Essa conta ainda não tem pagamento registrado');
+ const v=Math.round(m.media*100)/100;
+ if(!confirm('Usar '+brl(v)+' como valor base de '+c.fornecedor+'?'+'\n'+'\n'
+   +'Média de '+m.meses+' mês(es) pago(s), entre '+brl(m.min)+' e '+brl(m.max)+'.'+'\n'
+   +'Nenhum pagamento já lançado é alterado.'))return;
+ c.valor=v;saveCP();render();toast('Base de '+c.fornecedor+' definida em '+brl(v))}
+function cpPagosCSV(){
+ const mk=monthKey(cpMesRef),list=cpPagosDoMes();
+ if(!list.length)return toast('Nenhum pagamento em '+mesNome(mk));
+ const num=v=>String((+v||0).toFixed(2)).replace('.',',');
+ const linhas=[['Fornecedor','Empresa','Classificação','Vencimento','Pago em','Valor base','Valor pago',
+   'Diferença','Desconto','Juros','Forma','Conferido','Observação'].join(';')]
+  .concat(list.map(x=>{const c=x.c,pg=x.pg;
+    return [c.fornecedor,cpGrupoNome(c.grupoId),c.classeId?cpClasseNome(c.classeId):'',
+      pad(x.eff.getDate())+'/'+pad(x.eff.getMonth()+1)+'/'+x.eff.getFullYear(),
+      pg.dataPgto?fmtBR(pg.dataPgto):'',num(cpBase(c)),num(pg.valorPago),num(cpDif(x)),
+      num(pg.desconto),num(pg.juros),c.formaPgto?formaLabel(c.formaPgto):'',
+      pg.conferido?'sim':'não',String(c.obs||'').replace(/[\r\n;]+/g,' ')]
+     .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')}));
+ const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const el=document.createElement('a');el.href=URL.createObjectURL(b);
+ el.download='Contas-pagas_'+mk+'.csv';el.click();
+ setTimeout(()=>URL.revokeObjectURL(el.href),3000);
+ toast(list.length+' pagamento(s) exportado(s)')}
+
+/* ===================================================================
+   Carnê da conta. O arquivo vai para o mesmo bucket fechado dos
+   documentos de cliente, numa pasta por conta, e o link vale uma hora.
+   =================================================================== */
+let _contaAnexos=[];
+function cpAnexosPintar(){const box=gEl('c_anexos');if(!box)return;
+ const cid=gEl('c_id').value;
+ box.innerHTML=_contaAnexos.length?_contaAnexos.map(a=>`<div class="cp-anx">
+   <span>📎</span><span class="nm" title="abrir" onclick="cpAnexoAbrir('${cid}','${a.id}')">${esc(a.nome)}</span>
+   <span class="muted" style="font-size:11px">${esc(arqTam(a.tamanho))}</span>
+   <button type="button" class="iconbtn del" title="Remover" onclick="cpAnexoRemover('${cid}','${a.id}')">🗑</button></div>`).join('')
+  :'<div class="muted" style="font-size:11.5px">Nenhum arquivo anexado.</div>'}
+async function cpAnexoSubir(inp){
+ const f=inp.files&&inp.files[0];inp.value='';
+ const ruim=arqRecusa(f);if(ruim)return toast('Não deu: '+ruim);
+ if(!sb)return toast('Sem conexão com o servidor');
+ const cid=gEl('c_id').value;if(!cid)return toast('Abra a conta de novo para anexar');
+ toast('Enviando '+f.name+'…');
+ try{const caminho=await cliArqSubir(f,'carnes/'+cid);
+  _contaAnexos.push({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+    nome:f.name,caminho,tipo:f.type||'',tamanho:f.size,quando:new Date().toISOString()});
+  const c=DB.contas.find(x=>x.id===cid);
+  if(c){c.anexos=_contaAnexos.slice();saveCP()}
+  cpAnexosPintar();toast('Carnê anexado')}
+ catch(e){toast('Não consegui enviar: '+((e&&e.message)||e))}}
+async function cpAnexoAbrir(cid,aid){
+ const c=DB.contas.find(x=>x.id===cid);
+ const lista=(c&&c.anexos)||_contaAnexos;
+ const a=(lista||[]).find(x=>x.id===aid);
+ if(!a)return toast('Arquivo não encontrado');
+ if(!sb)return toast('Sem conexão com o servidor');
+ const janela=window.open('','_blank');
+ try{const {data,error}=await sb.storage.from('documentos').createSignedUrl(a.caminho,3600,{});
+  if(error||!data||!data.signedUrl)throw error||new Error('não consegui gerar o link');
+  janela.location=data.signedUrl}
+ catch(e){if(janela)janela.close();toast('Não consegui abrir: '+((e&&e.message)||e))}}
+function cpAnexoRemover(cid,aid){
+ const a=_contaAnexos.find(x=>x.id===aid);if(!a)return;
+ if(!confirm('Remover "'+a.nome+'"? O arquivo sai do sistema. O pagamento e o histórico da conta não mudam.'))return;
+ _contaAnexos=_contaAnexos.filter(x=>x.id!==aid);
+ const c=DB.contas.find(x=>x.id===cid);
+ if(c){c.anexos=_contaAnexos.slice();saveCP()}
+ if(sb&&a.caminho)sb.storage.from('documentos').remove([a.caminho]).then(()=>{},()=>{});
+ cpAnexosPintar();toast('Arquivo removido')}
 function cpStepMes(n){cpMesRef=new Date(cpMesRef.getFullYear(),cpMesRef.getMonth()+n,1);render()}
 function cpMonthBar(){const mn=cpMesRef.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   return `<div class="filters"><button class="btn btn-sm" onclick="cpStepMes(-1)">‹</button><b style="text-transform:capitalize">${mn}</b><button class="btn btn-sm" onclick="cpStepMes(1)">›</button>
@@ -2905,12 +3077,12 @@ function cpBarraDesfazer(){
       <button class="btn btn-sm btn-ghost" onclick="cpDescartarLixo()">Foi de propósito</button></span></div>`}
 function setCpTab(id){cpTab=id;cpBusca='';cpFiltroStatus='';render()}
 function viewContas(){
-  const tabs=[['resumo','Resumo']].concat(DB.grupos.map(g=>['emp:'+g.id,g.nome])).concat([['empresas','Empresas'],['excluidos','Excluídos']]);
+  const tabs=[['resumo','Resumo'],['pagos','Pagos do mês']].concat(DB.grupos.map(g=>['emp:'+g.id,g.nome])).concat([['empresas','Empresas'],['excluidos','Excluídos']]);
   const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${cpTab===id?'active':''}" onclick="setCpTab('${id}')">${esc(lbl)}</button>`).join('')}</div>
     <div class="row-meta" style="margin:-6px 0 14px">📅 O calendário de vencimentos agora é único — veja em <a onclick="go('cal')" style="color:var(--acc);cursor:pointer;text-decoration:underline">Calendário</a>, no menu "Dia a dia".</div>`;
   let body;
   if(cpTab.startsWith('emp:'))body=viewCpEmpresa(cpTab.slice(4));
-  else body=({resumo:viewCpResumo,empresas:viewCpEmpresas,excluidos:viewCpExcluidos}[cpTab]||viewCpResumo)();
+  else body=({resumo:viewCpResumo,pagos:viewCpPagos,empresas:viewCpEmpresas,excluidos:viewCpExcluidos}[cpTab]||viewCpResumo)();
   return tabsHTML+body}
 /* o que o painel da virada mostra para as contas */
 function cpItensAbertura(mk){
@@ -2974,7 +3146,10 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
   const shifted=x.eff.getDate()!==Math.min(c.dia,daysInMonth(y,m));
   const diaTxt=shifted?`dia ${c.dia} → ${pad(x.eff.getDate())}/${pad(x.eff.getMonth()+1)}`:`venc. ${pad(x.eff.getDate())}/${pad(x.eff.getMonth()+1)}`;
   const stChip={pago:'<span class="chip chip-pago">✓ Pago</span>',avencer:'<span class="chip chip-avencer">◷ A vencer</span>',vencido:'<span class="chip chip-vencido">✗ Vencido</span>'}[st];
-  const valTxt=st==='pago'&&x.pg?brl(x.valorPago||c.valor):brl(c.valor);
+  const pagoV=st==='pago'&&x.pg?(+x.pg.valorPago||0):0;
+  const difChip=st==='pago'&&x.pg?cpChipDif(cpDif(x)):'';
+  const anx=(c.anexos||[]).length
+    ? `<span class="chip chip-n" style="cursor:pointer" title="abrir o carnê anexado" onclick="cpAnexoAbrir('${c.id}','${c.anexos[0].id}')">📎 carnê${(c.anexos||[]).length>1?' ('+c.anexos.length+')':''}</span>`:'';
   const forma=c.formaPgto?`<span class="chip chip-n">${formaIcon(c.formaPgto)} ${formaLabel(c.formaPgto)}</span>`:'';
   const classeChip=c.classeId?`<span class="chip chip-n" style="color:${cpClasseCor(c.classeId)}">${esc(cpClasseNome(c.classeId))}</span>`:'';
   const parc=x.parcela?`<span class="chip chip-n">Parc. ${x.parcela}</span>`:(c.tipo==='unica'?'<span class="chip chip-n">Única</span>':'');
@@ -2985,8 +3160,9 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
     :c.vigenciaFim===mk?'<span class="chip chip-avencer" title="último mês desta conta">último mês</span>'
     :encerrada?'<span class="chip chip-n" style="color:var(--mut)">encerrada</span>':'';
   return `<div class="row"><button class="chk ${st==='pago'?'on':''}" title="${st==='pago'?'Desmarcar pago':'Registrar pagamento'}" onclick="cpTogglePay('${c.id}')">✓</button>
-    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${marcaHist}${forma}${classeChip}${parc}${obs}</div></div>
-    <div style="font-weight:700;font-variant-numeric:tabular-nums;padding:0 6px" class="${st==='vencido'?'neg':''}">${valTxt}</div>
+    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${difChip}${marcaHist}${forma}${classeChip}${parc}${anx}${obs}</div></div>
+    <div class="cp-val ${st==='vencido'?'neg':''}">${st==='pago'&&x.pg?brl(pagoV):brl(c.valor)}
+      ${st==='pago'&&x.pg&&pagoV!==cpBase(c)?`<small>base ${brl(cpBase(c))}</small>`:''}</div>
     <div class="row-actions"><button class="iconbtn" onclick="openConta('${c.id}')">✎</button>
      ${c.deletedAt?''
        :encerrada?`<button class="iconbtn" title="Voltar a vencer todo mês" onclick="cpReativar('${c.id}')">↻</button>`
@@ -3015,7 +3191,15 @@ function pickTipoC(t){curTipoC=t;document.querySelectorAll('#c_tipo .o').forEach
   gEl('c_vigWrap').style.display=t==='mensal'?'':'none'}
 function openConta(id,presetGid){const c=id?DB.contas.find(x=>x.id===id):null;const gsel=c?c.grupoId:presetGid;
   gEl('contaTitle').textContent=c?'Editar conta':'Nova conta';
-  gEl('c_id').value=c?c.id:'';gEl('c_forn').value=c?c.fornecedor:'';
+  /* a conta nova já nasce com id para o carnê poder subir antes de salvar */
+  gEl('c_id').value=c?c.id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36));
+  _contaAnexos=c&&c.anexos?c.anexos.slice():[];cpAnexosPintar();
+  {const m=c?cpMediaPaga(c.id):null,d=gEl('c_media');
+   d.textContent=m
+     ?'Média paga: '+brl(m.media)+' em '+m.meses+' mês(es), entre '+brl(m.min)+' e '+brl(m.max)+'. O último foi '+brl(m.ultimo)+'.'
+     :'Quanto essa conta costuma custar. O valor pago de cada mês é lançado na hora de marcar, e a diferença aparece em "Pagos do mês".';
+   d.innerHTML=esc(d.textContent)+(m?` <a style="color:var(--acc);cursor:pointer" onclick="gEl('c_valor').value=${(Math.round(m.media*100)/100)}">usar a média</a>`:'')}
+  gEl('c_forn').value=c?c.fornecedor:'';
   gEl('c_dia').value=c?c.dia:1;gEl('c_valor').value=c?c.valor:'';gEl('c_obs').value=c?(c.obs||''):'';
   gEl('c_conta').value=c?(c.conta||''):'';
   gEl('c_forma').innerHTML='<option value="">—</option>'+FORMAS.map(f=>`<option value="${f[0]}" ${c&&c.formaPgto===f[0]?'selected':''}>${f[2]} ${f[1]}</option>`).join('');
@@ -3035,7 +3219,10 @@ function saveConta(){const forn=gEl('c_forn').value.trim();if(!forn)return toast
   if(curTipoC==='parcelada'){d.parcelas=Math.max(2,parseInt(gEl('c_parcelas').value)||2);d.parcelaInicio=gEl('c_parcIni').value||monthKey(cpMesRef)}
   else if(curTipoC==='unica'){d.mesUnico=gEl('c_mesUnico').value||monthKey(cpMesRef)}
   else{d.vigenciaInicio=gEl('c_vigIni').value||null;d.vigenciaFim=gEl('c_vigFim').value||null}
-  if(id)Object.assign(DB.contas.find(c=>c.id===id),d);else DB.contas.push({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...d,deletedAt:null});
+  d.anexos=_contaAnexos.slice();
+  const ja=id?DB.contas.find(c=>c.id===id):null;
+  if(ja)Object.assign(ja,d);
+  else DB.contas.push({id:id||(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...d,deletedAt:null});
   saveCP();closeModal('ovConta');render();toast('Conta salva')}
 function delConta(id){const c=DB.contas.find(x=>x.id===id);if(!c)return;c.deletedAt=Date.now();saveCP();render();toast('Movida para Excluídos')}
 function restoreConta(id){const c=DB.contas.find(x=>x.id===id);if(c){c.deletedAt=null;saveCP();render();toast('Restaurada')}}
