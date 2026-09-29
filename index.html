@@ -1030,9 +1030,23 @@ tbody tr:hover{background:var(--panel2)}
       <div class="o sel" data-v="afazer" onclick="pickSt('afazer')">A Fazer</div>
       <div class="o" data-v="fazendo" onclick="pickSt('fazendo')">Fazendo</div>
       <div class="o" data-v="feito" onclick="pickSt('feito')">Feito</div></div></div>
+    <div class="field" id="t_feitoWrap" style="display:none"><label>Concluída em</label><div id="t_feitoCampo"></div></div>
     <div class="field"><label>Descrição / observações</label><textarea id="t_obs" rows="3" placeholder="Detalhes, links, contexto — aparece no card do Kanban"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovTask')">Cancelar</button><button class="btn btn-gold" onclick="saveTask()">Salvar</button></div>
+</div></div>
+
+<div class="overlay" id="ovFeito"><div class="modal" style="max-width:470px">
+  <div class="modal-head"><h3>Concluída em</h3><button class="modal-x" onclick="closeModal('ovFeito')">×</button></div>
+  <div class="modal-body">
+    <div class="row" style="margin-bottom:6px"><div class="row-body">
+      <div class="row-title" id="avFeitoTit">Tarefa</div>
+      <div class="row-meta" id="avFeitoSub"></div></div></div>
+    <div class="field"><label>Dia em que a tarefa foi concluída</label><div id="avFeitoCampo"></div></div>
+    <div class="muted" style="font-size:11.5px;line-height:1.5">Fica no registro da semana, então dá para conferir depois o que foi entregue e quando.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="avFeitoCancelar()">Cancelar</button>
+    <button class="btn btn-gold" onclick="avFeitoSalvar()">Salvar</button></div>
 </div></div>
 
 <!-- ===== Modal Rotina (Mensal/Semanal/Diária) ===== -->
@@ -1042,6 +1056,8 @@ tbody tr:hover{background:var(--panel2)}
     <input type="hidden" id="m_tipo"><input type="hidden" id="m_id">
     <div class="field"><label>Descrição *</label><input id="m_desc" placeholder="O que precisa ser feito"></div>
     <div class="field" id="m_diaWrap"><label>Dia do mês</label><input id="m_dia" type="number" min="1" max="31" value="1"></div>
+    <div class="field" id="m_iniWrap"><label id="m_iniLbl">Começa em</label><input id="m_ini" type="date">
+      <div class="muted" id="m_iniDica" style="font-size:11.5px;margin-top:5px;line-height:1.45"></div></div>
     <div class="field" id="m_semWrap"><label>Dia da semana</label><select id="m_sem">
       <option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5" selected>Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option></select></div>
     <div class="field" id="m_ajWrap"><label>Se cair em fim de semana/feriado</label><div class="seg" id="m_aj">
@@ -1183,6 +1199,21 @@ tbody tr:hover{background:var(--panel2)}
   <div class="modal-foot" id="reFoot"></div>
 </div></div>
 
+<div class="overlay" id="ovEncerra"><div class="modal" style="max-width:520px">
+  <div class="modal-head"><h3>Encerrar rotina</h3><button class="modal-x" onclick="closeModal('ovEncerra')">×</button></div>
+  <div class="modal-body">
+    <div class="row" style="margin-bottom:4px"><div class="row-body">
+      <div class="row-title" id="encTitulo">Rotina</div>
+      <div class="row-meta" id="encSub"></div></div></div>
+    <div class="field"><button class="btn btn-gold" style="width:100%;justify-content:center" onclick="rotEncerraAgora()">Encerrar agora</button>
+      <div class="muted" id="encAgora" style="font-size:11.5px;margin-top:6px;line-height:1.45"></div></div>
+    <div class="field"><button class="btn" style="width:100%;justify-content:center" onclick="rotEncerraFimMes()">Encerrar no fim deste mês</button>
+      <div class="muted" id="encFim" style="font-size:11.5px;margin-top:6px;line-height:1.45"></div></div>
+    <div class="muted" style="font-size:11.5px;line-height:1.5">Encerrar não apaga nada: o que já foi marcado continua no histórico, e dá para reabrir a rotina depois.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovEncerra')">Cancelar</button></div>
+</div></div>
+
 <!-- ===== Modal Etapa (Implantação) ===== -->
 <div class="overlay" id="ovEtapa"><div class="modal">
   <div class="modal-head"><h3 id="etapaTitle">Etapa</h3><button class="modal-x" onclick="closeModal('ovEtapa')">×</button></div>
@@ -1194,7 +1225,6 @@ tbody tr:hover{background:var(--panel2)}
       <div class="o" data-v="pendente" onclick="pickStatusE('pendente')">Pendente</div>
       <div class="o" data-v="andamento" onclick="pickStatusE('andamento')">Em andamento</div>
       <div class="o" data-v="realizado" onclick="pickStatusE('realizado')">Realizado</div>
-      <div class="o" data-v="na" onclick="pickStatusE('na')">Não se aplica</div>
       <div class="o" data-v="na" onclick="pickStatusE('na')">Não se aplica</div></div></div>
     <div class="fgrid">
       <div class="field"><label>Prazo</label><input id="e_prazo" type="date"></div>
@@ -1593,6 +1623,7 @@ function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'sema
     row.vigencia_ini=m.vigenciaIni||null;row.vigencia_fim=m.vigenciaFim||null}
   if(tipo==='semanais')row.dia_semana=m.diaSemana;
   if(tipo==='diarias')row.ordem=m.ordem||0;
+  if(tipo!=='mensais'){row.inicio_em=m.inicioEm||null;row.fim_em=m.fimEm||null}
   up(t,row)}
 async function persistExec(tipo,mid,periodo,feito,valor,ativo){const {error}=await sb.from('execucoes').upsert({tipo,modelo_id:mid,periodo,feito,feito_em:feito?new Date().toISOString():null,valor:(valor===undefined||valor===null||valor==='')?null:+valor,ativo:ativo!==false},{onConflict:'tipo,modelo_id,periodo'});pErr(error,'exec')}
 /* ===== Contas a Pagar: persistência (mesmo padrão blob do app separado — tabela cp_state) ===== */
@@ -1628,8 +1659,8 @@ async function loadAll(){
     config:(function(){const o={};((CFG&&CFG.data)||[]).forEach(x=>{o[x.chave]=x.valor});return o})(),
     mesesAbertos:(MA&&MA.data?MA.data:[]).map(x=>({area:x.area,periodo:x.periodo,abertoEm:x.aberto_em||''})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',vigenciaIni:m.vigencia_ini||'',vigenciaFim:m.vigencia_fim||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
-    semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
-    diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
+    semanais:{modelos:(S.data||[]).map(m=>({id:m.id,diaSemana:m.dia_semana,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',inicioEm:m.inicio_em||'',fimEm:m.fim_em||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.semanais},
+    diarias:{modelos:(D.data||[]).map(m=>({id:m.id,descricao:m.descricao,responsavelId:m.responsavel_id,obs:m.obs,ordem:m.ordem||0,empresa:m.empresa||'Lidere',inicioEm:m.inicio_em||'',fimEm:m.fim_em||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.diarias},
     feriados:(F.data||[]).map(f=>({id:f.id,data:f.data,nome:f.nome})),
     grupos:cp.grupos||[],
     classes:(cp.classes&&cp.classes.length)?cp.classes:[{id:'fixa',nome:'Fixa',cor:'#a855f7'},{id:'variavel',nome:'Variável',cor:'#9aa3b2'},{id:'semivar',nome:'Semi-variável',cor:'#14b8a6'}],
@@ -2216,7 +2247,7 @@ function viewPendArquivo(){
   const m=meses.find(x=>x.mk===aberto)||meses[0];
   const linhas=m.itens.map(a=>`<div class="row">
      <div class="row-body"><div class="row-title" style="font-size:12.5px">${esc(a.titulo)}</div>
-      <div class="row-meta"><span class="chip chip-n">${pendDataFeito(a)?fmtBR(pendDataFeito(a)):'sem data'}</span>
+      <div class="row-meta"><span class="chip chip-n" style="cursor:pointer" title="corrigir o dia da conclusão" onclick="avFeitoAbrir('${a.id}')">${pendDataFeito(a)?fmtBR(pendDataFeito(a)):'sem data'} ✎</span>
        <span class="pchip ${a.prioridade}">${esc(a.prioridade)}</span>
        ${a.responsavelId?`<span class="muted">${esc(respName(a.responsavelId))}</span>`:''}
        ${a.empresa&&a.empresa!=='Lidere'?`<span class="muted">${esc(a.empresa)}</span>`:''}</div>
@@ -2326,13 +2357,15 @@ function dropCol(e,col){e.preventDefault();e.currentTarget.classList.remove('ove
   moveTask(id,col,idx);
   document.querySelectorAll('.kb-card.drag').forEach(c=>c.classList.remove('drag'))}
 function moveTask(id,st,idx){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
-  const mudouCol=a.status!==st;
+  const mudouCol=a.status!==st,de=a.status;
   a.status=st;a.concluidoEm=st==='feito'?Date.now():null;
   const arr=pendColuna(st).filter(x=>x.id!==id);
   arr.splice((idx==null||idx<0||idx>arr.length)?arr.length:idx,0,a);
   const antes=a.ordem||0;
   pendGravaOrdem(arr);
   if(mudouCol||(a.ordem||0)===antes)persistAvulsa(a);
+  /* caiu na coluna Feito: pergunta o dia, já preenchido com hoje */
+  if(mudouCol&&st==='feito')setTimeout(()=>avFeitoAbrir(id,de),60);
   render();if(mudouCol&&st==='feito')toast('Concluída 🎉')}
 function delTask(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.deletedAt=Date.now();persistAvulsa(a);render();toast('Movido para Excluídos')}
 function restoreTask(id){const a=DB.avulsas.find(x=>x.id===id);if(a){a.deletedAt=null;persistAvulsa(a);render();toast('Restaurado')}}
@@ -2341,7 +2374,38 @@ function purgeTask(id){if(!confirm('Excluir definitivamente? Não dá para desfa
   DB.avulsas=DB.avulsas.filter(x=>x.id!==id);render()}
 let curPri='media',curSt='afazer';
 function pickPri(p){curPri=p;document.querySelectorAll('#t_pri .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===p))}
-function pickSt(s){curSt=s;document.querySelectorAll('#t_st .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===s))}
+
+/* ===================================================================
+   Data de conclusão da pendência.
+   Marcar como feita sem dizer quando não conta a semana de ninguém:
+   ao concluir, o dia fica registrado e pode ser corrigido depois.
+   =================================================================== */
+const avDiaFeito=a=>a&&a.concluidoEm?iso(new Date(a.concluidoEm)):'';
+/* meio-dia, para nenhum fuso empurrar a data para o dia anterior */
+const avMarcaDe=dk=>parseK(dk).getTime()+12*3600*1000;
+let _avFeitoId='',_avFeitoVolta='';
+function avFeitoAbrir(id,voltaSe){
+ const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+ _avFeitoId=id;_avFeitoVolta=voltaSe||'';
+ gEl('avFeitoTit').textContent=a.titulo;
+ gEl('avFeitoSub').textContent=(a.prazo?'prazo '+fmtBR(a.prazo)+' · ':'')
+   +(a.responsavelId?respName(a.responsavelId):'sem responsável');
+ gEl('avFeitoCampo').innerHTML=dtHTML('avFeito',avDiaFeito(a)||todayKey(),'');
+ showModal('ovFeito')}
+function avFeitoSalvar(){
+ if(dtIncompleto('avFeito'))return toast('Preencha a data como dd/mm/aaaa ou use o calendário');
+ const dk=dtValor('avFeito')||todayKey();
+ const a=DB.avulsas.find(x=>x.id===_avFeitoId);if(!a)return closeModal('ovFeito');
+ a.status='feito';a.concluidoEm=avMarcaDe(dk);
+ persistAvulsa(a);closeModal('ovFeito');render();
+ toast(a.titulo+' concluída em '+fmtBR(dk))}
+/* cancelar depois de arrastar devolve a tarefa para a coluna de origem */
+function avFeitoCancelar(){
+ const a=DB.avulsas.find(x=>x.id===_avFeitoId);
+ if(a&&_avFeitoVolta){a.status=_avFeitoVolta;a.concluidoEm=null;persistAvulsa(a);render()}
+ _avFeitoVolta='';closeModal('ovFeito')}
+function pickSt(s){curSt=s;document.querySelectorAll('#t_st .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===s));
+  const w=gEl('t_feitoWrap');if(w)w.style.display=s==='feito'?'':'none'}
 function openTask(id,presetSt,presetPrazo){
   const a=id?DB.avulsas.find(x=>x.id===id):null;
   gEl('taskTitle').textContent=a?'Editar tarefa':'Nova tarefa';
@@ -2355,6 +2419,7 @@ function openTask(id,presetSt,presetPrazo){
   gEl('t_valor').value=a&&a.valor?a.valor:'';
   gEl('t_obs').value=a?(a.obs||''):'';
   curPri=a?a.prioridade:'media';pickPri(curPri);
+  gEl('t_feitoCampo').innerHTML=dtHTML('t_feito',avDiaFeito(a)||todayKey(),'');
   curSt=a?a.status:(presetSt||'afazer');pickSt(curSt);
   showModal('ovTask');setTimeout(()=>gEl('t_titulo').focus(),60)}
 function saveTask(){
@@ -2364,8 +2429,10 @@ function saveTask(){
     prazo:gEl('t_prazo').value||null,hora:gEl('t_hora').value||'',valor:parseFloat(gEl('t_valor').value)||0,obs:gEl('t_obs').value.trim(),
     prioridade:curPri,status:curSt};
   let a;
-  if(id){a=DB.avulsas.find(x=>x.id===id);Object.assign(a,dados);if(curSt==='feito'&&!a.concluidoEm)a.concluidoEm=Date.now();if(curSt!=='feito')a.concluidoEm=null}
-  else{a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...dados,ordem:Math.min(0,...alive(DB.avulsas).filter(x=>x.status===curSt).map(x=>x.ordem||0))-1,concluidoEm:curSt==='feito'?Date.now():null,deletedAt:null};DB.avulsas.push(a)}
+  const marca=curSt==='feito'?avMarcaDe(dtValor('t_feito')||todayKey()):null;
+  if(curSt==='feito'&&dtIncompleto('t_feito'))return toast('Preencha "Concluída em" como dd/mm/aaaa ou use o calendário');
+  if(id){a=DB.avulsas.find(x=>x.id===id);Object.assign(a,dados);a.concluidoEm=marca}
+  else{a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...dados,ordem:Math.min(0,...alive(DB.avulsas).filter(x=>x.status===curSt).map(x=>x.ordem||0))-1,concluidoEm:marca,deletedAt:null};DB.avulsas.push(a)}
   persistAvulsa(a);closeModal('ovTask');render();toast('Salvo')}
 
 /* ===== Calendário ===== */
@@ -2375,9 +2442,9 @@ function mensaisOnDate(dt){
   [-1,0,1].forEach(off=>{const r=new Date(y,m+off,1),yy=r.getFullYear(),mm=r.getMonth();
     mensaisDoPeriodo(monthKey(r)).forEach(mo=>{if(seen[mo.id])return;if(iso(mensalEff(yy,mm,mo))===iso(dt)){out.push(mo);seen[mo.id]=1}})});
   return out}
-function semanaisOnDate(dt){return alive(DB.semanais.modelos).filter(m=>String(m.diaSemana)===String(dt.getDay()))}
+function semanaisOnDate(dt){return alive(DB.semanais.modelos).filter(m=>String(m.diaSemana)===String(dt.getDay())&&rotAtivaNo('semanais',m,dt))}
 function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt)).sort((x,y)=>String(x.hora||'99:99').localeCompare(String(y.hora||'99:99'))||pendByOrdem(x,y))}
-function diariasOnDate(dt){return isDiaUtil(dt)?alive(DB.diarias.modelos):[]}
+function diariasOnDate(dt){return isDiaUtil(dt)?alive(DB.diarias.modelos).filter(m=>rotAtivaNo('diarias',m,dt)):[]}
 function holidayName(dt){const y=dt.getFullYear(),k=iso(dt);const n=feriadosNacionais(y).find(f=>f.data===k);if(n)return n.nome;const l=(DB.feriados||[]).find(f=>f.data===k);return l?l.nome:null}
 const CONTAS_COR='#06b6d4';
 const CRM_CAL_COR='#ec4899';
@@ -2423,7 +2490,9 @@ function calDayHTML(dk){
   return `<div class="panel" style="margin-bottom:0"><div class="panel-head"><h2 style="text-transform:none">${fmtBR(dk)}<small style="text-transform:capitalize">${dt.toLocaleDateString('pt-BR',{weekday:'long'})}${!util?' · fora do dia útil':''}</small></h2></div>
    ${holBan}${h}${empty}<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm btn-gold" style="flex:1;justify-content:center" onclick="novaNoDia('${dk}')">+ Tarefa</button><button class="btn btn-sm" style="flex:1;justify-content:center" onclick="openConta(null,(DB.grupos[0]||{}).id);gEl('c_dia').value=${dt.getDate()}" ${DB.grupos.length?'':'disabled'}>+ Conta</button></div></div>`}
 function novaNoDia(dk){openTask(null,'afazer',dk)}
-function quickDoneAvulsa(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;a.status=a.status==='feito'?'afazer':'feito';a.concluidoEm=a.status==='feito'?Date.now():null;persistAvulsa(a);render()}
+function quickDoneAvulsa(id){const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+  if(a.status==='feito'){a.status='afazer';a.concluidoEm=null;persistAvulsa(a);render();return}
+  avFeitoAbrir(id)}
 function toggleExecDate(tipo,mid,dk){const dt=parseK(dk);const pk=tipo==='mensais'?monthKey(dt):tipo==='semanais'?weekKey(dt):dk;
   const s=DB[tipo].exec;s[pk]=s[pk]||{};
   const ant=s[pk][mid]||{};const cur=ant.feito;s[pk][mid]={feito:!cur,em:!cur?Date.now():null,valor:ant.valor==null?null:ant.valor};
@@ -2569,13 +2638,138 @@ const rotChip=st=>`<span class="chip ${st.cls}" title="${esc(fmtBR(st.dk))}">${s
 function rotVencidas(tipo,ref){
  const pk=tipo==='mensais'?monthKey(ref):tipo==='semanais'?weekKey(ref):iso(ref);
  const ex=DB[tipo].exec[pk]||{};
- const mods=tipo==='mensais'?mensaisDoPeriodo(pk)
-   :tipo==='diarias'?(isDiaUtil(ref)?alive(DB.diarias.modelos):[])
-   :alive(DB.semanais.modelos);
+ const mods=tipo==='diarias'&&!isDiaUtil(ref)?[]:rotModelos(tipo,ref);
  return mods.filter(mo=>rotStatus(tipo,mo,ref,!!(ex[mo.id]&&ex[mo.id].feito)).id==='vencida').length}
 /* o número que o menu mostra: vencidas do mês, da semana e do dia de hoje */
 function rotVencidasAgora(){const h=new Date();
  return rotVencidas('mensais',h)+rotVencidas('semanais',h)+rotVencidas('diarias',h)}
+
+
+/* ===================================================================
+   Vigência da rotina: de quando ela começou até quando parou de valer.
+   Mensal conta por mês (vigenciaIni/vigenciaFim). Semanal e diária
+   contam por dia (inicioEm/fimEm), senão uma rotina criada hoje
+   apareceria como atrasada em todos os dias anteriores do mês.
+   =================================================================== */
+const rotIniDe=(tipo,mo)=>tipo==='mensais'?(mo.vigenciaIni||''):(mo.inicioEm||'');
+const rotFimDe=(tipo,mo)=>tipo==='mensais'?(mo.vigenciaFim||''):(mo.fimEm||'');
+function rotAtivaNo(tipo,mo,ref){
+ if(tipo==='mensais')return mesVigente(mo.vigenciaIni,mo.vigenciaFim,monthKey(ref));
+ const dk=rotDataDe(tipo,mo,ref),ini=mo.inicioEm||'',fim=mo.fimEm||'';
+ if(ini&&dk<ini)return false;
+ if(fim&&dk>fim)return false;
+ return true}
+/* as rotinas que valem no período aberto, mais as que já têm registro nele:
+   o que foi marcado um dia não some da tela quando a rotina é encerrada */
+function rotModelos(tipo,ref){
+ if(tipo==='mensais')return mensaisDoPeriodo(monthKey(ref));
+ const pk=tipo==='semanais'?weekKey(ref):iso(ref);
+ const ex=DB[tipo].exec[pk]||{};
+ const out=alive(DB[tipo].modelos).filter(mo=>rotAtivaNo(tipo,mo,ref));
+ (DB[tipo].modelos||[]).forEach(mo=>{
+   if(ex[mo.id]&&ex[mo.id].feito&&!out.some(x=>x.id===mo.id))out.push(mo)});
+ return tipo==='diarias'?out.sort((a,b)=>(a.ordem||0)-(b.ordem||0)):out}
+/* chips de início e fim, para a rotina dizer desde quando ela existe */
+function rotVigChips(tipo,mo){
+ const ini=rotIniDe(tipo,mo),fim=rotFimDe(tipo,mo);
+ const fmt=v=>tipo==='mensais'?mesNome(v):fmtBR(v);
+ let h='';
+ if(ini)h+=`<span class="chip chip-n" title="a rotina começou a valer aqui">desde ${esc(fmt(ini))}</span>`;
+ if(fim)h+=`<span class="chip chip-n" style="color:var(--mut)" title="não aparece depois desta data">encerrada em ${esc(fmt(fim))}</span>`;
+ return h}
+const rotUltimoDiaDoMes=ref=>iso(new Date(ref.getFullYear(),ref.getMonth()+1,0));
+
+/* ---- encerrar: agora (para de aparecer já) ou no fim deste mês ---- */
+let _encTipo='',_encId='';
+const ROT_NOME={mensais:'mensal',semanais:'semanal',diarias:'diária'};
+function rotEncerraAbrir(tipo,id){
+ const mo=(DB[tipo].modelos||[]).find(x=>x.id===id);if(!mo)return;
+ _encTipo=tipo;_encId=id;
+ const ref=tipo==='mensais'?mensalRef:tipo==='semanais'?semRef:parseK(diariaDate||todayKey());
+ gEl('encTitulo').textContent=mo.descricao;
+ gEl('encSub').textContent='Rotina '+ROT_NOME[tipo]+(rotIniDe(tipo,mo)?' · começou em '+(tipo==='mensais'?mesNome(rotIniDe(tipo,mo)):fmtBR(rotIniDe(tipo,mo))):'');
+ const agora=tipo==='mensais'
+   ?'Sai já de '+mesNome(monthKey(ref))+'. Se já houver algo marcado neste mês, o registro fica no histórico.'
+   :'Para de aparecer a partir de hoje. Os dias já marcados continuam no histórico.';
+ const fim=tipo==='mensais'
+   ?'Continua em '+mesNome(monthKey(ref))+' e some a partir de '+mesNome(mesSeguinte(monthKey(ref)))+'.'
+   :'Continua até '+fmtBR(rotUltimoDiaDoMes(new Date()))+' e some a partir do mês que vem.';
+ gEl('encAgora').textContent=agora;gEl('encFim').textContent=fim;
+ showModal('ovEncerra')}
+function rotEncerraAgora(){
+ const tipo=_encTipo,mo=(DB[tipo].modelos||[]).find(x=>x.id===_encId);if(!mo)return;
+ if(tipo==='mensais'){const pk=monthKey(mensalRef);
+  mo.vigenciaFim=mesAnterior(pk);persistModelo('mensais',mo);
+  closeModal('ovEncerra');render();
+  return toast(mo.descricao+' encerrada · não aparece mais a partir de '+mesNome(pk))}
+ /* diária e semanal: ontem, a não ser que hoje já tenha marcação, que fica preservada */
+ const hoje=todayKey(),pk=tipo==='semanais'?weekKey(new Date()):hoje;
+ const ex=DB[tipo].exec[pk]||{};
+ mo.fimEm=(ex[mo.id]&&ex[mo.id].feito)?hoje:addDias(hoje,-1);
+ persistModelo(tipo,mo);closeModal('ovEncerra');render();
+ toast(mo.descricao+' encerrada · última data '+fmtBR(mo.fimEm))}
+function rotEncerraFimMes(){
+ const tipo=_encTipo,mo=(DB[tipo].modelos||[]).find(x=>x.id===_encId);if(!mo)return;
+ if(tipo==='mensais'){const pk=monthKey(mensalRef);
+  mo.vigenciaFim=pk;persistModelo('mensais',mo);closeModal('ovEncerra');render();
+  return toast(mo.descricao+' encerrada · última vez em '+mesNome(pk))}
+ mo.fimEm=rotUltimoDiaDoMes(new Date());
+ persistModelo(tipo,mo);closeModal('ovEncerra');render();
+ toast(mo.descricao+' encerrada · última data '+fmtBR(mo.fimEm))}
+function rotReabrir(tipo,id){
+ const mo=(DB[tipo].modelos||[]).find(x=>x.id===id);if(!mo)return;
+ if(tipo==='mensais')mo.vigenciaFim='';else mo.fimEm='';
+ persistModelo(tipo,mo);render();toast(mo.descricao+' voltou a valer')}
+
+/* ===================================================================
+   Histórico das rotinas: quando cada uma começou, quando foi encerrada
+   e quantas vezes foi registrada. Os números saem das execuções.
+   =================================================================== */
+function rotExecResumo(tipo,id){
+ const ex=DB[tipo].exec||{};const ks=[];
+ Object.keys(ex).forEach(pk=>{const e=ex[pk][id];if(e&&e.feito)ks.push(pk)});
+ ks.sort();
+ return {n:ks.length,primeiro:ks[0]||'',ultimo:ks[ks.length-1]||''}}
+function rotPeriodoTxt(tipo,pk){
+ if(!pk)return '';
+ if(tipo==='mensais')return mesNome(pk);
+ if(tipo==='semanais')return 'semana '+String(pk).split('-W')[1]+'/'+String(pk).slice(0,4);
+ return fmtBR(pk)}
+function viewRotHistorico(){
+ const linhas=[];
+ ['mensais','semanais','diarias'].forEach(tipo=>{
+  (DB[tipo].modelos||[]).forEach(mo=>{
+   const r=rotExecResumo(tipo,mo.id);
+   linhas.push({tipo,mo,ini:rotIniDe(tipo,mo),fim:rotFimDe(tipo,mo),r,
+     ordem:(rotIniDe(tipo,mo)||r.primeiro||'0')})})});
+ linhas.sort((a,b)=>String(b.ordem).localeCompare(String(a.ordem)));
+ const ativas=linhas.filter(x=>!x.fim&&!x.mo.deletedAt).length;
+ const encerradas=linhas.filter(x=>x.fim&&!x.mo.deletedAt).length;
+ const excluidas=linhas.filter(x=>x.mo.deletedAt).length;
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Rotinas ativas</div><div class="v" style="color:var(--pos)">${ativas}</div><div class="sub">valendo hoje</div></div>
+   <div class="stat"><div class="k">Encerradas</div><div class="v" style="color:var(--meta)">${encerradas}</div><div class="sub">saíram da operação</div></div>
+   <div class="stat"><div class="k">Excluídas</div><div class="v" style="color:var(--mut)">${excluidas}</div><div class="sub">na lixeira, com histórico</div></div>
+   <div class="stat"><div class="k">Registros</div><div class="v">${linhas.reduce((t,x)=>t+x.r.n,0)}</div><div class="sub">marcações já feitas</div></div></div>`;
+ const rows=linhas.map(({tipo,mo,ini,fim,r})=>{
+   const sit=mo.deletedAt?'<span class="chip chip-n" style="color:var(--mut)">excluída</span>'
+     :fim?'<span class="chip chip-n" style="color:var(--meta)">encerrada</span>'
+     :'<span class="chip chip-pago">ativa</span>';
+   const fmt=v=>tipo==='mensais'?mesNome(v):fmtBR(v);
+   return `<div class="row"><div class="row-body"><div class="row-title">${esc(mo.descricao)}</div>
+     <div class="row-meta">${sit}<span class="chip chip-n">${ROT_NOME[tipo]}</span>
+       ${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}
+       <span class="chip chip-n">início ${ini?esc(fmt(ini)):'<span style="color:var(--mut)">não registrado</span>'}</span>
+       ${fim?`<span class="chip chip-n">fim ${esc(fmt(fim))}</span>`:''}
+       <span class="chip chip-n">${r.n} registro(s)</span>
+       ${r.n?`<span class="chip chip-n">de ${esc(rotPeriodoTxt(tipo,r.primeiro))} a ${esc(rotPeriodoTxt(tipo,r.ultimo))}</span>`:''}</div></div>
+     <div class="row-actions">${mo.deletedAt?`<button class="btn btn-sm" onclick="restoreModelo('${tipo}','${mo.id}')">Restaurar</button>`
+       :fim?`<button class="btn btn-sm" onclick="rotReabrir('${tipo}','${mo.id}')">Reabrir</button>`
+       :`<button class="btn btn-sm" onclick="rotEncerraAbrir('${tipo}','${mo.id}')">Encerrar</button>`}
+       <button class="iconbtn" onclick="openModelo('${tipo}','${mo.id}')">✎</button></div></div>`}).join('')
+   ||'<div class="empty">Nenhuma rotina cadastrada ainda.</div>';
+ return stats+`<div class="panel"><div class="panel-head"><h2>Histórico das rotinas<small>desde quando cada uma vale e quando saiu</small></h2></div>
+   <div class="row-meta" style="margin:-4px 0 12px">Rotina sem início registrado é anterior a este controle: o primeiro registro marca quando ela passou a rodar aqui.</div>${rows}</div>`}
 
 /* ===== Rotinas (mensais / semanais / diárias) ===== */
 let rotinaTab='mensais', mensalRef=new Date(), semRef=new Date(), diariaDate=null, curAj='posterga';
@@ -2590,8 +2784,10 @@ function toggleExec(tipo,mid){const pk=periodKey(tipo);const s=DB[tipo].exec;s[p
   persistExec(tipo,mid,pk,!cur,s[pk][mid].valor);render()}
 function viewRotinas(){
   const tabs=[['mensais','Mensais'],['semanais','Semanais'],['diarias','Diárias']];
-  const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${rotinaTab===id?'active':''}" onclick="setRotinaTab('${id}')">${lbl}<span class="cnt">${alive(DB[id].modelos).length}</span></button>`).join('')}</div>`;
-  const body=({mensais:viewMensais,semanais:viewSemanais,diarias:viewDiarias}[rotinaTab])();
+  const tabsHTML=`<div class="tabs">${tabs.map(([id,lbl])=>`<button class="tab ${rotinaTab===id?'active':''}" onclick="setRotinaTab('${id}')">${lbl}<span class="cnt">${alive(DB[id].modelos).length}</span></button>`).join('')}
+    <span class="div"></span>
+    <button class="tab ${rotinaTab==='historico'?'active':''}" onclick="setRotinaTab('historico')">Histórico</button></div>`;
+  const body=({mensais:viewMensais,semanais:viewSemanais,diarias:viewDiarias,historico:viewRotHistorico}[rotinaTab]||viewMensais)();
   return tabsHTML+body}
 /* em qual total cada rotina mensal entra no fim do mês */
 const ROT_CATS=[
@@ -2660,6 +2856,7 @@ function viewMensais(){
       ${proprio?'<span class="chip chip-n" style="color:var(--acc)" title="valor só deste mês">valor do mês</span>':''}
       ${mo.deletedAt?'<span class="chip chip-n" style="color:var(--mut)" title="rotina excluída; fica aqui porque houve registro neste mês">excluída · histórico</span>':''}
       ${mensalEncerrada(mo,pk)?`<span class="chip chip-n" style="color:var(--mut)" title="encerrada em ${esc(mesNome(mo.vigenciaFim))}">encerrada</span>`:''}
+      ${mo.vigenciaIni?`<span class="chip chip-n" title="a rotina começou a valer aqui">desde ${esc(mesNome(mo.vigenciaIni))}</span>`:''}
       ${(!mo.deletedAt&&mo.vigenciaFim===pk)?'<span class="chip chip-avencer" title="último mês desta rotina">último mês</span>':''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
       <div class="row-actions" style="align-items:center">
        <select class="rot-cat" title="Em qual total esta rotina entra" onchange="setModeloCat('${mo.id}',this.value)">${ROT_CAT_OPCOES(mo.categoria)}</select>
@@ -2672,7 +2869,7 @@ function viewMensais(){
          :(mo.vigenciaFim&&pk>=mo.vigenciaFim)
            ? `<button class="iconbtn" title="Voltar a rodar todo mês" onclick="rotReativar('${mo.id}')">↻</button>`
            : `<button class="iconbtn" title="Pular só este mês" onclick="rotPular('${mo.id}')">⤼</button>
-              <button class="iconbtn" title="Encerrar a partir do mês que vem" onclick="rotEncerrar('${mo.id}')">⏻</button>`}
+              <button class="iconbtn" title="Encerrar esta rotina" onclick="rotEncerraAbrir('mensais','${mo.id}')">⏻</button>`}
        ${mo.deletedAt?'':`<button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button>`}</div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina mensal neste mês.</div>';
   const pulados=(DB.mensais.modelos||[]).filter(mo=>!mo.deletedAt&&mensalPulado(mo,pk)&&!mensalRegistrado(mo,pk));
@@ -2767,7 +2964,7 @@ function mensalBaixar(){
 function viewSemanais(){
   const wk=weekKey(semRef);const ex=DB.semanais.exec[wk]||{};
   const WDAYS=[['1','Segunda'],['2','Terça'],['3','Quarta'],['4','Quinta'],['5','Sexta'],['6','Sábado'],['0','Domingo']];
-  const mods=alive(DB.semanais.modelos);
+  const mods=rotModelos('semanais',semRef);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
   const byDay=WDAYS.map(([d,lbl])=>{
     const ms=mods.filter(mo=>String(mo.diaSemana)===d);if(!ms.length)return'';
@@ -2776,8 +2973,10 @@ function viewSemanais(){
         const st=rotStatus('semanais',mo,semRef,!!on);
         return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('semanais','${mo.id}')">✓</button>
         <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
-        <div class="row-meta">${rotChip(st)}<span class="chip chip-n">${fmtBR(st.dk)}</span>${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
-        <div class="row-actions"><button class="iconbtn" onclick="openModelo('semanais','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('semanais','${mo.id}')">🗑</button></div></div>`}).join('')
+        <div class="row-meta">${rotChip(st)}<span class="chip chip-n">${fmtBR(st.dk)}</span>${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}${rotVigChips('semanais',mo)}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+        <div class="row-actions">${mo.fimEm?`<button class="iconbtn" title="Voltar a valer" onclick="rotReabrir('semanais','${mo.id}')">↻</button>`
+          :`<button class="iconbtn" title="Encerrar esta rotina" onclick="rotEncerraAbrir('semanais','${mo.id}')">⏻</button>`}
+        <button class="iconbtn" onclick="openModelo('semanais','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('semanais','${mo.id}')">🗑</button></div></div>`}).join('')
   }).join('')||'<div class="empty">Nenhuma rotina semanal. Clique em "+ Nova".</div>';
   const vencidas=rotVencidas('semanais',semRef);
   return `<div class="panel"><div class="panel-head"><h2>Semana ${wk.split('-W')[1]}<small>${done}/${total} concluídas${vencidas?' · <b style="color:var(--neg)">'+vencidas+' vencida(s)</b>':''}</small></h2>
@@ -2786,7 +2985,7 @@ function viewSemanais(){
 function viewDiarias(){
   if(!diariaDate)diariaDate=todayKey();
   const dk=diariaDate,dt=parseK(dk),util=isDiaUtil(dt),ex=DB.diarias.exec[dk]||{};
-  const mods=alive(DB.diarias.modelos).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  const mods=rotModelos('diarias',dt);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
   const isToday=dk===todayKey();
   const dName=dt.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
@@ -2796,8 +2995,10 @@ function viewDiarias(){
     const st=rotStatus('diarias',mo,dt,!!on);
     return `<div class="row"><button class="chk ${on?'on':''}" onclick="toggleExec('diarias','${mo.id}')">✓</button>
     <div class="row-body"><div class="row-title" style="${on?'text-decoration:line-through;color:var(--mut)':''}">${esc(mo.descricao)}</div>
-    <div class="row-meta">${rotChip(st)}${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
+    <div class="row-meta">${rotChip(st)}${mo.responsavelId?`<span class="chip chip-n">${esc(respName(mo.responsavelId))}</span>`:''}${rotVigChips('diarias',mo)}</div>${mo.obs?`<div class="row-meta">${esc(mo.obs)}</div>`:''}</div>
     <div class="row-actions">${i>0?`<button class="iconbtn" onclick="moveModeloOrdem('${mo.id}',-1)">↑</button>`:''}${i<mods.length-1?`<button class="iconbtn" onclick="moveModeloOrdem('${mo.id}',1)">↓</button>`:''}
+    ${mo.fimEm?`<button class="iconbtn" title="Voltar a valer" onclick="rotReabrir('diarias','${mo.id}')">↻</button>`
+      :`<button class="iconbtn" title="Encerrar esta rotina" onclick="rotEncerraAbrir('diarias','${mo.id}')">⏻</button>`}
     <button class="iconbtn" onclick="openModelo('diarias','${mo.id}')">✎</button><button class="iconbtn del" onclick="delModelo('diarias','${mo.id}')">🗑</button></div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina diária. Clique em "+ Nova".</div>';
   return `<div class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${dName}${isToday?' · hoje':''}<small>${util?`${done}/${total} concluídas`+(rotVencidas('diarias',dt)?' · <b style="color:var(--neg)">'+rotVencidas('diarias',dt)+' vencida(s)</b>':''):'fora do dia útil'}</small></h2>
@@ -2822,6 +3023,15 @@ function openModelo(tipo,id,presetDia){
   gEl('m_ajWrap').style.display=tipo==='mensais'?'':'none';
   gEl('m_valWrap').style.display=tipo==='mensais'?'':'none';gEl('m_catWrap').style.display=tipo==='mensais'?'':'none';
   gEl('m_semWrap').style.display=tipo==='semanais'?'':'none';
+  {const mensal=tipo==='mensais';
+   gEl('m_ini').type=mensal?'month':'date';
+   gEl('m_iniLbl').textContent=mensal?'Começa a valer no mês de':'Começa a valer em';
+   gEl('m_ini').value=m?rotIniDe(tipo,m):(mensal?monthKey(mensalRef):todayKey());
+   const fim=m?rotFimDe(tipo,m):'';
+   gEl('m_iniDica').textContent=fim
+     ?'Encerrada em '+(mensal?mesNome(fim):fmtBR(fim))+'. Para voltar a valer, use o botão de reabrir na lista.'
+     :(mensal?'Antes deste mês a rotina não aparece na lista nem conta como vencida.'
+             :'Antes desta data a rotina não aparece no dia nem conta como vencida.')}
   showModal('ovModelo');setTimeout(()=>gEl('m_desc').focus(),60)}
 function saveModelo(){
   const tipo=gEl('m_tipo').value,id=gEl('m_id').value;
@@ -2829,6 +3039,8 @@ function saveModelo(){
   const b={descricao:desc,obs:gEl('m_obs').value.trim(),responsavelId:gEl('m_resp').value||null,empresa:'Lidere'};
   if(tipo==='mensais'){b.dia=Math.min(31,Math.max(1,parseInt(gEl('m_dia').value)||1));b.ajuste=curAj;b.valor=parseFloat(gEl('m_valor').value)||0;b.categoria=gEl('m_cat').value||''}
   if(tipo==='semanais')b.diaSemana=parseInt(gEl('m_sem').value);
+  {const ini=gEl('m_ini').value||'';
+   if(tipo==='mensais')b.vigenciaIni=ini||null;else b.inicioEm=ini||''}
   let obj;
   if(id){obj=Object.assign(DB[tipo].modelos.find(m=>m.id===id),b)}
   else{if(tipo==='diarias')b.ordem=alive(DB.diarias.modelos).length;obj={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),...b,deletedAt:null};DB[tipo].modelos.push(obj)}
@@ -5726,6 +5938,10 @@ function pgActsHTML(){
     ? '<button class="btn btn-gold" onclick="cliArqModal(null,cliFichaId,\'documentos\')">+ Documento</button>'
     : cliFichaTab==='comprovantes'
     ? '<button class="btn btn-gold" onclick="cliArqModal(null,cliFichaId,\'comprovantes\')">+ Comprovante</button>'
+    : cliFichaTab==='relatorios'
+    ? '<button class="btn btn-gold" onclick="cliArqModal(null,cliFichaId,\'relatorios\')">+ Relatório</button>'
+    : cliFichaTab==='portal'
+    ? '<button class="btn btn-gold" onclick="portalCopiarLink()">Copiar convite do portal</button>'
     : '<button class="btn btn-gold" onclick="cliPendModal(null,cliFichaId)">+ Pendência</button>';
   return novo+'<button class="btn" onclick="go(\'carteira\')">← Carteira</button>'}
  return ''}
@@ -7395,7 +7611,11 @@ const ARQ_CATS=[
  {id:'comprovante',aba:'comprovantes',nome:'Comprovante de pagamento',cor:'#06b6d4'},
  {id:'nota',aba:'comprovantes',nome:'Nota fiscal',cor:'var(--meta)'},
  {id:'extrato',aba:'comprovantes',nome:'Extrato bancário',cor:'var(--pos)'},
- {id:'recibo',aba:'comprovantes',nome:'Recibo',cor:'#f59e0b'}];
+ {id:'recibo',aba:'comprovantes',nome:'Recibo',cor:'#f59e0b'},
+ {id:'relatorio',aba:'relatorios',nome:'Relatório mensal',cor:'var(--acc)'},
+ {id:'relatorio_outro',aba:'relatorios',nome:'Outro relatório',cor:'var(--meta)'}];
+const ARQ_ABA_PADRAO={documentos:'contrato',comprovantes:'comprovante',relatorios:'relatorio'};
+const ARQ_ABA_NOVO={documentos:'Novo documento',comprovantes:'Novo comprovante',relatorios:'Novo relatório'};
 const arqCat=id=>ARQ_CATS.find(x=>x.id===id)||ARQ_CATS[4];
 const ARQ_MAX=20*1024*1024;
 const cliArqDe=(cid,aba)=>alive(DB.cliArq||[])
@@ -7459,7 +7679,7 @@ function cliArqModal(id,cid,aba){
  _arqAba=a?arqCat(a.categoria).aba:(aba||'documentos');
  _arqNovoCaminho='';
  const cliente=a?a.clienteId:(cid||cliFichaId);
- gEl('arqTitle').textContent=a?'Editar arquivo':(_arqAba==='documentos'?'Novo documento':'Novo comprovante');
+ gEl('arqTitle').textContent=a?'Editar arquivo':(ARQ_ABA_NOVO[_arqAba]||'Novo arquivo');
  gEl('aq_id').value=a?a.id:'';
  gEl('aq_cliente').value=cliente;
  gEl('aq_caminho').value=a?a.caminho:'';
@@ -7468,7 +7688,7 @@ function cliArqModal(id,cid,aba){
  gEl('aq_tam').value=a?a.tamanho:'';
  gEl('aq_cat').innerHTML=ARQ_CATS.filter(x=>x.aba===_arqAba)
    .map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
- gEl('aq_cat').value=a?a.categoria:(_arqAba==='documentos'?'contrato':'comprovante');
+ gEl('aq_cat').value=a?a.categoria:(ARQ_ABA_PADRAO[_arqAba]||'documento');
  const ab=cliPendAbertas(cliente);
  gEl('aq_pend').innerHTML='<option value="">— nenhuma —</option>'+
    ab.map(p=>`<option value="${p.id}">${esc(cliTipo(p.tipo).curto)} · ${esc(p.titulo)}</option>`).join('');
@@ -7630,6 +7850,96 @@ function cliFichaCompr(c){
   <div class="empty" style="text-align:left;margin-bottom:12px">Comprovante de pagamento, nota, extrato e recibo, separados por competência.
    Em <b>Enviar vários</b> dá para mandar a pasta inteira de uma vez: cada arquivo vira uma linha com o nome dele, e você ajusta depois.</div>
   ${blocos||'<div class="empty">Nenhum comprovante guardado ainda.</div>'}</div>`}
+
+function cliFichaRel(c){
+ const lista=cliArqDe(c.id,'relatorios');
+ const porComp={};lista.forEach(a=>{const k=a.competencia||(a.dataRef||'').slice(0,7)||'sem competência';
+   (porComp[k]=porComp[k]||[]).push(a)});
+ const meses=Object.keys(porComp).sort((a,b)=>a==='sem competência'?1:b==='sem competência'?-1:b.localeCompare(a));
+ const blocos=meses.map(k=>{const rot=/^\d{4}-\d{2}$/.test(k)?mesExtenso(parseK(k+'-01')):k;
+   return `<div style="font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:16px 0 6px">${esc(rot)}</div>`
+    +porComp[k].map(cliArqLinha).join('')}).join('');
+ return `<div class="panel"><div class="panel-head"><h2>Relatórios<small>${lista.length} relatório(s) · o cliente vê e baixa pelo portal</small></h2>
+   <button class="btn btn-sm btn-gold" onclick="cliArqModal(null,'${c.id}','relatorios')">+ Relatório</button></div>
+  ${blocos||`<div class="empty" style="text-align:left">Nenhum relatório guardado ainda.<br>
+    Suba o PDF do fechamento com a competência do mês: ele aparece para o cliente no portal, em ordem de mês.</div>`}</div>`}
+
+/* ===================================================================
+   Portal do cliente. A pessoa cria a conta no portal com CPF; aqui a
+   equipe procura o CPF e libera a empresa. Sem vínculo, o portal não
+   mostra nada. O cliente só lê e baixa, nunca edita.
+   =================================================================== */
+const PORTAL_URL='https://leoskatayose-byte.github.io/portal-cliente-lidere/';
+let _portal={cid:'',lista:null,erro:'',busca:null,cpf:''};
+const cpfDig=s=>String(s||'').replace(/\D/g,'');
+const cpfFmt=s=>{const d=cpfDig(s);return d.length===11?d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4'):String(s||'')};
+function cpfOk(s){const d=cpfDig(s);if(d.length!==11||/^(\d)\1{10}$/.test(d))return false;
+ const dv=n=>{let t=0;for(let i=0;i<n;i++)t+=+d[i]*(n+1-i);const r=(t*10)%11;return r===10?0:r};
+ return dv(9)===+d[9]&&dv(10)===+d[10]}
+async function portalCarregar(cid){
+ _portal={cid,lista:null,erro:'',busca:_portal.cid===cid?_portal.busca:null,cpf:_portal.cid===cid?_portal.cpf:''};
+ const {data,error}=await sb.from('portal_acessos')
+   .select('id,ativo,liberado_em,revogado_em,usuario:portal_usuarios(id,nome,cpf,email,telefone,cargo,ultimo_acesso)')
+   .eq('cliente_id',cid).order('liberado_em');
+ if(_portal.cid!==cid)return;
+ if(error)_portal.erro=error.message;else _portal.lista=data||[];
+ if(activeTab==='cliFicha'&&cliFichaTab==='portal'&&cliFichaId===cid)render()}
+async function portalBuscar(){
+ const inp=gEl('pt_cpf');const cpf=cpfDig(inp?inp.value:'');_portal.cpf=cpf;
+ if(!cpfOk(cpf)){_portal.busca={erro:'CPF inválido. Confira os 11 números.'};return render()}
+ const {data,error}=await sb.from('portal_usuarios').select('id,nome,cpf,email,telefone,cargo,criado_em').eq('cpf',cpf).maybeSingle();
+ _portal.busca=error?{erro:error.message}:(data?{conta:data}:{nada:true});render()}
+async function portalLiberar(uid){
+ const cid=_portal.cid;if(!cid||!uid)return;
+ const {error}=await sb.from('portal_acessos').upsert({usuario_id:uid,cliente_id:cid,ativo:true,
+   liberado_por:ME?ME.id:null,liberado_em:new Date().toISOString(),revogado_em:null},{onConflict:'usuario_id,cliente_id'});
+ if(error)return toast('Não consegui liberar: '+error.message);
+ _portal.busca=null;_portal.cpf='';toast('Acesso liberado');portalCarregar(cid)}
+async function portalAtivo(id,ativo){
+ if(!ativo&&!confirm('Tirar o acesso desta pessoa ao portal desta empresa? A conta continua existindo, só deixa de ver esta empresa.'))return;
+ const {error}=await sb.from('portal_acessos').update({ativo,revogado_em:ativo?null:new Date().toISOString()}).eq('id',id);
+ if(error)return toast('Erro: '+error.message);
+ toast(ativo?'Acesso reativado':'Acesso retirado');portalCarregar(_portal.cid)}
+function portalCopiarLink(){
+ const t='Olá! Para acompanhar sua empresa com a Lidere, crie sua conta no portal do cliente: '+PORTAL_URL+' . Assim que concluir o cadastro, avise que eu libero o acesso.';
+ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Convite copiado'),()=>prompt('Copie o convite:',t))}
+function cliFichaPortal(c){
+ if(_portal.cid!==c.id){portalCarregar(c.id)}
+ const L=_portal.lista;
+ const quando=v=>v?fmtBR(String(v).slice(0,10)):'nunca entrou';
+ const linhas=!L?`<div class="empty">${_portal.erro?'Erro ao carregar: '+esc(_portal.erro):'Carregando...'}</div>`
+  :!L.length?'<div class="empty">Ninguém desta empresa tem acesso ao portal ainda.</div>'
+  :`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Pessoa</th><th>CPF</th><th>Contato</th><th>Último acesso</th><th>Situação</th><th></th></tr></thead><tbody>
+    ${L.map(a=>{const u=a.usuario||{};return `<tr style="${a.ativo?'':'opacity:.55'}">
+     <td><b>${esc(u.nome||'')}</b>${u.cargo?`<br><span class="muted" style="font-size:11px">${esc(u.cargo)}</span>`:''}</td>
+     <td class="num">${esc(cpfFmt(u.cpf))}</td>
+     <td>${esc(u.email||'')}${u.telefone?`<br><span class="muted" style="font-size:11px">${esc(u.telefone)}</span>`:''}</td>
+     <td>${a.ativo?esc(quando(u.ultimo_acesso)):'—'}</td>
+     <td>${a.ativo?'<span class="chip chip-concluido">liberado</span>':'<span class="chip chip-n">retirado</span>'}</td>
+     <td class="num">${a.ativo?`<button class="btn btn-sm btn-ghost" onclick="portalAtivo('${a.id}',false)">Tirar acesso</button>`
+        :`<button class="btn btn-sm" onclick="portalAtivo('${a.id}',true)">Reativar</button>`}</td></tr>`}).join('')}</tbody></table></div>`;
+ const b=_portal.busca;
+ const res=!b?'':b.erro?`<div class="tip">${esc(b.erro)}</div>`
+  :b.nada?`<div class="tip">Nenhuma conta com o CPF ${esc(cpfFmt(_portal.cpf))}. A pessoa precisa criar a conta no portal primeiro.
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-gold" onclick="portalCopiarLink()">Copiar convite com o link</button>
+      <a class="btn btn-sm" href="${PORTAL_URL}" target="_blank" rel="noopener">Abrir o portal</a></div></div>`
+  :(()=>{const u=b.conta;const ja=(L||[]).find(a=>a.usuario&&a.usuario.id===u.id&&a.ativo);
+     return `<div class="arq-l" style="margin-top:10px"><span class="tx"><b>${esc(u.nome)}</b>
+       <i>CPF ${esc(cpfFmt(u.cpf))} · ${esc(u.email||'')}${u.telefone?' · '+esc(u.telefone):''}${u.cargo?' · '+esc(u.cargo):''} · conta criada em ${esc(fmtBR(String(u.criado_em||'').slice(0,10)))}</i></span>
+       <span class="ac">${ja?'<span class="chip chip-concluido">já tem acesso</span>'
+         :`<button class="btn btn-sm btn-gold" onclick="portalLiberar('${u.id}')">Liberar acesso a ${esc(c.nome)}</button>`}</span></div>
+       <div class="muted" style="font-size:11.5px;margin-top:6px">Confira nome, e-mail e telefone antes de liberar: é a pessoa que vai ver os documentos desta empresa.</div>`})();
+ return `<div class="panel"><div class="panel-head"><h2>Portal do cliente<small>quem desta empresa acessa o portal · só visualiza e baixa, nunca edita</small></h2>
+   <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-sm" onclick="portalCopiarLink()">Copiar convite</button>
+   <button class="btn btn-sm btn-ghost" onclick="_portal.cid='';render()">Atualizar</button></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px">
+   <div class="field" style="margin:0;min-width:220px;flex:0 1 260px"><label>Liberar por CPF</label>
+    <input id="pt_cpf" inputmode="numeric" placeholder="000.000.000-00" value="${esc(cpfFmt(_portal.cpf))}" onkeydown="if(event.key==='Enter')portalBuscar()"></div>
+   <button class="btn btn-gold" onclick="portalBuscar()">Buscar conta</button></div>
+  ${res}
+  <div style="margin-top:16px">${linhas}</div>
+  <div class="empty" style="text-align:left;margin-top:14px">O cliente enxerga no portal: cadastro da empresa, pendências, documentos, comprovantes por mês, relatórios e, se houver implantação ligada a esta ficha, as etapas.
+   Não vê honorário, observações internas nem responsáveis.</div></div>`}
 
 /* ===== Logo do cliente =====
    A imagem vai para o bucket "logos" do Supabase e o cliente guarda só a URL.
@@ -8038,7 +8348,9 @@ function viewCliFicha(){
  const onb=c.onbId?alive(DB.onbClientes).find(x=>x.id===c.onbId):null;
  const abas=[['resumo','Resumo'],['pendencias','Pendências',cliPendAbertas(c.id).length],
    ['documentos','Documentos',cliArqDe(c.id,'documentos').length],
-   ['comprovantes','Comprovantes',cliArqDe(c.id,'comprovantes').length]];
+   ['comprovantes','Comprovantes',cliArqDe(c.id,'comprovantes').length],
+   ['relatorios','Relatórios',cliArqDe(c.id,'relatorios').length],
+   ['portal','Portal',_portal.cid===c.id&&_portal.lista?_portal.lista.filter(a=>a.ativo).length:0]];
  const cabec=`<div class="grid2">
   <div class="panel"><div class="panel-head"><h2>Cadastro<small>quem é e como falar com ele</small></h2>
     <button class="btn btn-sm" onclick="cliAbrirModal('${c.id}')">Editar</button></div>
@@ -8073,6 +8385,8 @@ function viewCliFicha(){
  const corpo=cliFichaTab==='pendencias'?bloco
    :cliFichaTab==='documentos'?cliFichaDocs(c)
    :cliFichaTab==='comprovantes'?cliFichaCompr(c)
+   :cliFichaTab==='relatorios'?cliFichaRel(c)
+   :cliFichaTab==='portal'?cliFichaPortal(c)
    :cabec+bloco;
  return comTabs(abas,cliFichaTab,'setCliFichaTab')+corpo}
 
