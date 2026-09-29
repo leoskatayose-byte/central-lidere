@@ -1084,9 +1084,12 @@ tbody tr:hover{background:var(--panel2)}
     </div>
     <div class="field"><label>Chave PIX</label><input id="px_chave" placeholder="chave aleatória, CNPJ, e-mail..."></div>
     <div class="fgrid">
-      <div class="field"><label>Cliente que usa esta conta</label><select id="px_cliente"></select></div>
+      <div class="field"><label>Quem usa esta conta</label><select id="px_cliente" onchange="pixQuemMudou()"></select></div>
       <div class="field"><label>Apelido (opcional)</label><input id="px_apelido" placeholder="Conta principal, Cartões..."></div>
     </div>
+    <div class="field" id="px_clienteNovoWrap" style="display:none"><label>Nome de quem usa</label>
+      <input id="px_clienteNovo" placeholder="Cliente, fornecedor ou parceiro">
+      <div class="muted" style="font-size:11.5px;margin-top:5px">Vale para qualquer empresa, não só para cliente da carteira. O que você escrever aqui passa a aparecer na lista.</div></div>
     <div class="field"><label>Observações</label><textarea id="px_obs" rows="2" placeholder="Para que serve, quem aprova, o que não pode sair daqui"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovPix')">Cancelar</button>
@@ -3372,6 +3375,25 @@ const pixTipoTxt=t=>{const x=PIX_TIPOS.find(p=>p[0]===t);return x?x[1]:'Chave'};
 const CONTA_TIPOS=[['corrente','Conta corrente'],['poupanca','Poupança'],['pagamentos','Conta de pagamentos']];
 const contaTipoTxt=t=>{const x=CONTA_TIPOS.find(p=>p[0]===t);return x?x[1]:''};
 const pixVivas=()=>(DB.cpContasBanco||[]).filter(c=>!c.deletedAt);
+/* quem usa a conta não é só cliente da carteira: fornecedor e parceiro entram
+   pelo mesmo campo, e o que for escrito uma vez já aparece na lista depois */
+function pixQuemOpcoes(sel){
+ const daCarteira=alive(DB.clientes||[]).map(x=>x.nome);
+ const jaUsados=[];
+ (DB.cpContasBanco||[]).forEach(c=>{const n=String(c.cliente||'').trim();
+   if(n&&daCarteira.indexOf(n)<0&&jaUsados.indexOf(n)<0)jaUsados.push(n)});
+ const opt=n=>`<option value="${esc(n)}" ${sel===n?'selected':''}>${esc(n)}</option>`;
+ let h=`<option value="">— nenhum, é conta do grupo —</option>`;
+ if(daCarteira.length)h+='<optgroup label="Clientes da carteira">'
+   +daCarteira.slice().sort((a,b)=>a.localeCompare(b,'pt-BR')).map(opt).join('')+'</optgroup>';
+ if(jaUsados.length)h+='<optgroup label="Já usados aqui">'
+   +jaUsados.sort((a,b)=>a.localeCompare(b,'pt-BR')).map(opt).join('')+'</optgroup>';
+ h+=`<option value="__novo">+ Outro nome…</option>`;
+ return h}
+function pixQuemMudou(){
+ const novo=gEl('px_cliente').value==='__novo';
+ gEl('px_clienteNovoWrap').style.display=novo?'':'none';
+ if(novo)setTimeout(()=>gEl('px_clienteNovo').focus(),40)}
 function pixSalvar(){DB.cpContasBanco=DB.cpContasBanco||[];saveCP()}
 /* CNPJ só para ler melhor; nada é validado, a área é informativa */
 function cnpjFmt(v){const d=String(v||'').replace(/[^0-9]/g,'').slice(0,14);
@@ -3456,9 +3478,8 @@ function openPixConta(id){
  gEl('px_tipoConta').innerHTML=CONTA_TIPOS.map(t=>`<option value="${t[0]}" ${c&&c.tipoConta===t[0]?'selected':''}>${t[1]}</option>`).join('');
  gEl('px_chaveTipo').innerHTML=PIX_TIPOS.map(t=>`<option value="${t[0]}" ${c&&c.chaveTipo===t[0]?'selected':''}>${t[1]}</option>`).join('');
  gEl('px_chave').value=c?(c.chave||''):'';
- gEl('px_cliente').innerHTML='<option value="">— nenhum, é conta do grupo —</option>'
-   +alive(DB.clientes||[]).map(x=>`<option value="${esc(x.nome)}" ${c&&c.cliente===x.nome?'selected':''}>${esc(x.nome)}</option>`).join('')
-   +((c&&c.cliente&&!alive(DB.clientes||[]).some(x=>x.nome===c.cliente))?`<option value="${esc(c.cliente)}" selected>${esc(c.cliente)}</option>`:'');
+ gEl('px_cliente').innerHTML=pixQuemOpcoes(c?c.cliente:'');
+ gEl('px_clienteNovo').value='';
  gEl('px_obs').value=c?(c.obs||''):'';
  pixBancoMudou();
  showModal('ovPix');setTimeout(()=>gEl('px_titular').focus(),60)}
@@ -3473,11 +3494,14 @@ function savePixConta(){
  if(!titular)return toast('Informe o titular da conta');
  if(!banco)return toast('Escolha o banco');
  if(banco==='outro'&&!outro)return toast('Escreva o nome do banco');
+ if(gEl('px_cliente').value==='__novo'&&!gEl('px_clienteNovo').value.trim())
+  return toast('Escreva o nome de quem usa a conta, ou escolha "nenhum"');
  const d={bancoId:banco==='outro'?'':banco,bancoOutro:banco==='outro'?outro:'',
    apelido:gEl('px_apelido').value.trim(),titular,cnpj:gEl('px_cnpj').value.trim(),
    agencia:gEl('px_ag').value.trim(),conta:gEl('px_conta').value.trim(),
    tipoConta:gEl('px_tipoConta').value,chaveTipo:gEl('px_chaveTipo').value,
-   chave:gEl('px_chave').value.trim(),cliente:gEl('px_cliente').value,
+   chave:gEl('px_chave').value.trim(),
+   cliente:gEl('px_cliente').value==='__novo'?gEl('px_clienteNovo').value.trim():gEl('px_cliente').value,
    obs:gEl('px_obs').value.trim()};
  const id=gEl('px_id').value;
  DB.cpContasBanco=DB.cpContasBanco||[];
