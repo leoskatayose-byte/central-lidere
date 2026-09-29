@@ -2547,15 +2547,10 @@ function setExecAtivo(mid,pk,ativo){const s=DB.mensais.exec;s[pk]=s[pk]||{};
  persistExec('mensais',mid,pk,!!ant.feito,ant.valor,ant.ativo)}
 
 function rotPular(id){const pk=monthKey(mensalRef);const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
- if(mensalRegistrado(mo,pk))return toast('Esta rotina já foi marcada ou valorizada neste mês; desfaça isso antes de pular');
- setExecAtivo(id,pk,false);render();toast('Fora de '+mesNome(pk)+' · volta no mês seguinte')}
+ if(mensalRegistrado(mo,pk))return toast('Esta rotina já foi marcada ou valorizada neste mês; desfaça isso antes');
+ setExecAtivo(id,pk,false);render();toast('Não se aplica a '+mesNome(pk)+' · volta no mês seguinte')}
 function rotVoltar(id){const pk=monthKey(mensalRef);setExecAtivo(id,pk,true);render();toast('De volta em '+mesNome(pk))}
-function rotEncerrar(id){const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
- const pk=monthKey(mensalRef);
- if(!confirm('Encerrar "'+mo.descricao+'" a partir de '+mesNome(mesSeguinte(pk))+'?\n\n'
-   +'Ela continua aparecendo em '+mesNome(pk)+' e em todos os meses anteriores, com o que já foi registrado.'))return;
- mo.vigenciaFim=pk;persistModelo('mensais',mo);render();
- toast(mo.descricao+' encerrada · última vez em '+mesNome(pk))}
+function rotEncerrarMensal(id){rotEncerraAbrir('mensais',id)}
 function rotReativar(id){const mo=DB.mensais.modelos.find(x=>x.id===id);if(!mo)return;
  mo.vigenciaFim='';persistModelo('mensais',mo);render();toast(mo.descricao+' voltou a rodar todo mês')}
 
@@ -2567,7 +2562,7 @@ function cpSetPulo(id,mk,v){DB.cpPulos=DB.cpPulos||{};DB.cpPulos[mk]=DB.cpPulos[
  saveCP()}
 function cpPular(id){const mk=monthKey(cpMesRef);
  if(cpPagto(mk,id)&&cpPagto(mk,id).pago)return toast('Esta conta já está paga neste mês; desmarque o pagamento antes');
- cpSetPulo(id,mk,true);render();toast('Fora de '+mesNome(mk)+' · volta no mês seguinte')}
+ cpSetPulo(id,mk,true);render();toast('Não se aplica a '+mesNome(mk)+' · volta no mês seguinte')}
 function cpVoltar(id){const mk=monthKey(cpMesRef);cpSetPulo(id,mk,false);render();toast('De volta em '+mesNome(mk))}
 function cpEncerrar(id){const c=DB.contas.find(x=>x.id===id);if(!c)return;
  const mk=monthKey(cpMesRef);
@@ -2602,15 +2597,15 @@ function painelAbertura(area,pk,itens,fns){
    <span class="tx"><b>${esc(x.nome)}</b><i>${esc(x.meta||'')}</i></span>
    <span class="ac">
     ${x.fora
-      ? `<span class="chip chip-n" style="color:var(--mut)">fora deste mês</span>
+      ? `<span class="chip chip-na">não se aplica a este mês</span>
          <button class="btn btn-sm" onclick="${fns.voltar}('${x.id}')">Trazer de volta</button>`
-      : `<button class="btn btn-sm btn-ghost" onclick="${fns.pular}('${x.id}')">Pular este mês</button>
+      : `<button class="btn btn-sm btn-ghost" onclick="${fns.pular}('${x.id}')">Não se aplica a este mês</button>
          <button class="btn btn-sm btn-ghost" onclick="${fns.encerrar}('${x.id}')">Encerrar</button>`}</span></div>`;
  const dentro=itens.filter(x=>!x.fora).length;
  return `<div class="panel" style="border-color:var(--acc)">
   <div class="panel-head"><h2>Virou o mês: confira ${esc(mesNome(pk))}<small>${dentro} de ${itens.length} item(ns) vão rodar</small></h2>
     <button class="btn btn-gold" onclick="abrirMes('${area}','${pk}')">Está certo, abrir o mês</button></div>
-  <div class="empty" style="text-align:left;margin-bottom:10px">Esta é a cópia deste mês. <b>Pular</b> tira só de ${esc(mesNome(pk))};
+  <div class="empty" style="text-align:left;margin-bottom:10px">Esta é a cópia deste mês. <b>Não se aplica a este mês</b> tira só de ${esc(mesNome(pk))};
    <b>Encerrar</b> tira daqui pra frente. Nos dois casos os meses anteriores ficam intactos, com o que já foi registrado.</div>
   ${itens.map(linha).join('')||'<div class="empty">Nada para este mês.</div>'}</div>`}
 
@@ -2841,7 +2836,7 @@ function rotItensAbertura(pk){
 function viewMensais(){
   const y=mensalRef.getFullYear(),m=mensalRef.getMonth();const pk=monthKey(mensalRef);const ex=DB.mensais.exec[pk]||{};
   const abertura=painelAbertura('rotinas',pk,rotItensAbertura(pk),
-    {pular:'rotPular',voltar:'rotVoltar',encerrar:'rotEncerrar'});
+    {pular:'rotPular',voltar:'rotVoltar',encerrar:'rotEncerrarMensal'});
   const mods=mensaisDoPeriodo(pk).sort((a,b)=>a.dia-b.dia);
   const total=mods.length,done=mods.filter(mo=>ex[mo.id]&&ex[mo.id].feito).length;
   const vencidas=mods.filter(mo=>rotStatus('mensais',mo,mensalRef,!!(ex[mo.id]&&ex[mo.id].feito)).id==='vencida').length;
@@ -2868,12 +2863,12 @@ function viewMensais(){
        ${mo.deletedAt?''
          :(mo.vigenciaFim&&pk>=mo.vigenciaFim)
            ? `<button class="iconbtn" title="Voltar a rodar todo mês" onclick="rotReativar('${mo.id}')">↻</button>`
-           : `<button class="iconbtn" title="Pular só este mês" onclick="rotPular('${mo.id}')">⤼</button>
+           : `<button class="iconbtn" title="Não se aplica a este mês" onclick="rotPular('${mo.id}')">⤼</button>
               <button class="iconbtn" title="Encerrar esta rotina" onclick="rotEncerraAbrir('mensais','${mo.id}')">⏻</button>`}
        ${mo.deletedAt?'':`<button class="iconbtn del" onclick="delModelo('mensais','${mo.id}')">🗑</button>`}</div></div>`}).join('')
     ||'<div class="empty">Nenhuma rotina mensal neste mês.</div>';
   const pulados=(DB.mensais.modelos||[]).filter(mo=>!mo.deletedAt&&mensalPulado(mo,pk)&&!mensalRegistrado(mo,pk));
-  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Fora de ${esc(mesNome(pk))}<small>voltam sozinhas no mês que vem</small></h2></div>
+  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Não se aplicam a ${esc(mesNome(pk))}<small>voltam sozinhas no mês que vem</small></h2></div>
     ${pulados.map(mo=>`<div class="row"><div class="row-body"><div class="row-title" style="color:var(--mut)">${esc(mo.descricao)}</div>
       <div class="row-meta"><span class="chip chip-n">dia ${mo.dia}</span>${mo.valor?`<span class="chip chip-n">${brl(mo.valor)}</span>`:''}</div></div>
       <div class="row-actions"><button class="btn btn-sm" onclick="rotVoltar('${mo.id}')">Trazer de volta</button></div></div>`).join('')}</div>`:'';
@@ -3337,7 +3332,7 @@ function viewCpResumo(){
   const abertura=painelAbertura('contas',mk,cpItensAbertura(mk),
     {pular:'cpPular',voltar:'cpVoltar',encerrar:'cpEncerrar'});
   const pulados=(DB.contas||[]).filter(c=>!c.deletedAt&&cpPulado(c,mk)&&!cpPagto(mk,c.id));
-  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Fora de ${esc(mesNome(mk))}<small>voltam sozinhas no mês que vem</small></h2></div>
+  const blocoPulados=pulados.length?`<div class="panel"><div class="panel-head"><h2>Não se aplicam a ${esc(mesNome(mk))}<small>voltam sozinhas no mês que vem</small></h2></div>
     ${pulados.map(c=>`<div class="row"><div class="row-body"><div class="row-title" style="color:var(--mut)">${esc(c.fornecedor)}</div>
       <div class="row-meta"><span class="chip chip-n">dia ${c.dia}</span><span class="chip chip-n">${brl(c.valor)}</span><span class="chip chip-n" style="color:${cpGrupoCor(c.grupoId)}">${esc(cpGrupoNome(c.grupoId))}</span></div></div>
       <div class="row-actions"><button class="btn btn-sm" onclick="cpVoltar('${c.id}')">Trazer de volta</button></div></div>`).join('')}</div>`:'';
@@ -3388,7 +3383,7 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
     <div class="row-actions"><button class="iconbtn" onclick="openConta('${c.id}')">✎</button>
      ${c.deletedAt?''
        :encerrada?`<button class="iconbtn" title="Voltar a vencer todo mês" onclick="cpReativar('${c.id}')">↻</button>`
-       :c.tipo==='mensal'?`<button class="iconbtn" title="Pular só este mês" onclick="cpPular('${c.id}')">⤼</button>
+       :c.tipo==='mensal'?`<button class="iconbtn" title="Não se aplica a este mês" onclick="cpPular('${c.id}')">⤼</button>
           <button class="iconbtn" title="Encerrar a partir do mês que vem" onclick="cpEncerrar('${c.id}')">⏻</button>`:''}
      ${c.deletedAt?'':`<button class="iconbtn del" onclick="delConta('${c.id}')">🗑</button>`}</div></div>`}
 /* viewCpCalendario removida — o calendário de Contas a Pagar foi unificado com o de Pendências (ver viewCalendar). */
