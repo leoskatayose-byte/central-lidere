@@ -681,6 +681,18 @@ table.brk tr.tot td{border-top:1px solid var(--line-f);border-bottom:none;font-w
   border-radius:8px;padding:5px 9px;font-size:12px;font-family:ui-monospace,Consolas,monospace;
   color:var(--txt);max-width:100%;overflow:hidden}
 .pix-chave b{font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* botao de anexo na linha da conta: tem que saltar aos olhos de quem nao e do escritorio */
+.doc-btn{display:inline-flex;align-items:center;gap:6px;border-radius:9px;padding:7px 12px;
+  font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.14s;
+  border:1px solid color-mix(in srgb,var(--acc) 55%,transparent);
+  background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc)}
+.doc-btn:hover{background:color-mix(in srgb,var(--acc) 26%,transparent);box-shadow:0 0 10px var(--glow)}
+.doc-btn.bol{border-color:color-mix(in srgb,#06b6d4 55%,transparent);
+  background:color-mix(in srgb,#06b6d4 16%,transparent);color:#22c8e0}
+.doc-btn.bol:hover{background:color-mix(in srgb,#06b6d4 28%,transparent);box-shadow:0 0 10px rgba(6,182,212,.4)}
+.doc-btn.vazio{border-color:var(--line-f);background:transparent;color:var(--mut);font-weight:600}
+.doc-btn.vazio:hover{border-color:var(--acc);color:var(--acc);background:transparent;box-shadow:none}
+.cod-bol{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;letter-spacing:.3px}
 .pix-copia{border:1px solid var(--line-f);background:var(--panel);color:var(--dim);border-radius:7px;
   padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex:0 0 auto}
 .pix-copia:hover{border-color:var(--acc);color:var(--acc)}
@@ -1061,6 +1073,29 @@ tbody tr:hover{background:var(--panel2)}
     <button class="btn btn-gold" onclick="avFeitoSalvar()">Salvar</button></div>
 </div></div>
 
+<div class="overlay" id="ovBoleto"><div class="modal" style="max-width:560px">
+  <div class="modal-head"><h3>Boleto do mês</h3><button class="modal-x" onclick="closeModal('ovBoleto')">×</button></div>
+  <div class="modal-body">
+    <div class="row" style="margin-bottom:6px"><div class="row-body">
+      <div class="row-title" id="bolTitulo">Conta</div>
+      <div class="row-meta" id="bolSub"></div></div></div>
+    <div class="field"><label>Código do boleto (linha digitável)</label>
+      <input id="bol_cod" class="cod-bol" placeholder="34191.79001 01043.510047 91020.150008 1 99999999999999">
+      <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm" onclick="copiaTexto(gEl('bol_cod').value,'Código do boleto copiado')">Copiar código</button>
+        <span class="muted" style="font-size:11px">Cole aqui e a equipe paga sem digitar nada.</span></div></div>
+    <div class="field"><label>Arquivo do boleto</label>
+      <div id="bol_anexos"></div>
+      <div style="display:flex;gap:9px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <input type="file" id="bol_arq" style="display:none" onchange="cpBolSubir(this)">
+        <button type="button" class="btn btn-sm" onclick="gEl('bol_arq').click()">🧾 Anexar boleto</button>
+        <span class="muted" style="font-size:11px">PDF ou imagem, até 20 MB. Melhor do que imprimir.</span></div></div>
+    <div class="muted" style="font-size:11.5px;line-height:1.5">O boleto fica guardado só neste mês. No mês que vem a conta aparece pedindo o boleto novo.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovBoleto')">Fechar</button>
+    <button class="btn btn-gold" onclick="salvarBoleto()">Salvar</button></div>
+</div></div>
+
 <div class="overlay" id="ovPix"><div class="modal">
   <div class="modal-head"><h3 id="pixTitle">Nova conta</h3><button class="modal-x" onclick="closeModal('ovPix')">×</button></div>
   <div class="modal-body">
@@ -1169,7 +1204,8 @@ tbody tr:hover{background:var(--panel2)}
         <input type="file" id="c_arq" style="display:none" onchange="cpAnexoSubir(this)">
         <button type="button" class="btn btn-sm" onclick="gEl('c_arq').click()">📎 Anexar carnê</button>
         <span class="muted" style="font-size:11px">PDF ou imagem, até 20 MB. Fica no bucket fechado, aberto por link de uma hora.</span>
-      </div></div>
+      </div>
+      <div class="muted" style="font-size:11.5px;margin-top:7px;line-height:1.45">O carnê vale por vários meses: marque de quando até quando ele roda e o botão aparece só nesses meses. O boleto do mês é outra coisa, e vai pelo botão 🧾 na linha da conta.</div></div>
     <div class="fgrid">
       <div class="field"><label>Forma de pagamento</label><select id="c_forma"></select></div>
       <div class="field"><label>Conta / chave (opcional)</label><input id="c_conta" placeholder="Ex.: conta corrente, chave PIX"></div>
@@ -1677,7 +1713,7 @@ async function persistExec(tipo,mid,periodo,feito,valor,ativo){const {error}=awa
 let _cpSaveTimer=null;
 function saveCP(){clearTimeout(_cpSaveTimer);_cpSaveTimer=setTimeout(cpSaveNow,600)}
 async function cpSaveNow(){if(!sb||!ME||!ME.approved)return;
-  const {error}=await sb.from('cp_state').upsert({id:1,data:{grupos:DB.grupos,classes:DB.classes,contas:DB.contas,pagamentos:DB.pagamentos,pulos:DB.cpPulos||{},lixo:DB.cpLixo||null,bancos:DB.cpContasBanco||[]},updated_at:new Date().toISOString(),updated_by:ME.id});
+  const {error}=await sb.from('cp_state').upsert({id:1,data:{grupos:DB.grupos,classes:DB.classes,contas:DB.contas,pagamentos:DB.pagamentos,pulos:DB.cpPulos||{},lixo:DB.cpLixo||null,bancos:DB.cpContasBanco||[],boletos:DB.cpBoletos||{}},updated_at:new Date().toISOString(),updated_by:ME.id});
   if(error){console.error(error);toast('⚠ Erro ao salvar Contas a Pagar')}}
 async function loadAll(){
   const q=t=>sb.from(t).select('*');
@@ -1716,6 +1752,7 @@ async function loadAll(){
     cpPulos:cp.pulos||{},
     cpLixo:cp.lixo||null,
     cpContasBanco:cp.bancos||[],
+    cpBoletos:cp.boletos||{},
     onbOperadores:(OO.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
     onbModelo:(OM.data||[]).map(r=>({id:r.id,num:r.num,ordem:r.ordem,fase:r.fase,titulo:r.titulo,obrigatorio:r.obrigatorio,bloqueador:r.bloqueador,marco:r.marco,offset:r.offset_dias,deletedAt:fromISO(r.deleted_at)})),
     onbClientes,
@@ -3280,14 +3317,116 @@ function cpPagosCSV(){
    Carnê da conta. O arquivo vai para o mesmo bucket fechado dos
    documentos de cliente, numa pasta por conta, e o link vale uma hora.
    =================================================================== */
+
+/* ===================================================================
+   Documento da conta.
+   Carnê fica na conta e vale por um intervalo de meses: o carnê do
+   consórcio vai de abril a dezembro e é o mesmo papel o tempo todo.
+   Boleto é do mês: chega um por mês, com código próprio, e some do
+   mês seguinte. Por isso um mora na conta e o outro no mês.
+   =================================================================== */
+const cpCarneVale=(a,mk)=>(!a.vigIni||mk>=a.vigIni)&&(!a.vigFim||mk<=a.vigFim);
+const cpCarnesDoMes=(c,mk)=>((c&&c.anexos)||[]).filter(a=>cpCarneVale(a,mk));
+const cpBoleto=(mk,cid)=>((DB.cpBoletos||{})[mk]||{})[cid];
+function cpBoletoTem(mk,cid){const b=cpBoleto(mk,cid);
+ return !!(b&&((b.anexos&&b.anexos.length)||String(b.codigo||'').trim()))}
+function cpVigTxt(a){
+ if(!a.vigIni&&!a.vigFim)return 'todos os meses';
+ if(a.vigIni&&a.vigFim)return mesNome(a.vigIni)+' a '+mesNome(a.vigFim);
+ return a.vigIni?('a partir de '+mesNome(a.vigIni)):('até '+mesNome(a.vigFim))}
+/* copiar serve para a chave PIX e para o código do boleto */
+function copiaTexto(txt,msg){
+ txt=String(txt||'');if(!txt)return toast('Nada para copiar');
+ const ok=()=>toast(msg||'Copiado');
+ if(navigator.clipboard&&navigator.clipboard.writeText)
+  return navigator.clipboard.writeText(txt).then(ok,()=>pixCopiarVelho(txt,ok));
+ pixCopiarVelho(txt,ok)}
+
+let _bolCid='',_bolMk='',_bolAnexos=[];
+function openBoleto(cid){
+ const c=DB.contas.find(x=>x.id===cid);if(!c)return;
+ _bolCid=cid;_bolMk=monthKey(cpMesRef);
+ const b=cpBoleto(_bolMk,cid)||{};
+ _bolAnexos=(b.anexos||[]).slice();
+ gEl('bolTitulo').textContent=c.fornecedor;
+ gEl('bolSub').textContent='Boleto de '+mesNome(_bolMk)+' · vence dia '+c.dia;
+ gEl('bol_cod').value=b.codigo||'';
+ cpBolPintar();
+ showModal('ovBoleto');setTimeout(()=>gEl('bol_cod').focus(),60)}
+function cpBolPintar(){const box=gEl('bol_anexos');if(!box)return;
+ box.innerHTML=_bolAnexos.length?_bolAnexos.map(a=>`<div class="cp-anx">
+   <span>🧾</span><span class="nm" title="abrir" onclick="cpBolAbrir('${a.id}')">${esc(a.nome)}</span>
+   <span class="muted" style="font-size:11px">${esc(arqTam(a.tamanho))}</span>
+   <button type="button" class="iconbtn del" title="Remover" onclick="cpBolRemover('${a.id}')">🗑</button></div>`).join('')
+  :'<div class="muted" style="font-size:11.5px">Nenhum arquivo anexado ainda.</div>'}
+async function cpBolSubir(inp){
+ const f=inp.files&&inp.files[0];inp.value='';
+ const ruim=arqRecusa(f);if(ruim)return toast('Não deu: '+ruim);
+ if(!sb)return toast('Sem conexão com o servidor');
+ toast('Enviando '+f.name+'…');
+ try{const caminho=await cliArqSubir(f,'boletos/'+_bolCid+'/'+_bolMk);
+  _bolAnexos.push({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
+    nome:f.name,caminho,tipo:f.type||'',tamanho:f.size,quando:new Date().toISOString()});
+  cpBolGravar();cpBolPintar();toast('Boleto anexado')}
+ catch(e){toast('Não consegui enviar: '+((e&&e.message)||e))}}
+function cpBolGravar(){
+ DB.cpBoletos=DB.cpBoletos||{};DB.cpBoletos[_bolMk]=DB.cpBoletos[_bolMk]||{};
+ const cod=(gEl('bol_cod')?gEl('bol_cod').value:'').trim();
+ if(!cod&&!_bolAnexos.length)delete DB.cpBoletos[_bolMk][_bolCid];
+ else DB.cpBoletos[_bolMk][_bolCid]={codigo:cod,anexos:_bolAnexos.slice()};
+ if(!Object.keys(DB.cpBoletos[_bolMk]).length)delete DB.cpBoletos[_bolMk];
+ saveCP()}
+function salvarBoleto(){cpBolGravar();closeModal('ovBoleto');render();toast('Boleto de '+mesNome(_bolMk)+' guardado')}
+async function cpBolAbrir(aid,cid,mk){
+ let a;
+ if(cid){const b=cpBoleto(mk,cid)||{};a=(b.anexos||[]).find(x=>x.id===aid)}
+ else a=_bolAnexos.find(x=>x.id===aid);
+ if(!a)return toast('Arquivo não encontrado');
+ if(!sb)return toast('Sem conexão com o servidor');
+ const janela=window.open('','_blank');
+ try{const {data,error}=await sb.storage.from('documentos').createSignedUrl(a.caminho,3600,{});
+  if(error||!data||!data.signedUrl)throw error||new Error('não consegui gerar o link');
+  janela.location=data.signedUrl}
+ catch(e){if(janela)janela.close();toast('Não consegui abrir: '+((e&&e.message)||e))}}
+function cpBolRemover(aid){
+ const a=_bolAnexos.find(x=>x.id===aid);if(!a)return;
+ if(!confirm('Remover "'+a.nome+'"?'))return;
+ _bolAnexos=_bolAnexos.filter(x=>x.id!==aid);
+ if(sb&&a.caminho)sb.storage.from('documentos').remove([a.caminho]).then(()=>{},()=>{});
+ cpBolGravar();cpBolPintar();toast('Arquivo removido')}
+/* o botão da linha: abre o arquivo quando há um só, e a janela quando há mais */
+function cpBolClique(cid){
+ const mk=monthKey(cpMesRef),b=cpBoleto(mk,cid)||{};
+ if((b.anexos||[]).length===1&&!String(b.codigo||'').trim())return cpBolAbrir(b.anexos[0].id,cid,mk);
+ openBoleto(cid)}
+function cpCarneClique(cid){
+ const c=DB.contas.find(x=>x.id===cid);if(!c)return;
+ const vale=cpCarnesDoMes(c,monthKey(cpMesRef));
+ if(vale.length===1)return cpAnexoAbrir(cid,vale[0].id);
+ openConta(cid)}
 let _contaAnexos=[];
 function cpAnexosPintar(){const box=gEl('c_anexos');if(!box)return;
  const cid=gEl('c_id').value;
- box.innerHTML=_contaAnexos.length?_contaAnexos.map(a=>`<div class="cp-anx">
+ box.innerHTML=_contaAnexos.length?_contaAnexos.map(a=>`<div class="cp-anx" style="flex-wrap:wrap">
    <span>📎</span><span class="nm" title="abrir" onclick="cpAnexoAbrir('${cid}','${a.id}')">${esc(a.nome)}</span>
    <span class="muted" style="font-size:11px">${esc(arqTam(a.tamanho))}</span>
-   <button type="button" class="iconbtn del" title="Remover" onclick="cpAnexoRemover('${cid}','${a.id}')">🗑</button></div>`).join('')
+   <button type="button" class="iconbtn del" title="Remover" onclick="cpAnexoRemover('${cid}','${a.id}')">🗑</button>
+   <div style="flex:1 0 100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:2px">
+     <span class="muted" style="font-size:11px">vale de</span>
+     <input type="month" value="${esc(a.vigIni||'')}" onchange="cpAnexoVig('${cid}','${a.id}','ini',this.value)" style="width:132px">
+     <span class="muted" style="font-size:11px">até</span>
+     <input type="month" value="${esc(a.vigFim||'')}" onchange="cpAnexoVig('${cid}','${a.id}','fim',this.value)" style="width:132px">
+     <span class="chip chip-n">${esc(cpVigTxt(a))}</span></div></div>`).join('')
   :'<div class="muted" style="font-size:11.5px">Nenhum arquivo anexado.</div>'}
+/* vigência do carnê: em branco nos dois campos quer dizer que ele vale sempre */
+function cpAnexoVig(cid,aid,qual,valor){
+ const a=_contaAnexos.find(x=>x.id===aid);if(!a)return;
+ if(qual==='ini')a.vigIni=valor||'';else a.vigFim=valor||'';
+ if(a.vigIni&&a.vigFim&&a.vigFim<a.vigIni){const t=a.vigIni;a.vigIni=a.vigFim;a.vigFim=t;
+   toast('Inverti as datas: o fim não pode vir antes do início')}
+ const c=DB.contas.find(x=>x.id===cid);
+ if(c){c.anexos=_contaAnexos.slice();saveCP()}
+ cpAnexosPintar()}
 async function cpAnexoSubir(inp){
  const f=inp.files&&inp.files[0];inp.value='';
  const ruim=arqRecusa(f);if(ruim)return toast('Não deu: '+ruim);
@@ -3296,7 +3435,8 @@ async function cpAnexoSubir(inp){
  toast('Enviando '+f.name+'…');
  try{const caminho=await cliArqSubir(f,'carnes/'+cid);
   _contaAnexos.push({id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),
-    nome:f.name,caminho,tipo:f.type||'',tamanho:f.size,quando:new Date().toISOString()});
+    nome:f.name,caminho,tipo:f.type||'',tamanho:f.size,quando:new Date().toISOString(),
+    vigIni:monthKey(cpMesRef),vigFim:''});
   const c=DB.contas.find(x=>x.id===cid);
   if(c){c.anexos=_contaAnexos.slice();saveCP()}
   cpAnexosPintar();toast('Carnê anexado')}
@@ -3401,10 +3541,7 @@ function cnpjFmt(v){const d=String(v||'').replace(/[^0-9]/g,'').slice(0,14);
  return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12)}
 function pixCopiar(id){
  const c=pixVivas().find(x=>x.id===id);if(!c||!c.chave)return toast('Esta conta está sem chave');
- const ok=()=>toast('Chave de '+(c.titular||pixBancoTxt(c))+' copiada');
- if(navigator.clipboard&&navigator.clipboard.writeText)
-  return navigator.clipboard.writeText(c.chave).then(ok,()=>pixCopiarVelho(c.chave,ok));
- pixCopiarVelho(c.chave,ok)}
+ copiaTexto(c.chave,'Chave de '+(c.titular||pixBancoTxt(c))+' copiada')}
 function pixCopiarVelho(txt,ok){
  const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';
  document.body.appendChild(t);t.select();
@@ -3620,8 +3757,10 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
   const stChip={pago:'<span class="chip chip-pago">✓ Pago</span>',avencer:'<span class="chip chip-avencer">◷ A vencer</span>',vencido:'<span class="chip chip-vencido">✗ Vencido</span>'}[st];
   const pagoV=st==='pago'&&x.pg?(+x.pg.valorPago||0):0;
   const difChip=st==='pago'&&x.pg?cpChipDif(cpDif(x)):'';
-  const anx=(c.anexos||[]).length
-    ? `<span class="chip chip-n" style="cursor:pointer" title="abrir o carnê anexado" onclick="cpAnexoAbrir('${c.id}','${c.anexos[0].id}')">📎 carnê${(c.anexos||[]).length>1?' ('+c.anexos.length+')':''}</span>`:'';
+  const carnes=cpCarnesDoMes(c,monthKey(cpMesRef));
+  const temBol=cpBoletoTem(monthKey(cpMesRef),c.id);
+  const botoesDoc=`${carnes.length?`<button class="doc-btn" title="Abrir o carnê desta conta" onclick="cpCarneClique('${c.id}')">📎 Carnê${carnes.length>1?' ('+carnes.length+')':''}</button>`:''}
+    <button class="doc-btn ${temBol?'bol':'vazio'}" title="${temBol?'Abrir o boleto deste mês':'Anexar o boleto ou o código deste mês'}" onclick="cpBolClique('${c.id}')">🧾 ${temBol?'Boleto':'+ boleto'}</button>`;
   const forma=c.formaPgto?`<span class="chip chip-n">${formaIcon(c.formaPgto)} ${formaLabel(c.formaPgto)}</span>`:'';
   const classeChip=c.classeId?`<span class="chip chip-n" style="color:${cpClasseCor(c.classeId)}">${esc(cpClasseNome(c.classeId))}</span>`:'';
   const parc=x.parcela?`<span class="chip chip-n">Parc. ${x.parcela}</span>`:(c.tipo==='unica'?'<span class="chip chip-n">Única</span>':'');
@@ -3632,7 +3771,8 @@ function cpRowConta(x){const c=x.c,st=x.st;const y=cpMesRef.getFullYear(),m=cpMe
     :c.vigenciaFim===mk?'<span class="chip chip-avencer" title="último mês desta conta">último mês</span>'
     :encerrada?'<span class="chip chip-n" style="color:var(--mut)">encerrada</span>':'';
   return `<div class="row"><button class="chk ${st==='pago'?'on':''}" title="${st==='pago'?'Desmarcar pago':'Registrar pagamento'}" onclick="cpTogglePay('${c.id}')">✓</button>
-    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${difChip}${marcaHist}${forma}${classeChip}${parc}${anx}${obs}</div></div>
+    <div class="row-body"><div class="row-title">${esc(c.fornecedor)}</div><div class="row-meta"><span class="chip chip-n">${diaTxt}</span>${stChip}${difChip}${marcaHist}${forma}${classeChip}${parc}${obs}</div>
+      <div class="row-meta" style="margin-top:8px">${botoesDoc}</div></div>
     <div class="cp-val ${st==='vencido'?'neg':''}">${st==='pago'&&x.pg?brl(pagoV):brl(c.valor)}
       ${st==='pago'&&x.pg&&pagoV!==cpBase(c)?`<small>base ${brl(cpBase(c))}</small>`:''}</div>
     <div class="row-actions"><button class="iconbtn" onclick="openConta('${c.id}')">✎</button>
