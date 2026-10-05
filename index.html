@@ -1759,7 +1759,9 @@ async function loadAll(){
     crmEstagios:(CE.data||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>({id:e.id,nome:e.nome,tipo:e.tipo||'normal',cor:e.cor||'#6b7690',fase:e.fase||'prospeccao',ordem:e.ordem||0})),
     crmResponsaveis:(CR.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor||'#d4a840',deletedAt:fromISO(r.deleted_at)})),
     crmLeads:(CL.data||[]).map(l=>({id:l.id,empresa:l.empresa,estagioId:l.estagio_id,responsavelId:l.responsavel_id||'',contato:l.contato||'',cargo:l.cargo||'',cnpj:l.cnpj||'',segmento:l.segmento||'',email:l.email||'',telefone:l.telefone||'',origem:l.origem||'',servico:l.servico||'',ticket:+l.ticket||0,proximoContato:l.proximo_contato||'',ultimoContato:l.ultimo_contato||'',statusContrato:l.status_contrato||'Aguardando',linkProposta:l.link_proposta||'',prioridade:l.prioridade||'media',obs:l.obs||'',dataEntrada:l.data_entrada||'',cadencia:Array.isArray(l.cadencia)?l.cadencia:[],cadenciaInicio:l.cadencia_inicio||'',cadenciaProp:Array.isArray(l.cadencia_prop)?l.cadencia_prop:[],propostaData:l.proposta_data||'',prediagStatus:l.prediag_status||'pendente',prediagData:l.prediag_data||'',prediagObs:l.prediag_obs||'',prediagId:l.prediag_id||'',motivoPerda:l.motivo_perda||'',lossDetail:l.loss_detail||'',lostFrom:l.lost_from_stage_id||'',lostAt:l.lost_at||'',reativarEm:l.reativar_em||'',reativarStatus:l.reativar_status||'',ciclo:l.ciclo||1,linhaServico:l.linha_servico||'',cadenciaOff:Array.isArray(l.cadencia_off)?l.cadencia_off:[],semProposta:!!l.sem_proposta,logoUrl:l.logo_url||'',deletedAt:fromISO(l.deleted_at)})),
-    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',assinaturaProvedor:p.assinatura_provedor||'',assinaturaDocId:p.assinatura_doc_id||'',assinaturaUrl:p.assinatura_url||'',assinaturaStatus:p.assinatura_status||'nao_enviado',assinaturaEnviadaEm:p.assinatura_enviada_em||'',assinadaEm:p.assinada_em||'',arquivoAssinadoUrl:p.arquivo_assinado_url||'',deletedAt:fromISO(p.deleted_at)})),
+    crmPropostas:(PR&&PR.data?PR.data:[]).map(p=>({id:p.id,leadId:p.lead_id||'',prediagId:p.prediag_id||'',numero:p.numero||'',data:p.data||'',validadeDias:p.validade_dias||30,empresa:p.empresa||'',contato:p.contato||'',cargo:p.cargo||'',email:p.email||'',telefone:p.telefone||'',cnpj:p.cnpj||'',segmento:p.segmento||'',necessidade:p.necessidade||'',plano:p.plano||'inter',mensalidade:Number(p.mensalidade)||0,implantacao:Number(p.implantacao)||0,perfilImpl:p.perfil_impl||'B',escopo:Array.isArray(p.escopo)?p.escopo:[],beneficios:Array.isArray(p.beneficios)?p.beneficios:[],condicoes:p.condicoes||{},numeros:p.numeros||{},transcricao:p.transcricao||'',enviadaEm:p.enviada_em||'',versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||'',assinaturaProvedor:p.assinatura_provedor||'',assinaturaDocId:p.assinatura_doc_id||'',assinaturaUrl:p.assinatura_url||'',assinaturaStatus:p.assinatura_status||'nao_enviado',assinaturaEnviadaEm:p.assinatura_enviada_em||'',assinadaEm:p.assinada_em||'',arquivoAssinadoUrl:p.arquivo_assinado_url||'',externa:!!p.externa,arquivoNome:p.arquivo_nome||'',
+      arquivoCaminho:p.arquivo_caminho||'',arquivoTipo:p.arquivo_tipo||'',arquivoTamanho:+p.arquivo_tamanho||0,
+      arquivoEm:p.arquivo_em||'',deletedAt:fromISO(p.deleted_at)})),
     clientes:(CC&&CC.data?CC.data:[]).map(c=>({id:c.id,nome:c.nome||'',cnpj:c.cnpj||'',
       leadId:c.lead_id||'',onbId:c.onb_id||'',responsavelId:c.responsavel_id||'',status:c.status||'ativo',
       honorario:Number(c.honorario)||0,diaFechamento:c.dia_fechamento||10,inicio:c.inicio||'',
@@ -5906,7 +5908,9 @@ function persistProposta(p){up('crm_propostas',{id:p.id,lead_id:p.leadId||null,p
  validade_dias:p.validadeDias||30,empresa:p.empresa||null,contato:p.contato||null,cargo:p.cargo||null,email:p.email||null,telefone:p.telefone||null,
  cnpj:p.cnpj||null,segmento:p.segmento||null,necessidade:p.necessidade||null,plano:p.plano||'inter',mensalidade:+p.mensalidade||0,
  implantacao:+p.implantacao||0,perfil_impl:p.perfilImpl||'B',escopo:p.escopo||[],beneficios:p.beneficios||[],condicoes:p.condicoes||{},
- numeros:p.numeros||{},transcricao:p.transcricao||null,enviada_em:p.enviadaEm||null,versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||null,assinatura_provedor:p.assinaturaProvedor||null,assinatura_doc_id:p.assinaturaDocId||null,assinatura_url:p.assinaturaUrl||null,assinatura_status:p.assinaturaStatus||'nao_enviado',assinatura_enviada_em:p.assinaturaEnviadaEm||null,assinada_em:p.assinadaEm||null,arquivo_assinado_url:p.arquivoAssinadoUrl||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
+ numeros:p.numeros||{},transcricao:p.transcricao||null,enviada_em:p.enviadaEm||null,versao:p.versao||1,status:p.status||'rascunho',obs:p.obs||null,assinatura_provedor:p.assinaturaProvedor||null,assinatura_doc_id:p.assinaturaDocId||null,assinatura_url:p.assinaturaUrl||null,assinatura_status:p.assinaturaStatus||'nao_enviado',assinatura_enviada_em:p.assinaturaEnviadaEm||null,assinada_em:p.assinadaEm||null,arquivo_assinado_url:p.arquivoAssinadoUrl||null,externa:!!p.externa,arquivo_nome:p.arquivoNome||null,
+ arquivo_caminho:p.arquivoCaminho||null,arquivo_tipo:p.arquivoTipo||null,arquivo_tamanho:+p.arquivoTamanho||0,
+ arquivo_em:p.arquivoEm||null,updated_at:new Date().toISOString(),created_by:ME?ME.id:null,deleted_at:toISO(p.deletedAt)})}
 
 /* perfil de implantação sugerido pelo tamanho e pela complexidade da operação */
 function propPerfilSugerido(c,k){if(!c)return 'B';
@@ -6084,7 +6088,12 @@ function viewPropEditor(){const p=propAtual();
  const cab=`<div class="panel"><div class="panel-head"><h2>Proposta ${esc(p.numero)}<small>${esc(propStatusLabel(p.status))}</small></h2>
    <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-sm" onclick="propMarcarEnviada()">Marcar como enviada</button>
-    <button class="btn btn-sm btn-gold" onclick="setPropTab('doc')">Ver o documento →</button></div></div>
+    <button class="btn btn-sm btn-gold" onclick="setPropTab('doc')">${propExterna(p)?'Ver o arquivo →':'Ver o documento →'}</button></div></div>
+  ${propExterna(p)
+   ?`<div class="tip">Proposta anexada: o documento é o arquivo, não o gerador daqui. Escopo, benefícios e condições abaixo não entram em lugar nenhum, mas número, valor e status continuam valendo.
+     <button class="btn btn-sm" style="margin-left:8px" onclick="setPropTab('doc')">Ver o arquivo</button></div>`
+   :`<div class="row-meta" style="margin:-2px 0 10px">Proposta complexa demais para o gerador?
+     <a style="color:var(--acc);cursor:pointer;margin-left:4px" onclick="propMarcarExterna('${p.id}',true)">Anexar a proposta pronta</a></div>`}
   <div class="stats">
    <div class="stat"><div class="k">Mensalidade</div><div class="v" id="propLiveMens">${brl(p.mensalidade)}</div></div>
    <div class="stat"><div class="k">Implantação</div><div class="v" id="propLiveImpl">${p.implantacao>0?brl(p.implantacao):'isenta'}</div></div>
@@ -6124,8 +6133,89 @@ function viewPropEditor(){const p=propAtual();
   ${propTxa('obs','Observações internas (não vão para o documento)','',3)}</div>`;
  return cab+planos+propBlocoIA(p)+escopo+benef+texto}
 
+
+/* ===================================================================
+   Proposta pronta, feita fora do sistema.
+   Tem negócio em que a proposta sai de um desenho próprio, com escopo
+   que o gerador daqui não cobre. Nesse caso o documento é o arquivo
+   anexado, e o resto do trilho continua igual: número, valor, envio,
+   status e fechamento, para o funil não perder a conta.
+   =================================================================== */
+const propExterna=p=>!!(p&&p.externa);
+const propTemArquivo=p=>!!(p&&p.arquivoCaminho);
+function propMarcarExterna(id,v){
+ const p=alive(DB.crmPropostas).find(x=>x.id===id);if(!p)return;
+ p.externa=!!v;persistProposta(p);render();
+ toast(v?'Esta proposta passa a ser o arquivo anexado':'Voltou a usar o documento gerado aqui')}
+async function propArqSubir(inp){
+ const f=inp.files&&inp.files[0];inp.value='';
+ const p=propAtual();if(!p)return;
+ const ruim=arqRecusa(f);if(ruim)return toast('Não deu: '+ruim);
+ if(!sb)return toast('Sem conexão com o servidor');
+ toast('Enviando '+f.name+'…');
+ try{
+  const velho=p.arquivoCaminho;
+  const caminho=await cliArqSubir(f,'propostas/'+p.id);
+  p.arquivoCaminho=caminho;p.arquivoNome=f.name;p.arquivoTipo=f.type||'';
+  p.arquivoTamanho=f.size;p.arquivoEm=new Date().toISOString();p.externa=true;
+  persistProposta(p);
+  if(velho&&sb)sb.storage.from('documentos').remove([velho]).then(()=>{},()=>{});
+  render();toast('Proposta anexada')}
+ catch(e){toast('Não consegui enviar: '+((e&&e.message)||e))}}
+async function propArqAbrir(id,baixar){
+ const p=alive(DB.crmPropostas).find(x=>x.id===id);
+ if(!p||!p.arquivoCaminho)return toast('Esta proposta ainda não tem arquivo');
+ if(!sb)return toast('Sem conexão com o servidor');
+ const janela=baixar?null:window.open('','_blank');
+ try{const opc=baixar?{download:p.arquivoNome||true}:{};
+  const {data,error}=await sb.storage.from('documentos').createSignedUrl(p.arquivoCaminho,3600,opc);
+  if(error||!data||!data.signedUrl)throw error||new Error('não consegui gerar o link');
+  if(janela)janela.location=data.signedUrl;else window.open(data.signedUrl,'_blank','noopener');}
+ catch(e){if(janela)janela.close();toast('Não consegui abrir: '+((e&&e.message)||e))}}
+function propArqRemover(id){
+ const p=alive(DB.crmPropostas).find(x=>x.id===id);if(!p||!p.arquivoCaminho)return;
+ if(!confirm('Remover "'+(p.arquivoNome||'arquivo')+'" desta proposta?'+'\n'+'\n'
+   +'O número, o valor e o histórico da proposta continuam.'))return;
+ const velho=p.arquivoCaminho;
+ p.arquivoCaminho='';p.arquivoNome='';p.arquivoTipo='';p.arquivoTamanho=0;p.arquivoEm='';
+ persistProposta(p);
+ if(sb)sb.storage.from('documentos').remove([velho]).then(()=>{},()=>{});
+ render();toast('Arquivo removido')}
+/* cria já marcada como externa, para o comercial anexar e seguir */
+function leadAnexarProposta(id){
+ const l=crmLeadById(id);if(!l)return;
+ closeModal('ovLead');
+ const c=l.prediagId?DB.pdClientes.find(x=>x.id===l.prediagId&&!x.deletedAt):null;
+ const p=propNova(c,l);
+ p.externa=true;persistProposta(p);
+ propSelId=p.id;comPropTab='doc';comAbrir(l.id,'proposta');
+ toast('Proposta '+p.numero+' criada para receber o arquivo')}
+/* o painel do documento quando a proposta vem de fora */
+function propArqPainel(p){
+ const tem=propTemArquivo(p);
+ return `<div class="panel"><div class="panel-head"><h2>Proposta anexada<small>${esc(p.numero)} · ${esc(p.empresa||'')}</small></h2>
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-sm" onclick="setPropTab('editor')">← Editar os dados</button>
+    <button class="btn btn-sm btn-ghost" onclick="propMarcarExterna('${p.id}',false)">Usar o documento do sistema</button></div></div>
+  <div class="empty" style="text-align:left">Esta proposta não é gerada aqui: o documento é o arquivo que você anexar.
+   O número, o valor, o status e o fechamento continuam valendo no funil.</div>
+  ${tem?`<div class="cp-anx" style="margin-top:10px">
+     <span>📄</span><span class="nm" onclick="propArqAbrir('${p.id}')">${esc(p.arquivoNome)}</span>
+     <span class="muted" style="font-size:11px">${esc(arqTam(p.arquivoTamanho))}${p.arquivoEm?' · '+fmtBR(String(p.arquivoEm).slice(0,10)):''}</span>
+     <button type="button" class="iconbtn del" title="Remover" onclick="propArqRemover('${p.id}')">🗑</button></div>
+   <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+     <button class="doc-btn" onclick="propArqAbrir('${p.id}')">📄 Abrir a proposta</button>
+     <button class="btn btn-sm" onclick="propArqAbrir('${p.id}',true)">↓ Baixar</button>
+     <input type="file" id="prop_arq" style="display:none" onchange="propArqSubir(this)">
+     <button class="btn btn-sm btn-ghost" onclick="gEl('prop_arq').click()">Trocar o arquivo</button></div>`
+   :`<div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+     <input type="file" id="prop_arq" style="display:none" onchange="propArqSubir(this)">
+     <button class="btn btn-gold" onclick="gEl('prop_arq').click()">📄 Anexar a proposta</button>
+     <span class="muted" style="font-size:11.5px;align-self:center">PDF, imagem ou documento, até 20 MB. Fica no bucket fechado, aberto por link de uma hora.</span></div>`}
+  </div>`}
 function viewPropDoc(){const p=propAtual();
  if(!p)return `<div class="panel"><div class="empty">Nenhuma proposta selecionada.</div></div>`;
+ if(propExterna(p))return propArqPainel(p);
  return `<div class="panel"><div class="panel-head"><h2>Documento da proposta<small>${esc(p.numero)} · ${esc(p.empresa||'')}</small></h2>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
    <button class="btn btn-sm" onclick="setPropTab('editor')">← Editar</button>
@@ -6584,6 +6674,10 @@ function comLinhaPrediag(l){
  return `${est}<div style="margin-top:6px"><button class="btn btn-sm btn-ghost" onclick="pdDispensar('${l.id}')">Não se aplica</button></div>`}
 function comLinhaProposta(l){
  const p=comPropAtiva(l);
+ if(p&&propExterna(p))return esc(p.numero)+' · '+esc(propStatusLabel(p.status))
+   +'<div style="margin-top:6px"><span class="chip chip-n" style="color:var(--acc)">proposta anexada</span>'
+   +(propTemArquivo(p)?`<button class="btn btn-sm" style="margin-left:6px" onclick="propArqAbrir('${p.id}')">Abrir</button>`
+     :'<span class="chip chip-vencido" style="margin-left:6px">falta anexar o arquivo</span>')+'</div>';
  if(l.semProposta)return `<span style="color:var(--mut)">não se aplica</span>
    <div style="margin-top:6px"><button class="btn btn-sm" onclick="propExigir('${l.id}')">Voltar a exigir</button></div>`;
  const est=p?esc(p.numero)+' · '+esc(propStatusLabel(p.status)):'ainda não gerada';
@@ -6629,11 +6723,13 @@ function comFichaProp(l,c,p){
    <button class="btn" onclick="propExigir('${l.id}')">Voltar a exigir proposta</button></div></div>`;
  if(!ps.length)return `<div class="panel"><div class="empty">Nenhuma proposta para este cliente ainda.<br>
    ${c?'O pré-diagnóstico já está aqui: a proposta nasce com os planos, o escopo e os números dele.':'Sem pré-diagnóstico, a proposta nasce em branco e você digita o valor.'}<br><br>
-   <button class="btn btn-gold" onclick="leadGerarProposta('${l.id}')">Gerar proposta</button>
-   <button class="btn" onclick="propDispensar('${l.id}')">Este cliente não vai ter proposta</button></div></div>`;
+   <div style="display:flex;gap:9px;flex-wrap:wrap;justify-content:center">
+    <button class="btn btn-gold" onclick="leadGerarProposta('${l.id}')">Gerar proposta</button>
+    <button class="btn" onclick="leadAnexarProposta('${l.id}')">Não gerar aqui, anexar proposta pronta</button>
+    <button class="btn btn-ghost" onclick="propDispensar('${l.id}')">Este cliente não vai ter proposta</button></div></div></div>`;
  if(!propAtual()||comLeadDe(propAtual())!==l)propSelId=ps[ps.length-1].id;
  const seletor=ps.length>1?`<select onchange="propSelId=this.value;render()" style="background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 10px;border-radius:9px;font-size:12.5px">
-   ${ps.map(x=>`<option value="${x.id}" ${propSelId===x.id?'selected':''}>${esc(x.numero)} · ${brl(x.mensalidade)} · ${esc(propStatusLabel(x.status))}</option>`).join('')}</select>`:'';
+   ${ps.map(x=>`<option value="${x.id}" ${propSelId===x.id?'selected':''}>${esc(x.numero)} · ${brl(x.mensalidade)} · ${esc(propStatusLabel(x.status))}${x.externa?' · anexada':''}</option>`).join('')}</select>`:'';
  const barra=`<div class="filters" style="margin-bottom:10px">${seletor}
    <button class="btn btn-sm" onclick="leadGerarProposta2('${l.id}')">+ Nova versão</button>
    <button class="btn btn-sm btn-ghost" onclick="propExcluir(propSelId)">Excluir esta proposta</button></div>`;
@@ -6695,6 +6791,8 @@ async function assChecar(silencioso){
 async function assErroDetalhe(error){try{const j=await error.context.json();return j.detalhe||j.erro||''}catch(e){return ''}}
 
 async function assEnviar(){
+ {const pa=propAtual();
+  if(propExterna(pa))return toast('Proposta anexada não vai pela assinatura daqui: envie o arquivo pelo próprio provedor e registre o retorno na proposta');}
  const p=propAtual();if(!p)return;
  const sg=assSigners(p);
  if(!sg.length)return toast('Adicione quem vai assinar antes de enviar');
@@ -6763,6 +6861,11 @@ function assWhats(id){const x=(DB.crmSigners||[]).find(y=>y.id===id);if(!x||!x.u
 /* painel de assinatura dentro da ficha do cliente */
 function assPainelHTML(p,l){
  if(!p)return '';
+ /* proposta anexada não tem documento gerado para mandar ao assinador */
+ if(propExterna(p))return `<div class="panel"><div class="panel-head"><h2>Assinatura<small>proposta anexada</small></h2></div>
+   <div class="empty" style="text-align:left">O assinador daqui envia o documento que o sistema gera.
+   Como esta proposta é um arquivo seu, mande pelo próprio provedor de assinatura e registre o desfecho
+   mudando o status da proposta.</div></div>`;
  if(_assCfg===null){_assCfg=undefined;setTimeout(()=>assChecar(true),80)}
  const st=p.assinaturaStatus||'nao_enviado';
  const sg=assSigners(p);
