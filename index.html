@@ -1057,7 +1057,25 @@ tbody tr:hover{background:var(--panel2)}
     <div class="field" id="t_feitoWrap" style="display:none"><label>Concluída em</label><div id="t_feitoCampo"></div></div>
     <div class="field"><label>Descrição / observações</label><textarea id="t_obs" rows="3" placeholder="Detalhes, links, contexto — aparece no card do Kanban"></textarea></div>
   </div>
-  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovTask')">Cancelar</button><button class="btn btn-gold" onclick="saveTask()">Salvar</button></div>
+  <div class="modal-foot"><button class="btn btn-ghost" id="t_cancelar" onclick="pendCancelarDaFicha()">Cancelar pendência</button>
+    <button class="btn btn-ghost" onclick="closeModal('ovTask')">Fechar</button>
+    <button class="btn btn-gold" onclick="saveTask()">Salvar</button></div>
+</div></div>
+
+<div class="overlay" id="ovCancelar"><div class="modal" style="max-width:560px">
+  <div class="modal-head"><h3>Cancelar pendência</h3><button class="modal-x" onclick="closeModal('ovCancelar')">×</button></div>
+  <div class="modal-body">
+    <div class="row" style="margin-bottom:6px"><div class="row-body">
+      <div class="row-title" id="cancTit">Tarefa</div>
+      <div class="row-meta" id="cancSub"></div></div></div>
+    <div class="field"><label>Por que esta pendência não vai acontecer?</label>
+      <div id="cancMotivos"></div>
+      <input id="cancOutro" placeholder="ou escreva o motivo"></div>
+    <div class="field"><label>Cancelada em</label><div id="cancData"></div></div>
+    <div class="muted" style="font-size:11.5px;line-height:1.5">Ela sai da fila e das cobranças, mas não some: fica no arquivo de canceladas, com o motivo, e dá para reabrir depois.</div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('ovCancelar')">Voltar</button>
+    <button class="btn btn-gold" onclick="pendCancelarSalvar()">Cancelar a pendência</button></div>
 </div></div>
 
 <div class="overlay" id="ovFeito"><div class="modal" style="max-width:470px">
@@ -1698,7 +1716,8 @@ function pErr(error,ctx){if(error){console.error(ctx||'',error);toast('⚠ Erro 
 async function up(table,row){const {error}=await sb.from(table).upsert(row);pErr(error,table)}
 
 /* ===== Pendências: persistência (mesma tabela/colunas do Gestor separado) ===== */
-function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId||null,tipo:a.tipo||null,proposta_id:a.propostaId||null,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),deleted_at:toISO(a.deletedAt)})}
+function persistAvulsa(a){up('avulsas',{id:a.id,titulo:a.titulo,lead_id:a.leadId||null,tipo:a.tipo||null,proposta_id:a.propostaId||null,prioridade:a.prioridade,prazo:a.prazo||null,hora:a.hora||null,ordem:a.ordem||0,responsavel_id:a.responsavelId||null,status:a.status,valor:a.valor||0,obs:a.obs||null,empresa:a.empresa||'Lidere',concluido_em:toISO(a.concluidoEm),cancelado_em:toISO(a.canceladoEm),
+ motivo_cancelado:a.motivoCancelado||null,deleted_at:toISO(a.deletedAt)})}
 function persistResp(r){up('responsaveis',{id:r.id,nome:r.nome,cor:r.cor,deleted_at:toISO(r.deletedAt)})}
 function persistModelo(tipo,m){const t={mensais:'mensais_modelos',semanais:'semanais_modelos',diarias:'diarias_modelos'}[tipo];
   const row={id:m.id,descricao:m.descricao,responsavel_id:m.responsavelId||null,obs:m.obs||null,empresa:m.empresa||'Lidere',deleted_at:toISO(m.deletedAt)};
@@ -1738,7 +1757,8 @@ async function loadAll(){
     _legado_comercial:(CR.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
     _legado_implantacao:(OO.data||[]).filter(r=>!r.deleted_at).map(r=>({id:r.id,nome:r.nome})),
     responsaveis:(R.data||[]).map(r=>({id:r.id,nome:r.nome,cor:r.cor,deletedAt:fromISO(r.deleted_at)})),
-    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',tipo:a.tipo||'',propostaId:a.proposta_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),deletedAt:fromISO(a.deleted_at)})),
+    avulsas:(A.data||[]).map(a=>({id:a.id,titulo:a.titulo,leadId:a.lead_id||'',tipo:a.tipo||'',propostaId:a.proposta_id||'',prioridade:a.prioridade,prazo:a.prazo,hora:a.hora||'',ordem:a.ordem||0,responsavelId:a.responsavel_id,status:a.status,valor:Number(a.valor)||0,obs:a.obs,empresa:a.empresa||'Lidere',concluidoEm:fromISO(a.concluido_em),canceladoEm:fromISO(a.cancelado_em),
+      motivoCancelado:a.motivo_cancelado||'',deletedAt:fromISO(a.deleted_at)})),
     config:(function(){const o={};((CFG&&CFG.data)||[]).forEach(x=>{o[x.chave]=x.valor});return o})(),
     mesesAbertos:(MA&&MA.data?MA.data:[]).map(x=>({area:x.area,periodo:x.periodo,abertoEm:x.aberto_em||''})),
     mensais:{modelos:(M.data||[]).map(m=>({id:m.id,dia:m.dia,ajuste:m.ajuste,descricao:m.descricao,valor:Number(m.valor)||0,categoria:m.categoria||'',responsavelId:m.responsavel_id,obs:m.obs,empresa:m.empresa||'Lidere',vigenciaIni:m.vigencia_ini||'',vigenciaFim:m.vigencia_fim||'',deletedAt:fromISO(m.deleted_at)})),exec:exec.mensais},
@@ -1937,7 +1957,7 @@ function pessoaExcluir(id){const p=pessoaById(id);if(!p)return;
 function admPessoas(){
   const ps=pessoasVivas().slice().sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'pt-BR'));
   const carga=p=>{const out=[];
-    if(p.idOperacao){const n=alive(DB.avulsas).filter(a=>a.responsavelId===p.idOperacao&&a.status!=='feito').length;if(n)out.push(n+' pendência(s)')}
+    if(p.idOperacao){const n=alive(DB.avulsas).filter(a=>a.responsavelId===p.idOperacao&&pendAberta(a)).length;if(n)out.push(n+' pendência(s)')}
     if(p.idComercial){const n=crmLeadsAtivos().filter(l=>l.responsavelId===p.idComercial).length;if(n)out.push(n+' cliente(s)')}
     if(p.idImplantacao){const n=alive(DB.onbClientes).filter(c=>c.operadorId===p.idImplantacao).length;if(n)out.push(n+' implantação(ões)')}
     return out.join(' · ')||'sem carga no momento'};
@@ -2095,7 +2115,7 @@ const SECAO={
   admin:['Administração','Equipe, funil, mensagens, tabela de preço, excluídos e acessos']
 };
 function tabCount(id){
-  if(id==='pend')return alive(DB.avulsas).filter(a=>a.status!=='feito').length||null;
+  if(id==='pend')return alive(DB.avulsas).filter(pendAberta).length||null;
   if(id==='contas')return cpContasDoMes().filter(x=>x.st==='vencido').length||null;
   if(id==='onb')return alive(DB.onbClientes).filter(c=>onbStatusPrazo(c)==='atrasado').length||null;
   if(id==='crm')return crmLeadsAtivos().filter(l=>l.proximoContato&&l.proximoContato<todayKey()).length||null;
@@ -2155,7 +2175,7 @@ function homeRotinasVencidas(){
 /* ===== Painel (visão geral) ===== */
 function viewHome(){
   const todayK=todayKey(),hoje=new Date();
-  const pendOpenAll=alive(DB.avulsas).filter(a=>a.status!=='feito');
+  const pendOpenAll=alive(DB.avulsas).filter(pendAberta);
   const pendLate=pendOpenAll.filter(a=>a.prazo&&a.prazo<todayK);
   const pendHoje=pendOpenAll.filter(a=>a.prazo===todayK);
   const pendFeitasHoje=alive(DB.avulsas).filter(a=>a.status==='feito'&&a.concluidoEm&&iso(new Date(a.concluidoEm))===todayK);
@@ -2285,6 +2305,101 @@ function homeContasAte(limite){
   return out.sort((a,b)=>iso(a.eff).localeCompare(iso(b.eff)))}
 
 /* ===== Pendências — Kanban ===== */
+
+/* ===================================================================
+   Pendência cancelada.
+   Nem toda tarefa vira entrega: cliente desiste, o assunto morre, a
+   informação nunca chega. Apagar some com o rastro, e concluir mente
+   sobre o que foi feito. Cancelar guarda a tarefa num arquivo próprio,
+   com o motivo, fora da conta de aberta e fora da conta de concluída.
+   =================================================================== */
+const pendAberta=a=>a&&a.status!=='feito'&&a.status!=='cancelado';
+const pendCancelada=a=>!!a&&a.status==='cancelado';
+const pendDataCanc=a=>a&&a.canceladoEm?iso(new Date(a.canceladoEm)):'';
+const PEND_MOTIVOS=['O cliente desistiu','Resolvido por outro caminho','Não era responsabilidade nossa',
+  'Tarefa duplicada','Perdeu o sentido','Faltou informação e o assunto morreu'];
+let _cancId='';
+function pendCancelarAbrir(id){
+ const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+ _cancId=id;
+ gEl('cancTit').textContent=a.titulo;
+ gEl('cancSub').textContent=(a.prazo?'prazo '+fmtBR(a.prazo)+' · ':'')
+   +(a.responsavelId?respName(a.responsavelId):'sem responsável');
+ /* reabrindo para corrigir: o motivo da lista volta marcado, o resto volta no campo livre */
+ const partes=String(a.motivoCancelado||'').split(' · ').map(x=>x.trim()).filter(Boolean);
+ gEl('cancMotivos').innerHTML=reChipsHTML(PEND_MOTIVOS,false,
+   partes.filter(x=>PEND_MOTIVOS.indexOf(x)>=0).join(','));
+ gEl('cancOutro').value=partes.filter(x=>PEND_MOTIVOS.indexOf(x)<0).join(' · ');
+ gEl('cancData').innerHTML=dtHTML('cancEm',pendDataCanc(a)||todayKey(),'');
+ showModal('ovCancelar');}
+function pendCancelarSalvar(){
+ const a=DB.avulsas.find(x=>x.id===_cancId);if(!a)return closeModal('ovCancelar');
+ if(dtIncompleto('cancEm'))return toast('Preencha a data como dd/mm/aaaa ou use o calendário');
+ const marcados=Array.prototype.map.call(document.querySelectorAll('#cancMotivos .re-op.sel'),b=>b.textContent.trim());
+ const outro=String(gEl('cancOutro').value||'').trim();
+ const motivo=marcados.concat(outro?[outro]:[]).join(' · ');
+ if(!motivo)return toast('Diga por que a pendência foi cancelada');
+ a.status='cancelado';a.concluidoEm=null;
+ a.canceladoEm=avMarcaDe(dtValor('cancEm')||todayKey());
+ a.motivoCancelado=motivo;
+ persistAvulsa(a);closeModal('ovCancelar');render();
+ toast(a.titulo+' cancelada')}
+function pendReativar(id){
+ const a=DB.avulsas.find(x=>x.id===id);if(!a)return;
+ a.status='afazer';a.canceladoEm=null;a.motivoCancelado='';
+ a.ordem=Math.min(0,...alive(DB.avulsas).filter(x=>x.status==='afazer').map(x=>x.ordem||0))-1;
+ persistAvulsa(a);render();toast(a.titulo+' voltou para A Fazer')}
+function pendCancPorMes(){
+ const cs=alive(DB.avulsas).filter(pendCancelada),map={};
+ cs.forEach(a=>{const mk=(pendDataCanc(a)||'').slice(0,7)||'sem-data';(map[mk]=map[mk]||[]).push(a)});
+ return Object.keys(map).sort((a,b)=>a==='sem-data'?1:b==='sem-data'?-1:b.localeCompare(a))
+  .map(mk=>({mk,nome:mk==='sem-data'?'Sem data':mesNome(mk),
+    itens:map[mk].sort((x,y)=>String(pendDataCanc(y)).localeCompare(String(pendDataCanc(x))))}))}
+function viewPendCanceladas(){
+ const meses=pendCancPorMes();
+ const total=meses.reduce((t,m)=>t+m.itens.length,0);
+ const mesAtual=todayKey().slice(0,7);
+ const doMes=(meses.find(m=>m.mk===mesAtual)||{itens:[]}).itens.length;
+ const porMotivo={};
+ meses.forEach(m=>m.itens.forEach(a=>{const k=String(a.motivoCancelado||'sem motivo').split(' · ')[0];
+   porMotivo[k]=(porMotivo[k]||0)+1}));
+ const topo=Object.keys(porMotivo).sort((a,b)=>porMotivo[b]-porMotivo[a])[0];
+ const stats=`<div class="stats">
+   <div class="stat"><div class="k">Canceladas</div><div class="v">${total}</div><div class="sub">no total</div></div>
+   <div class="stat"><div class="k">Neste mês</div><div class="v" style="color:var(--meta)">${doMes}</div><div class="sub">${esc(mesNome(mesAtual))}</div></div>
+   <div class="stat"><div class="k">Motivo mais comum</div><div class="v" style="font-size:14px">${topo?esc(topo):'—'}</div><div class="sub">${topo?porMotivo[topo]+' vez(es)':'nada cancelado ainda'}</div></div>
+   <div class="stat"><div class="k">Meses com cancelamento</div><div class="v">${meses.length}</div><div class="sub">no histórico</div></div></div>`;
+ const blocos=meses.map(m=>`<div class="panel"><div class="panel-head">
+    <h2>${esc(m.nome)}<small>${m.itens.length} cancelada(s)</small></h2></div>
+   ${m.itens.map(a=>`<div class="row">
+     <div class="row-body"><div class="row-title" style="color:var(--dim)">${esc(a.titulo)}</div>
+       <div class="row-meta">
+         <span class="chip chip-n" style="cursor:pointer" title="corrigir a data ou o motivo" onclick="pendCancelarAbrir('${a.id}')">${pendDataCanc(a)?fmtBR(pendDataCanc(a)):'sem data'} ✎</span>
+         <span class="pchip ${a.prioridade}">${a.prioridade}</span>
+         ${a.responsavelId?`<span class="chip chip-n">${esc(respName(a.responsavelId))}</span>`:''}
+         ${a.prazo?`<span class="chip chip-n">prazo era ${fmtBR(a.prazo)}</span>`:''}
+         ${a.empresa?`<span class="chip chip-n">${esc(a.empresa)}</span>`:''}</div>
+       <div class="et-desc">🚫 ${esc(a.motivoCancelado||'sem motivo registrado')}</div></div>
+     <div class="row-actions"><button class="btn btn-sm" onclick="pendReativar('${a.id}')">Reabrir</button>
+       <button class="iconbtn" onclick="openTask('${a.id}')">✎</button></div></div>`).join('')}</div>`).join('')
+   ||'<div class="empty">Nenhuma pendência cancelada. Quando uma tarefa não for acontecer, abra ela e use "Cancelar pendência".</div>';
+ const barra=total?`<div class="filters"><button class="btn btn-sm" onclick="pendCancCSV()">↓ Baixar CSV</button></div>`:'';
+ return `<div class="row-meta" style="margin:-4px 0 14px">O que foi cancelado sai da fila e das cobranças, mas fica registrado com o motivo. Dá para reabrir a qualquer momento.</div>`
+   +stats+barra+blocos}
+function pendCancCSV(){
+ const cs=alive(DB.avulsas).filter(pendCancelada);
+ if(!cs.length)return toast('Nenhuma pendência cancelada');
+ const linhas=[['Cancelada em','Tarefa','Motivo','Prioridade','Responsável','Empresa','Prazo original','Observações'].join(';')]
+  .concat(cs.sort((x,y)=>String(pendDataCanc(y)).localeCompare(String(pendDataCanc(x))))
+   .map(a=>[pendDataCanc(a)?fmtBR(pendDataCanc(a)):'',a.titulo,a.motivoCancelado||'',a.prioridade,
+     a.responsavelId?respName(a.responsavelId):'',a.empresa||'',a.prazo?fmtBR(a.prazo):'',
+     String(a.obs||'').replace(/[\r\n;]+/g,' ')]
+    .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')));
+ const b=new Blob(['\ufeff'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const el=document.createElement('a');el.href=URL.createObjectURL(b);
+ el.download='Pendencias-canceladas.csv';el.click();
+ setTimeout(()=>URL.revokeObjectURL(el.href),3000);
+ toast(cs.length+' pendência(s) exportada(s)')}
 let pendTab='kanban', pendArqMes='';
 function setPendTab(t){pendTab=t;render()}
 function togglePendMes(mk){pendArqMes=pendArqMes===mk?'':mk;render()}
@@ -2360,11 +2475,13 @@ function pendBaixarMes(mk){
   toast(m.itens.length+' tarefa(s) exportada(s)')}
 
 function viewPend(){
-  const abas=[['kanban','Kanban'],['arquivo','Arquivo',alive(DB.avulsas).filter(a=>a.status==='feito').length]];
-  return comTabs(abas,pendTab,'setPendTab')+(pendTab==='arquivo'?viewPendArquivo():viewPendKanban())}
+  const abas=[['kanban','Kanban'],['arquivo','Arquivo',alive(DB.avulsas).filter(a=>a.status==='feito').length],
+    ['canceladas','Canceladas',alive(DB.avulsas).filter(pendCancelada).length]];
+  const corpo={arquivo:viewPendArquivo,canceladas:viewPendCanceladas}[pendTab]||viewPendKanban;
+  return comTabs(abas,pendTab,'setPendTab')+corpo()}
 function viewPendKanban(){
   const list=alive(DB.avulsas);const today=todayKey();
-  const nf=list.filter(a=>a.status!=='feito');
+  const nf=list.filter(pendAberta);
   const arq=list.filter(pendArquivada);
   const mesAtual=today.slice(0,7);
   const noMes=list.filter(a=>a.status==='feito'&&pendMesFeito(a)===mesAtual).length;
@@ -2491,6 +2608,8 @@ function avFeitoCancelar(){
  const a=DB.avulsas.find(x=>x.id===_avFeitoId);
  if(a&&_avFeitoVolta){a.status=_avFeitoVolta;a.concluidoEm=null;persistAvulsa(a);render()}
  _avFeitoVolta='';closeModal('ovFeito')}
+function pendCancelarDaFicha(){const id=gEl('t_id').value;if(!id)return;
+ closeModal('ovTask');setTimeout(()=>pendCancelarAbrir(id),60)}
 function pickSt(s){curSt=s;document.querySelectorAll('#t_st .o').forEach(o=>o.classList.toggle('sel',o.dataset.v===s));
   const w=gEl('t_feitoWrap');if(w)w.style.display=s==='feito'?'':'none'}
 function openTask(id,presetSt,presetPrazo){
@@ -2507,6 +2626,9 @@ function openTask(id,presetSt,presetPrazo){
   gEl('t_obs').value=a?(a.obs||''):'';
   curPri=a?a.prioridade:'media';pickPri(curPri);
   gEl('t_feitoCampo').innerHTML=dtHTML('t_feito',avDiaFeito(a)||todayKey(),'');
+  /* só faz sentido cancelar o que já existe e ainda não aconteceu */
+  gEl('t_cancelar').style.display=(a&&a.status!=='feito')?'':'none';
+  gEl('t_cancelar').textContent=(a&&pendCancelada(a))?'Rever o cancelamento':'Cancelar pendência';
   curSt=a?a.status:(presetSt||'afazer');pickSt(curSt);
   showModal('ovTask');setTimeout(()=>gEl('t_titulo').focus(),60)}
 function saveTask(){
@@ -2530,7 +2652,7 @@ function mensaisOnDate(dt){
     mensaisDoPeriodo(monthKey(r)).forEach(mo=>{if(seen[mo.id])return;if(iso(mensalEff(yy,mm,mo))===iso(dt)){out.push(mo);seen[mo.id]=1}})});
   return out}
 function semanaisOnDate(dt){return alive(DB.semanais.modelos).filter(m=>String(m.diaSemana)===String(dt.getDay())&&rotAtivaNo('semanais',m,dt))}
-function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt)).sort((x,y)=>String(x.hora||'99:99').localeCompare(String(y.hora||'99:99'))||pendByOrdem(x,y))}
+function avulsasOnDate(dt){return alive(DB.avulsas).filter(a=>a.prazo===iso(dt)&&a.status!=='cancelado').sort((x,y)=>String(x.hora||'99:99').localeCompare(String(y.hora||'99:99'))||pendByOrdem(x,y))}
 function diariasOnDate(dt){return isDiaUtil(dt)?alive(DB.diarias.modelos).filter(m=>rotAtivaNo('diarias',m,dt)):[]}
 function holidayName(dt){const y=dt.getFullYear(),k=iso(dt);const n=feriadosNacionais(y).find(f=>f.data===k);if(n)return n.nome;const l=(DB.feriados||[]).find(f=>f.data===k);return l?l.nome:null}
 const CONTAS_COR='#06b6d4';
@@ -3136,7 +3258,7 @@ const initials=n=>(n||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).joi
 let respSel=null, curCor='#d4a840';
 function respCounts(id){
   const av=alive(DB.avulsas).filter(a=>a.responsavelId===id);
-  const pend=av.filter(a=>a.status!=='feito'),done=av.filter(a=>a.status==='feito');
+  const pend=av.filter(pendAberta),done=av.filter(a=>a.status==='feito');
   const over=pend.filter(a=>a.prazo&&a.prazo<todayKey());
   const men=alive(DB.mensais.modelos).filter(m=>m.responsavelId===id);
   const sem=alive(DB.semanais.modelos).filter(m=>m.responsavelId===id);
@@ -7030,7 +7152,7 @@ function diasUteisAFrente(dk,n){let d=dk;for(let i=0;i<n;i++){d=addDias(d,1);
   while(!isDiaUtil(parseK(d)))d=addDias(d,1)}return d}
 function comTarefaProposta(l){
  const titulo='Enviar proposta · '+l.empresa;
- const ja=alive(DB.avulsas).find(a=>a.leadId===l.id&&a.tipo==='proposta'&&a.status!=='feito');
+ const ja=alive(DB.avulsas).find(a=>a.leadId===l.id&&a.tipo==='proposta'&&pendAberta(a));
  const prazo=diasUteisAFrente(todayKey(),PRAZO_PROPOSTA_DIAS);
  if(ja){ja.prazo=prazo;persistAvulsa(ja);return ja}
  const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,leadId:l.id,
@@ -7039,7 +7161,7 @@ function comTarefaProposta(l){
    empresa:'Lidere',concluidoEm:null,deletedAt:null};
  DB.avulsas.push(a);persistAvulsa(a);return a}
 function comTarefaPropostaFecha(l){
- alive(DB.avulsas).filter(a=>a.leadId===l.id&&a.tipo==='proposta'&&a.status!=='feito')
+ alive(DB.avulsas).filter(a=>a.leadId===l.id&&a.tipo==='proposta'&&pendAberta(a))
   .forEach(a=>{a.status='feito';a.concluidoEm=Date.now();persistAvulsa(a)})}
 
 /* ===== reativação agendada ===== */
@@ -7111,7 +7233,7 @@ function comFichaFech(l,c,p){
     :'<div class="tip">Não há nada pendente deste cliente na sua agenda.</div>'}</div>`}
 
 /* pendências da agenda que pertencem a este cliente */
-function comPendenciasDoLead(l){return alive(DB.avulsas).filter(a=>a.status!=='feito'&&
+function comPendenciasDoLead(l){return alive(DB.avulsas).filter(a=>pendAberta(a)&&
  (a.leadId===l.id||a.titulo==='Reunião comercial · '+l.empresa))}
 
 /* encerra tudo o que estava pendente do cliente */
@@ -7519,7 +7641,7 @@ function pdDesmarcarCall(){const c=pdAtual();if(!c)return;
  c.reuniao='';savePd();render();toast('Reunião desmarcada')}
 function comPendenciaReuniao(l,data,hora){
  const titulo='Reunião comercial · '+l.empresa;
- const ja=alive(DB.avulsas).find(a=>(a.leadId===l.id||a.titulo===titulo)&&a.status!=='feito');
+ const ja=alive(DB.avulsas).find(a=>(a.leadId===l.id||a.titulo===titulo)&&pendAberta(a));
  if(ja){ja.prazo=data;ja.hora=hora;ja.leadId=l.id;persistAvulsa(ja);return}
  const a={id:(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)),titulo,leadId:l.id,
   prioridade:'alta',prazo:data,hora,ordem:-1,responsavelId:null,status:'afazer',valor:0,
